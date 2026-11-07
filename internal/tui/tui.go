@@ -106,7 +106,7 @@ func (m *Model) refresh() {
 }
 
 func (m Model) selected() (catalog.Info, bool) {
-	if m.cursor < len(m.themes) {
+	if m.cursor >= 0 && m.cursor < len(m.themes) {
 		return m.themes[m.cursor], true
 	}
 	return catalog.Info{}, false
@@ -193,7 +193,7 @@ func (m Model) key(k tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case "up", "k":
 		m.cursor = max(0, m.cursor-1)
 	case "down", "j":
-		m.cursor = min(len(m.themes)-1, m.cursor+1)
+		m.cursor = max(0, min(len(m.themes)-1, m.cursor+1))
 	case "s":
 		if th, ok := m.selected(); ok {
 			m.similar, m.cursor = th.ID, 0
