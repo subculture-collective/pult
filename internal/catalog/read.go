@@ -75,6 +75,28 @@ func Open(path string) (*DB, error) {
 	return d, nil
 }
 
+// OpenBytes opens an uncompressed catalog.db held in memory, such as the
+// one inside a bundle, by writing it to a temporary file.
+func OpenBytes(data []byte) (*DB, error) {
+	f, err := os.CreateTemp("", "theme-tender-catalog-*.db")
+	if err != nil {
+		return nil, err
+	}
+	_, werr := f.Write(data)
+	cerr := f.Close()
+	if werr != nil || cerr != nil {
+		os.Remove(f.Name())
+		return nil, errors.Join(werr, cerr)
+	}
+	d, err := Open(f.Name())
+	if err != nil {
+		os.Remove(f.Name())
+		return nil, err
+	}
+	d.tmp = f.Name()
+	return d, nil
+}
+
 // Close closes the catalog.
 func (d *DB) Close() error {
 	err := d.db.Close()

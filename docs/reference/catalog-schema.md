@@ -27,13 +27,15 @@ Counts were taken on 2026-11-06. The 2021 `PatrickFanella/Terminal-Color-Schemes
 ## Bundle layout
 
 ```text
-bundle-2026.11.06.1.tar.zst
-bundle-2026.11.06.1.tar.zst.minisig
-  manifest.toml        # bundle version, schema versions, source revisions, file hashes
+bundle-2026.11.06.1.tar.zst            # deterministic tar: manifest.toml first, then files by name
+bundle-2026.11.06.1.tar.zst.minisig    # minisign signature (BLAKE2b-prehashed Ed25519)
+  manifest.toml
   catalog.db
   registry/
   templates/
 ```
+
+`manifest.toml` holds `schema = 1`, `bundle_version`, `catalog_schema`, `registry_schema`, the `[[source]]` revisions the catalog was built from, and `[files]`, the SHA-256 of every other file. `internal/bundle` builds, signs, verifies and reads bundles. A bundle is used only if its signature verifies against a key built into the binary and every file matches the manifest; otherwise Theme Tender warns and uses the data built into the binary. Release builds embed the catalog there too (`builtin/`). Publishing is in [the bundle signing runbook](../runbooks/bundle-signing.md).
 
 ## Tables
 
