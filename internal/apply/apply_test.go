@@ -541,6 +541,11 @@ func TestIncludesFile(t *testing.T) {
 		"# include theme-tender.conf\n":                                false,
 		"include my-theme-tender.conf\n":                               false,
 		"include theme-tender.conf.bak\n":                              false,
+		"include=/home/u/.config/kitty/theme-tender.conf\n":            true,
+		"source ~/.config/kitty/theme-tender.conf\n":                   true,
+		"bind T source-file ~/.config/kitty/theme-tender.conf\n":       false,
+		"// include theme-tender.conf\n":                               false,
+		"font_family theme-tender.conf\n":                              false,
 		"":                                                             false,
 	} {
 		if got := includesFile([]byte(cfg), f); got != want {
@@ -798,5 +803,24 @@ integrations:
 	}
 	if _, err := os.Stat(filepath.Join(w.home, ".config/btop/themes/theme-tender.theme")); !os.IsNotExist(err) {
 		t.Error("uninstall left the port file")
+	}
+}
+
+// TestByteOrderMark: a config starting with a UTF-8 BOM keeps it in front,
+// and the edit lands after it.
+func TestByteOrderMark(t *testing.T) {
+	w := newWorld(t, map[string]string{".config/kitty/kitty.conf": "\ufefffont_size 12\n", ".config/btop/btop.conf": "\ufeffcolor_theme = \"Default\"\n"})
+	plan, err := Prepare(w.opts, mocha(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Execute(w.opts, plan); err != nil {
+		t.Fatal(err)
+	}
+	if got := w.read(".config/kitty/kitty.conf"); got != "\ufefffont_size 12\ninclude theme-tender.conf\n" {
+		t.Errorf("kitty.conf = %q", got)
+	}
+	if got := w.read(".config/btop/btop.conf"); got != "\ufeffcolor_theme = \"theme-tender\"\n" {
+		t.Errorf("btop.conf = %q", got)
 	}
 }

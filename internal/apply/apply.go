@@ -5,6 +5,7 @@
 package apply
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -220,10 +221,14 @@ func (o Options) planApp(e registry.Entry, th *Theme) (AppPlan, error) {
 
 func (o Options) planEdits(ap *AppPlan, th Theme) error {
 	in := ap.Integration
-	cfg, err := readFile(ap.Config)
+	original, err := readFile(ap.Config)
 	if err != nil {
 		return err
 	}
+	// Editors work on the text after a UTF-8 byte order mark, which is put
+	// back in front, so a line added "at the start" goes after it.
+	bom := []byte("\ufeff")
+	cfg := bytes.TrimPrefix(original, bom)
 	rendered := ap.port
 	if in.Template != "" {
 		out, err := render.File(o.Templates, in.Template, th.Theme, th.Palette)
@@ -274,7 +279,10 @@ func (o Options) planEdits(ap *AppPlan, th Theme) error {
 		}
 		ap.add(o.edit(ap, ap.ThemeFile, rendered), before)
 	}
-	ap.add(o.edit(ap, ap.Config, newCfg), cfg)
+	if len(cfg) < len(original) {
+		newCfg = append(slices.Clone(bom), newCfg...)
+	}
+	ap.add(o.edit(ap, ap.Config, newCfg), original)
 	return nil
 }
 
@@ -425,7 +433,13 @@ func includesFile(cfg []byte, file string) bool {
 	base := filepath.Base(file)
 	for _, l := range strings.Split(string(cfg), "\n") {
 		l = strings.TrimSpace(l)
-		if l == "" || strings.HasPrefix(l, "#") || strings.HasPrefix(l, ";") {
+		if l == "" || strings.HasPrefix(l, "#") || strings.HasPrefix(l, ";") || strings.HasPrefix(l, "//") {
+			continue
+		}
+		// Only a line that loads a file counts: a key binding that sources
+		// the theme file on demand does not load it at start.
+		directive := strings.FieldsFunc(l, func(r rune) bool { return r == ' ' || r == '\t' || r == '=' })[0]
+		if !slices.Contains(includeDirectives, directive) {
 			continue
 		}
 		for i := strings.Index(l, base); i >= 0; {
@@ -444,6 +458,10 @@ func includesFile(cfg []byte, file string) bool {
 	}
 	return false
 }
+
+// includeDirectives are the line keywords that load another config file in
+// the apps with include integrations (kitty, foot, Ghostty, tmux).
+var includeDirectives = []string{"include", "config-file", "source-file", "source", "import"}
 
 func set(format string, src []byte, values map[string]any) ([]byte, error) {
 	switch format {
