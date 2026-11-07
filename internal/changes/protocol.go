@@ -127,7 +127,12 @@ func (p *plan) finish() {
 }
 
 // resolve follows symlinks in path, including a dangling final one.
-func resolve(path string) (string, error) {
+func resolve(path string) (string, error) { return resolveN(path, 0) }
+
+func resolveN(path string, depth int) (string, error) {
+	if depth > 40 {
+		return "", fmt.Errorf("changes: %s: too many levels of symbolic links", path)
+	}
 	if r, err := filepath.EvalSymlinks(path); err == nil {
 		return r, nil
 	}
@@ -140,7 +145,7 @@ func resolve(path string) (string, error) {
 		if !filepath.IsAbs(target) {
 			target = filepath.Join(dir, target)
 		}
-		return resolve(target)
+		return resolveN(target, depth+1)
 	}
 	return full, nil
 }
@@ -153,6 +158,15 @@ func (s *Store) run(kind, rollsBack string, m Meta, plans []plan, validate Valid
 	defer unlock()
 	if err := s.step("locked"); err != nil {
 		return nil, err
+	}
+	txs, err := s.Transactions()
+	if err != nil {
+		return nil, err
+	}
+	for _, t := range txs {
+		if t.Status == "pending" {
+			return nil, ErrPending
+		}
 	}
 	tx := &Transaction{
 		Schema: 1, ID: newULID(s.now()), Kind: kind, Status: "pending", Started: s.now().UTC(),
@@ -170,7 +184,7 @@ func (s *Store) run(kind, rollsBack string, m Meta, plans []plan, validate Valid
 	for i, p := range plans {
 		if p.before != nil {
 			if err := s.storeBlob(p.before); err != nil {
-				return nil, err
+				return nil, s.abandon(tx, nil, fmt.Errorf("changes: backup of %s: %w", p.c.Resolved, err))
 			}
 		}
 		if err := s.step(fmt.Sprintf("blob:%d", i)); err != nil {
@@ -179,7 +193,8 @@ func (s *Store) run(kind, rollsBack string, m Meta, plans []plan, validate Valid
 	}
 	for i, p := range plans {
 		if err := replaceFile(p.c.Resolved, p.content, p.perm, p.owner); err != nil {
-			return nil, fmt.Errorf("changes: write %s: %w", p.c.Resolved, err)
+			werr := fmt.Errorf("changes: write %s: %w", p.c.Resolved, err)
+			return nil, s.abandon(tx, plans[:i], werr)
 		}
 		if err := s.step(fmt.Sprintf("write:%d", i)); err != nil {
 			return nil, err
@@ -241,6 +256,27 @@ func (s *Store) run(kind, rollsBack string, m Meta, plans []plan, validate Valid
 	return tx, nil
 }
 
+// abandon puts back the files a run wrote before it failed and records
+// the transaction as failed, so the next run is not blocked and nothing it
+// half-wrote is mistaken for the user's own contents. If a file cannot be
+// put back, the transaction stays pending for Recover.
+func (s *Store) abandon(tx *Transaction, written []plan, cause error) error {
+	for i := len(written) - 1; i >= 0; i-- {
+		p := written[i]
+		if err := replaceFile(p.c.Resolved, p.before, p.perm, p.owner); err != nil {
+			return fmt.Errorf("%w; restoring %s also failed (%v), run tender doctor -recover", cause, p.c.Resolved, err)
+		}
+	}
+	for i := range tx.Changes {
+		tx.Changes[i].Status = "undone"
+	}
+	tx.Status, tx.Error, tx.Finished = "failed", cause.Error(), s.now().UTC()
+	if err := s.writeTransaction(tx); err != nil {
+		return fmt.Errorf("%w; recording the failure also failed: %v", cause, err)
+	}
+	return cause
+}
+
 // Rollback undoes one transaction, newest change first. A file whose
 // contents are what the transaction wrote is restored; a file changed
 // since is left alone and reported, unless force is set; a missing file
@@ -277,10 +313,26 @@ func (s *Store) Uninstall(force bool) (*Transaction, []Conflict, error) {
 		return nil, nil, err
 	}
 	var targets []target
+	var edited []Conflict
 	for _, f := range st.Files {
+		if f.Edited && !force {
+			// Restoring the original would also undo edits made between
+			// two applies; ask first, as for edits since the last apply.
+			before, err := s.readBlob(f.Pristine, f.Backup)
+			if err != nil {
+				return nil, nil, err
+			}
+			_, data, err := current(f.Resolved)
+			if err != nil {
+				return nil, nil, err
+			}
+			edited = append(edited, Conflict{Path: f.Resolved, Reason: "edited", Before: before, Current: data})
+			continue
+		}
 		targets = append(targets, target{Change{App: f.App, Path: f.Path, Resolved: f.Resolved, Method: f.Method}, f.Hash, f.Pristine, f.Backup})
 	}
 	plans, conflicts, err := s.undoPlans(targets, force)
+	conflicts = append(edited, conflicts...)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -306,12 +358,14 @@ func (s *Store) Recover() ([]*Transaction, []Conflict, error) {
 		if tx.Status != "pending" {
 			continue
 		}
+		kept := 0
 		for j := len(tx.Changes) - 1; j >= 0; j-- {
 			c := tx.Changes[j]
 			cur, data, err := current(c.Resolved)
 			if err != nil {
 				return nil, nil, err
 			}
+			tx.Changes[j].Status = "undone"
 			switch cur {
 			case c.Before:
 				continue // not written yet
@@ -325,11 +379,19 @@ func (s *Store) Recover() ([]*Transaction, []Conflict, error) {
 					return nil, nil, err
 				}
 			default:
+				// Written and edited since: left as it is, but still
+				// recorded as Theme Tender's change, so uninstall can
+				// offer the original back.
 				before, _ := s.readBlob(c.Before, c.Backup)
 				conflicts = append(conflicts, Conflict{Path: c.Resolved, Reason: "edited", Before: before, Current: data})
+				tx.Changes[j].Status = ""
+				kept++
 			}
 		}
 		tx.Status = "rolled-back"
+		if kept > 0 {
+			tx.Status, tx.Error = "failed", fmt.Sprintf("interrupted; %d file(s) edited since were left as they are", kept)
+		}
 		tx.Finished = s.now().UTC()
 		if err := s.writeTransaction(tx); err != nil {
 			return nil, nil, err

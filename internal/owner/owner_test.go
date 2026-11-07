@@ -152,6 +152,24 @@ func TestOwners(t *testing.T) {
 			record: "generator:matugen", action: Ask,
 		},
 		{
+			name: "config including a matugen output as ./name",
+			setup: func(h *home) {
+				h.file(".config/matugen/config.toml", "[templates.kitty]\ninput_path = \"x\"\noutput_path = \"~/.config/kitty/matugen.conf\"\n")
+				h.file(kitty, "font_size 12\ninclude ./matugen.conf\n")
+			},
+			path:   kitty,
+			record: "generator:matugen", action: Ask,
+		},
+		{
+			name: "config including a matugen output in a subdirectory",
+			setup: func(h *home) {
+				h.file(".config/matugen/config.toml", "[templates.kitty]\ninput_path = \"x\"\noutput_path = \"~/.config/kitty/themes/matugen.conf\"\n")
+				h.file(kitty, "include themes/matugen.conf\n")
+			},
+			path:   kitty,
+			record: "generator:matugen", action: Ask,
+		},
+		{
 			name: "wallust target",
 			setup: func(h *home) {
 				h.file(".config/wallust/wallust.toml", "backend = \"full\"\n[templates]\nkitty = { template = \"kitty.conf\", target = \"~/.config/kitty/wallust.conf\" }\n")

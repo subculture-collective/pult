@@ -397,7 +397,8 @@ func stowPackage(home, link, resolved, path string) (string, bool) {
 }
 
 // mentions reports whether content refers to p, written absolute, with
-// "~/" or "$HOME/", or, for a file in dir, by its bare name.
+// "~/" or "$HOME/", or, for a file under dir, by its path relative to dir
+// with or without "./".
 func (d *Detector) mentions(content []byte, p, dir string) bool {
 	if len(content) == 0 {
 		return false
@@ -406,8 +407,8 @@ func (d *Detector) mentions(content []byte, p, dir string) bool {
 	if rel, err := filepath.Rel(d.env.Home, p); err == nil && !strings.HasPrefix(rel, "..") {
 		forms = append(forms, "~/"+rel, "$HOME/"+rel, "${HOME}/"+rel)
 	}
-	if dir != "" && filepath.Dir(p) == dir {
-		forms = append(forms, filepath.Base(p))
+	if rel, err := filepath.Rel(dir, p); dir != "" && err == nil && filepath.IsLocal(rel) {
+		forms = append(forms, rel, "./"+rel)
 	}
 	for _, f := range forms {
 		if containsWord(content, f) {
