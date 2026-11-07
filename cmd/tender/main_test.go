@@ -311,7 +311,7 @@ func TestUpdate(t *testing.T) {
 	d1, s1 := signed("2026.11.07.1")
 	d2, s2 := signed("2026.11.08.1")
 	f.served = map[string][]byte{
-		bundle.DefaultReleases: listing("2026.11.07.1"),
+		bundle.DefaultReleases:    listing("2026.11.07.1"),
 		"https://dl/2026.11.07.1": d1, "https://dl/2026.11.07.1.sig": s1,
 		"https://dl/2026.11.08.1": d2, "https://dl/2026.11.08.1.sig": s2,
 	}

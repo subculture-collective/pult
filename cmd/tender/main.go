@@ -66,7 +66,7 @@ type env struct {
 func main() {
 	home, _ := os.UserHomeDir()
 	os.Exit(run(os.Args[1:], os.Stdin, os.Stdout, os.Stderr, env{
-		home: home, getenv: os.Getenv, sys: realSystem{}, get: httpGetter(1<<20), fetch: httpGetter(256<<20), owners: owner.SystemEnv(), keys: bundle.TrustedKeys,
+		home: home, getenv: os.Getenv, sys: realSystem{}, get: httpGetter(1 << 20), fetch: httpGetter(256 << 20), owners: owner.SystemEnv(), keys: bundle.TrustedKeys,
 	}))
 }
 
