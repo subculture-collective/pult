@@ -1,3 +1,3 @@
-module git.subcult.tv/subculture-collective/project-template-go
+module git.subcult.tv/subculture-collective/theme-tender
 
 go 1.26

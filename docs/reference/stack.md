@@ -1,6 +1,6 @@
 # Stack Reference
 
-Template: `project-template-go`
+Created from template: `project-template-go`
 
 Minimal Go template with cmd/internal layout, gofmt, go vet, tests, and Open Pilot conventions.
 

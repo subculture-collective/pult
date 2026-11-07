@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"git.subcult.tv/subculture-collective/project-template-go/internal/app"
+	"git.subcult.tv/subculture-collective/theme-tender/internal/app"
 )
 
 func main() {

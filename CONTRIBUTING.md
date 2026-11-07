@@ -1,6 +1,6 @@
 # Contributing
 
-This repository is a base template for derived SUBCULT projects. Keep changes small, reviewable, and useful across stacks.
+This repository holds Theme Tender. Keep changes small and reviewable, and keep the contracts in `docs/reference/` in step with the code.
 
 ## Development flow
 

@@ -11,4 +11,4 @@ Good runbooks include:
 - Rollback or cleanup steps
 - Verification
 
-Add stack-specific runbooks as this template is specialized.
+Add runbooks as procedures appear (releases, bundle signing, mirror setup).
