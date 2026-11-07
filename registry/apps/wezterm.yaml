@@ -1,0 +1,35 @@
+# Checked in an Arch container, WezTerm 20260716-195552-76b606ec,
+# 2026-11-07: version regex, and that color_scheme = "Theme Tender" finds
+# the generated file (a missing scheme logs an error, this one does not).
+# Color schemes are also read from the colors directory under the config
+# directory (color_scheme_dirs), in the TOML format of its scheme
+# files ([metadata] name, [colors]). The config itself is Lua, which Theme
+# Tender does not edit, so this is tier 3: set
+# config.color_scheme = "Theme Tender" in wezterm.lua once.
+schema: 1
+id: wezterm
+name: WezTerm
+homepage: https://wezterm.org/
+platforms: [linux, macos]
+tier: 3
+
+detect:
+  binaries: [wezterm]
+  macos_apps: [WezTerm.app]
+  version:
+    argv: [wezterm, --version]
+    regex: 'wezterm ([0-9]+)'
+
+config:
+  paths:
+    linux: ["$XDG_CONFIG_HOME/wezterm/colors/theme-tender.toml"]
+    macos: ["$XDG_CONFIG_HOME/wezterm/colors/theme-tender.toml"]
+
+integrations:
+  - method: owned
+    template: wezterm/theme-tender.toml.mustache
+    target: theme-tender.toml
+
+ports:
+  catppuccin: { url: https://github.com/catppuccin/wezterm, kind: official }
+  dracula: { url: https://github.com/dracula/wezterm, kind: official }
