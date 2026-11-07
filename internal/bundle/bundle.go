@@ -9,6 +9,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -192,7 +193,11 @@ func Read(data []byte) (*Bundle, error) {
 // minisign -G). password decrypts the key; it may be empty for an
 // unencrypted key.
 func Sign(data []byte, keyFile, password, trustedComment string) ([]byte, error) {
-	sk, err := minisign.NewPrivateKeyFromFile(keyFile)
+	raw, err := os.ReadFile(keyFile)
+	if err != nil {
+		return nil, fmt.Errorf("bundle: secret key: %w", err)
+	}
+	sk, err := parseSecretKey(string(raw))
 	if err != nil {
 		return nil, fmt.Errorf("bundle: secret key: %w", err)
 	}
@@ -207,6 +212,32 @@ func Sign(data []byte, keyFile, password, trustedComment string) ([]byte, error)
 		return nil, err
 	}
 	return sig.Encode(), nil
+}
+
+// parseSecretKey accepts a minisign secret key file, or just its base64
+// line, ignoring blank lines and CR. Errors describe the shape of the input
+// (line count, decoded length), never its contents.
+func parseSecretKey(text string) (minisign.PrivateKey, error) {
+	var lines []string
+	for _, l := range strings.Split(text, "\n") {
+		l = strings.TrimSpace(l)
+		if l != "" && !strings.HasPrefix(l, "untrusted comment:") {
+			lines = append(lines, l)
+		}
+	}
+	if len(lines) != 1 {
+		return minisign.PrivateKey{}, fmt.Errorf("expected one base64 line besides the comment, found %d", len(lines))
+	}
+	n, err := base64.StdEncoding.DecodeString(lines[0])
+	switch {
+	case err != nil:
+		return minisign.PrivateKey{}, fmt.Errorf("the key line is not valid base64")
+	case len(n) == 42:
+		return minisign.PrivateKey{}, fmt.Errorf("this is a public key (42 bytes); use the secret key file from minisign -G")
+	case len(n) != 158:
+		return minisign.PrivateKey{}, fmt.Errorf("the key line decodes to %d bytes; a minisign secret key has 158", len(n))
+	}
+	return minisign.NewPrivateKey(lines[0])
 }
 
 // Verify checks a minisign signature against the trusted public keys
