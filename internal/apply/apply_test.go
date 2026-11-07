@@ -768,6 +768,12 @@ integrations:
 	if w.read(".config/btop/themes/theme-tender.theme") != string(port) || !strings.Contains(w.read(".config/btop/btop.conf"), `color_theme = "theme-tender"`) {
 		t.Error("port not installed and selected")
 	}
+	// Survey (doctor, list) reports the port for the active theme, from
+	// the cache, without downloading.
+	survey, _ := Survey(w.opts)
+	if i := slices.IndexFunc(survey, func(a AppPlan) bool { return a.ID == "btop" }); survey[i].Integration.Method != registry.Port {
+		t.Errorf("survey after a port apply: %s", survey[i].Integration.Method)
+	}
 	// The next plan uses the cache, without downloading.
 	got = nil
 	w.opts.Get = func(u string) ([]byte, error) { record(u); return nil, errors.New("offline") }
