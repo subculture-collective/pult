@@ -33,7 +33,9 @@ git tag bundle-2026.11.07.1
 git push origin bundle-2026.11.07.1
 ```
 
-The `bundle-release` workflow runs `make verify` and `make catalog`, builds `dist/bundle-<version>.tar.zst` with `cmd/bundle-build`, signs it, and attaches the bundle and its `.minisig` to a release for the tag.
+The `bundle-release` workflow first refuses a tag whose commit is not on `main`, whose version is not `YYYY.MM.DD.N`, or whose version is not newer than every published bundle (a bad version such as `bundle-2027` would otherwise stop every client from updating). It then runs `make verify` and `make catalog`, builds `dist/bundle-<version>.tar.zst` with `cmd/bundle-build`, signs it, and attaches the bundle and its `.minisig` to a release for the tag.
+
+**Protect the tags.** The workflow hands the signing key to the code at the tagged commit, and the "on `main`" check lives in that same commit, so it guards against mistakes, not against someone who can push a tag on a commit with an edited workflow. Only the owner can close that: add Gitea tag protection for `bundle-*` and `v*` (repository Settings → Tags) limited to the accounts allowed to release, or sign bundles offline.
 
 If signing fails, the run's error says why without showing the key: "expected one base64 line" or "not valid base64" means `TENDER_SIGNING_KEY` is incomplete or has extra text; "this is a public key" means the wrong file was pasted; "Wrong password" means the passphrase does not open the key.
 
@@ -42,6 +44,8 @@ To check a bundle by hand: `minisign -Vm bundle-<version>.tar.zst -P RWTsCn09xaM
 The first signed bundle, `bundle-2026.11.07.6`, was published on 2026-11-07 (2,487,430 bytes). A source build of `tender` from `main`, which has no built-in catalog, accepted it from `$XDG_DATA_HOME/theme-tender/bundle.tar.zst` and searched its catalog. The same file with one byte changed was rejected ("Invalid signature") and the built-in data was used. Tags `bundle-2026.11.07.1` to `.5` are failed runs from setting up the secrets and have no release.
 
 ## Install a bundle
+
+Release binaries carry a built-in data version, the tagged commit's date as `YYYY.MM.DD.0` (`themetender.BuiltinVersion`, set with `-ldflags` by `scripts/dist.sh` and the AUR and Homebrew builds). An installed bundle older than that is not used, so upgrading the binary cannot be undone by an old bundle; source builds report `built-in`, older than any bundle.
 
 `tender update` reads the release list (`-url`, default the Gitea API for this repository), picks the newest `bundle-*` release that has both assets, and installs it to `$XDG_DATA_HOME/theme-tender/bundle.tar.zst` and `bundle.tar.zst.minisig` (or the `-bundle` path). It installs nothing unless the signature verifies with a built-in key, every file matches the manifest, the manifest's version matches the tag, and the release is newer than the bundle in use. While the repository is private the release list needs a login, so `tender update` fails with 404; until then, download both assets yourself and copy them to those paths. `tender doctor` shows which bundle is in use.
 

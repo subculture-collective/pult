@@ -109,3 +109,33 @@ func TestInstall(t *testing.T) {
 		t.Errorf("leftover files: %v", entries)
 	}
 }
+
+// TestLoadPrefersNewerBuiltin: a valid installed bundle older than the
+// binary's built-in data does not replace it.
+func TestLoadPrefersNewerBuiltin(t *testing.T) {
+	data := build(t) // 2026.11.07.1
+	key := newKey(t, 1)
+	sig, _ := Sign(data, key.secret, "", "ok")
+	path := filepath.Join(t.TempDir(), "bundle.tar.zst")
+	os.WriteFile(path, data, 0o644)
+	os.WriteFile(path+".minisig", sig, 0o644)
+	for builtinVersion, want := range map[string]string{
+		"built-in":     path,       // source build: any bundle is newer
+		"2026.11.01.0": path,       // older binary
+		"2026.11.07.1": path,       // same version: the bundle
+		"2026.12.01.0": "built-in", // newer binary
+	} {
+		builtin := &Bundle{Origin: "built-in", Manifest: Manifest{BundleVersion: builtinVersion}}
+		if got, warn := Load(path, []string{key.public}, builtin); got.Origin != want || warn != "" {
+			t.Errorf("built-in %s: origin %s, warning %q", builtinVersion, got.Origin, warn)
+		}
+	}
+}
+
+func TestValidVersion(t *testing.T) {
+	for v, want := range map[string]bool{"2026.11.07.1": true, "2026.11.07.12": true, "20261107": false, "2026.11.07": false, "2027": false, "x.11.07.1": false, "2026.11.07.1 ": false} {
+		if ValidVersion(v) != want {
+			t.Errorf("ValidVersion(%q) != %v", v, want)
+		}
+	}
+}

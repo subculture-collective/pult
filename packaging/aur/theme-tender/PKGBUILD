@@ -18,7 +18,7 @@ build() {
   cp "$srcdir/theme-tender-$pkgver-catalog.db.zst" builtin/catalog.db.zst
   export CGO_ENABLED=0
   export GOFLAGS='-buildmode=pie -trimpath -mod=readonly -modcacherw'
-  go build -ldflags "-s -w -X main.version=$pkgver" -o tender ./cmd/tender
+  go build -ldflags "-s -w -X main.version=$pkgver -X git.subcult.tv/subculture-collective/theme-tender.BuiltinVersion=@DATAVERSION@" -o tender ./cmd/tender
 }
 
 check() {
