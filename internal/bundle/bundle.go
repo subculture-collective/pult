@@ -57,10 +57,12 @@ type Bundle struct {
 // The newest catalog and registry formats this binary reads. A bundle that
 // needs a newer one is rejected like a bundle that does not verify, so an
 // old binary keeps its built-in data instead of misreading new fields.
-// Registry format 2 added the $MAC_CONFIG_HOME path prefix.
+// Registry format 2 added the $MAC_CONFIG_HOME path prefix; 3 made port
+// integrations installable (revision, flavors), which older binaries
+// would treat as manual and stop at.
 const (
 	CatalogSchema  = 1
-	RegistrySchema = 2
+	RegistrySchema = 3
 )
 
 const (

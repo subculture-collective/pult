@@ -258,6 +258,7 @@ func (c *cli) options() (apply.Options, error) {
 	return apply.Options{
 		Home: c.home, Platform: platform, Getenv: c.getenv, Registry: reg, Templates: tmplFS,
 		Store: store, Owners: det, Sys: c.sys, Meta: changes.Meta{TenderVersion: version, BundleVersion: b.Manifest.BundleVersion},
+		Get: c.get, CacheDir: filepath.Join(c.xdg("XDG_CACHE_HOME", ".cache"), "theme-tender"),
 	}, nil
 }
 
@@ -343,6 +344,9 @@ func (c *cli) apply(args []string) error {
 	}
 	changed := len(plan.Omarchy)
 	for _, ap := range plan.Apps {
+		for _, n := range ap.Notes {
+			fmt.Fprintf(c.out, "%-10s note: %s\n", ap.ID, n)
+		}
 		if ap.Skip != "" {
 			fmt.Fprintf(c.out, "%-10s skip: %s\n", ap.ID, ap.Skip)
 			continue
@@ -678,6 +682,9 @@ func (b *tuiBackend) Plan(id string) ([]string, error) {
 	}
 	var lines []string
 	for _, ap := range b.plan.Apps {
+		for _, n := range ap.Notes {
+			lines = append(lines, fmt.Sprintf("%-10s note: %s", ap.ID, n))
+		}
 		if ap.Skip != "" {
 			lines = append(lines, fmt.Sprintf("%-10s skip: %s", ap.ID, ap.Skip))
 		} else {

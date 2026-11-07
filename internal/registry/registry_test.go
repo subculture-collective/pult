@@ -73,8 +73,12 @@ func TestBuiltinRegistry(t *testing.T) {
 	if !ok || kitty.Config.Paths[Linux][0] != "$XDG_CONFIG_HOME/kitty/kitty.conf" || kitty.Integrations[0].Method != Include {
 		t.Fatalf("kitty entry decoded wrongly: %+v", kitty)
 	}
-	if btop, _ := reg.Get("btop"); btop.Integrations[1].Method != ANSI || btop.Integrations[1].Set["color_theme"] != "TTY" {
+	btop, _ := reg.Get("btop")
+	if btop.Integrations[2].Method != ANSI || btop.Integrations[2].Set["color_theme"] != "TTY" {
 		t.Fatalf("btop ansi integration decoded wrongly: %+v", btop.Integrations)
+	}
+	if p := btop.Integrations[0]; p.Method != Port || len(p.Revision) != 40 || p.Flavors["catppuccin-mocha"].Path != "themes/catppuccin_mocha.theme" {
+		t.Fatalf("btop port decoded wrongly: %+v", p)
 	}
 }
 

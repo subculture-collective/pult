@@ -23,6 +23,20 @@ config:
     macos: ["$XDG_CONFIG_HOME/helix/config.toml"]
 
 integrations:
+  # Catppuccin's official Helix themes (catppuccin/helix 91e071b, MIT,
+  # themes/default, hashes taken 2026-11-07); other themes are generated.
+  - method: port
+    url: https://github.com/catppuccin/helix
+    revision: 91e071bf9b9b2b8ae176a5581fcb61c789c55cab
+    flavors:
+      catppuccin-latte: { path: themes/default/catppuccin_latte.toml, sha256: 9ac30e5f1fa8dfc6a7ab614bb3f0f77f2b9391475d719d2db1b1b6eb649925da }
+      catppuccin-frappe: { path: themes/default/catppuccin_frappe.toml, sha256: 7caf839e90a33b9aa3e1319442255ad21e122846cd3c8db577f5c48bc808f232 }
+      catppuccin-macchiato: { path: themes/default/catppuccin_macchiato.toml, sha256: 4534195d89decc5e4ab93a9251ec29d8afc136adb65a1db53da95137a4beffaa }
+      catppuccin-mocha: { path: themes/default/catppuccin_mocha.toml, sha256: 67db73db417fa3fb59a11fb5f66dceb5cfe98f92a997b8990757b62b303e2e4b }
+    target: themes/theme-tender.toml
+    select:
+      format: toml
+      set: { theme: theme-tender }
   - method: owned
     template: helix/theme-tender.toml.mustache
     target: themes/theme-tender.toml
