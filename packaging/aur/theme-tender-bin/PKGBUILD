@@ -1,0 +1,24 @@
+# Template: scripts/render-packaging.sh fills the @...@ fields from a release.
+pkgname=theme-tender-bin
+pkgver=@VERSION@
+pkgrel=1
+pkgdesc='Apply one palette across your terminal apps, and undo every change (prebuilt)'
+arch=('x86_64' 'aarch64')
+url='https://git.subcult.tv/subculture-collective/theme-tender'
+license=('GPL-3.0-only' 'MIT')
+provides=('theme-tender')
+conflicts=('theme-tender')
+source_x86_64=("@BASE@theme-tender-@VERSION@-linux-amd64.tar.gz")
+source_aarch64=("@BASE@theme-tender-@VERSION@-linux-arm64.tar.gz")
+sha256sums_x86_64=('@SHA_LINUX_AMD64@')
+sha256sums_aarch64=('@SHA_LINUX_ARM64@')
+
+package() {
+  local goarch=amd64
+  [[ $CARCH == aarch64 ]] && goarch=arm64
+  cd "theme-tender-$pkgver-linux-$goarch"
+  install -Dm755 tender "$pkgdir/usr/bin/tender"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 LICENSES/MIT.txt "$pkgdir/usr/share/licenses/$pkgname/MIT.txt"
+  install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+}
