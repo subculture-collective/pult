@@ -8,7 +8,7 @@ This directory is the current project knowledge base.
 - `adr/0002-theme-tender-foundations.md` — accepted product and architecture decisions
 - `reference/registry-schema.md` — app registry contract, v1, with `registry/schema.json`
 - `reference/catalog-schema.md` — catalog contract, v1, built by `cmd/catalog-build`
-- `reference/change-record.md` — draft contract
+- `reference/change-record.md` — change record contract, v1, implemented by `internal/changes`
 
 ## Sections
 
