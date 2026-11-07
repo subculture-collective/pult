@@ -29,6 +29,7 @@ type fakeSys struct {
 	running  map[string]bool
 	fail     map[string]bool
 	ran      [][]string
+	answers  map[string]string // joined argv -> output
 }
 
 func (f *fakeSys) LookPath(name string) (string, error) {
@@ -40,6 +41,9 @@ func (f *fakeSys) LookPath(name string) (string, error) {
 
 func (f *fakeSys) Run(argv []string) ([]byte, error) {
 	f.ran = append(f.ran, argv)
+	if out, ok := f.answers[strings.Join(argv, " ")]; ok {
+		return []byte(out), nil
+	}
 	if f.fail[argv[0]] {
 		return []byte("bad color"), errors.New("exit status 1")
 	}
@@ -822,5 +826,43 @@ func TestByteOrderMark(t *testing.T) {
 	}
 	if got := w.read(".config/btop/btop.conf"); got != "\ufeffcolor_theme = \"theme-tender\"\n" {
 		t.Errorf("btop.conf = %q", got)
+	}
+}
+
+// TestFrameworkBackend: with Noctalia found, apply writes its palette file
+// and switches to it, and uninstall switches back to the scheme before.
+func TestFrameworkBackend(t *testing.T) {
+	w := newWorld(t, map[string]string{".config/noctalia/config.toml": "[bar]\n"})
+	w.sys.versions["noctalia"] = "noctalia 5.4.1"
+	w.sys.answers = map[string]string{"noctalia msg color-scheme-get": "builtin Noctalia"}
+	// owner.New scans for frameworks, so rebuild the options now that the
+	// marker exists.
+	reg := w.opts.Registry
+	w = w.with(reg, w.opts.Getenv)
+	plan, err := Prepare(w.opts, mocha(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(plan.Frameworks) != 1 || len(plan.Frameworks[0].Switch) != 1 {
+		t.Fatalf("frameworks: %+v", plan.Frameworks)
+	}
+	if _, err := Execute(w.opts, plan); err != nil {
+		t.Fatal(err)
+	}
+	if !w.sys.ranCommand("noctalia", "msg", "color-scheme-set", "custom", "tender-catppuccin-mocha") {
+		t.Errorf("no switch: %v", w.sys.ran)
+	}
+	if !strings.Contains(w.read(".config/noctalia/palettes/tender-catppuccin-mocha.json"), `"version": 2`) {
+		t.Error("palette file not written")
+	}
+	w.sys.answers["noctalia msg color-scheme-get"] = "custom tender-catppuccin-mocha"
+	if _, _, err := Uninstall(w.opts, false); err != nil {
+		t.Fatal(err)
+	}
+	if !w.sys.ranCommand("noctalia", "msg", "color-scheme-set", "builtin", "Noctalia") {
+		t.Errorf("no switch back: %v", w.sys.ran)
+	}
+	if _, err := os.Stat(filepath.Join(w.home, ".config/noctalia/palettes/tender-catppuccin-mocha.json")); !os.IsNotExist(err) {
+		t.Error("uninstall left the palette file")
 	}
 }

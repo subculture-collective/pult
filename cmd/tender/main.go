@@ -24,6 +24,7 @@ import (
 	"git.subcult.tv/subculture-collective/theme-tender/internal/catalog"
 	"git.subcult.tv/subculture-collective/theme-tender/internal/changes"
 	"git.subcult.tv/subculture-collective/theme-tender/internal/color"
+	"git.subcult.tv/subculture-collective/theme-tender/internal/framework"
 	"git.subcult.tv/subculture-collective/theme-tender/internal/owner"
 	"git.subcult.tv/subculture-collective/theme-tender/internal/profile"
 	"git.subcult.tv/subculture-collective/theme-tender/internal/registry"
@@ -417,6 +418,19 @@ func (c *cli) apply(args []string) error {
 	if len(plan.Omarchy) > 0 {
 		fmt.Fprintf(c.out, "%-10s theme %s, then %s\n", "omarchy", filepath.Dir(plan.Omarchy[0].Path), strings.Join(plan.OmarchySwitch, " "))
 	}
+	for _, fp := range plan.Frameworks {
+		if fp.Note != "" {
+			fmt.Fprintf(c.out, "%-10s note: %s\n", fp.Name, fp.Note)
+		}
+		if len(fp.Switch) > 0 {
+			var cmds []string
+			for _, a := range fp.Switch {
+				cmds = append(cmds, strings.Join(a, " "))
+			}
+			fmt.Fprintf(c.out, "%-10s %d file(s), then %s\n", fp.Name, len(fp.Edits), strings.Join(cmds, "; "))
+			changed += len(fp.Edits)
+		}
+	}
 	for _, ap := range plan.Apps {
 		for _, d := range ap.Diffs {
 			fmt.Fprint(c.out, "\n", d)
@@ -685,7 +699,22 @@ func (c *cli) doctor(args []string) error {
 		fmt.Fprintln(c.out, "Omarchy: no.")
 	}
 	if len(sys.Frameworks) > 0 {
-		fmt.Fprintf(c.out, "Hyprland frameworks: %s. Theme Tender asks before changing their files.\n", strings.Join(sys.Frameworks, ", "))
+		var themed, asked []string
+		for _, f := range sys.Frameworks {
+			if _, ok := framework.Backends[f]; ok {
+				themed = append(themed, f)
+			} else {
+				asked = append(asked, f)
+			}
+		}
+		fmt.Fprintf(c.out, "Hyprland frameworks: %s.", strings.Join(sys.Frameworks, ", "))
+		if len(themed) > 0 {
+			fmt.Fprintf(c.out, " Themed through their own mechanism: %s.", strings.Join(themed, ", "))
+		}
+		if len(asked) > 0 {
+			fmt.Fprintf(c.out, " Theme Tender asks before changing the files of: %s.", strings.Join(asked, ", "))
+		}
+		fmt.Fprintln(c.out)
 	}
 	if len(sys.Generators) > 0 {
 		fmt.Fprintf(c.out, "Palette generators: %s.\n", strings.Join(sys.Generators, ", "))
@@ -819,6 +848,14 @@ func (b *tuiBackend) Plan(id string) ([]string, error) {
 	}
 	if len(b.plan.Omarchy) > 0 {
 		lines = append(lines, fmt.Sprintf("%-10s theme %s", "omarchy", strings.Join(b.plan.OmarchySwitch[1:], " ")))
+	}
+	for _, fp := range b.plan.Frameworks {
+		switch {
+		case len(fp.Switch) > 0:
+			lines = append(lines, fmt.Sprintf("%-10s themed through its own mechanism", fp.Name))
+		case fp.Note != "":
+			lines = append(lines, fmt.Sprintf("%-10s note: %s", fp.Name, fp.Note))
+		}
 	}
 	return lines, nil
 }

@@ -102,6 +102,9 @@ func Open(dir string) (*Store, error) {
 	return &Store{dir: dir, now: time.Now}, nil
 }
 
+// Dir is the change record directory.
+func (s *Store) Dir() string { return s.dir }
+
 func (s *Store) step(point string) error {
 	if s.crash != nil {
 		return s.crash(point)

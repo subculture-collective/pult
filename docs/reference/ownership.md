@@ -10,7 +10,7 @@ Checked in this order; the first that matches is the owner.
 |---|---|---|---|
 | Subarchy default | `subarchy` | The file lies in, or links into, `/usr/share/subcult/default/` | Leave alone |
 | Omarchy | `omarchy` | Omarchy is installed (`~/.local/share/omarchy`, `/usr/share/omarchy` or `$OMARCHY_PATH`) and the file lies in, or refers to, the install directory, `~/.config/omarchy` or `$XDG_STATE_HOME/omarchy`; or a hook in `~/.config/omarchy/hooks/theme-set.d/` names the file; or its first ten lines say it is generated from Omarchy | Hand off to the Omarchy backend |
-| Hyprland framework | `framework:<name>` | The framework's marker directory exists and the file lies in, or refers to, one of its directories | Ask |
+| Hyprland framework | `framework:<name>` | The framework's marker directory exists and the file lies in, or refers to, one of its directories | Ask; hand off when the framework's [backend](framework-backends.md) themes this apply |
 | Palette generator | `generator:matugen`, `generator:wallust`, `generator:pywal` | The file is a matugen `output_path` or wallust `target`, refers to one, or refers to `~/.cache/wal/` | Ask |
 | chezmoi | `chezmoi` | `chezmoi source-path <file>` succeeds | Ask; the source is `Owner.Source` |
 | stow | `stow` | A symlinked prefix of the path points at `<stow dir>/<package>/<same path relative to home>`, as stow lays it out | Ask; writing changes the dotfiles repository |
