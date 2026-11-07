@@ -61,6 +61,7 @@ type env struct {
 	fetch  catalog.Getter // release listings and bundles, which are larger
 	owners owner.Env
 	keys   []string // trusted bundle signing keys
+	root   string   // prefix for system paths such as /Applications; tests set it
 }
 
 func main() {
@@ -299,7 +300,7 @@ func (c *cli) options() (apply.Options, error) {
 	return apply.Options{
 		Home: c.home, Platform: platform, Getenv: c.getenv, Registry: reg, Templates: tmplFS,
 		Store: store, Owners: det, Sys: c.sys, Meta: changes.Meta{TenderVersion: version, BundleVersion: b.Manifest.BundleVersion},
-		Get: c.get, CacheDir: filepath.Join(c.xdg("XDG_CACHE_HOME", ".cache"), "theme-tender"),
+		Root: c.root, Get: c.get, CacheDir: filepath.Join(c.xdg("XDG_CACHE_HOME", ".cache"), "theme-tender"),
 	}, nil
 }
 

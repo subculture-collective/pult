@@ -1,0 +1,31 @@
+name: macos
+
+# Advisory macOS check on Soyuz, the org's act_runner with the "macos" label
+# (host mode, arm64). It never blocks a merge: template-check is the
+# required check. If Soyuz is offline the job waits in the queue; the
+# release checklist asks for a green run on the commit being tagged.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: macos
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Verify on macOS
+        run: make verify
