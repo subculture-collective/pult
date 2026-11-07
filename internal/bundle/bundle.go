@@ -54,6 +54,15 @@ type Bundle struct {
 	Origin string
 }
 
+// The newest catalog and registry formats this binary reads. A bundle that
+// needs a newer one is rejected like a bundle that does not verify, so an
+// old binary keeps its built-in data instead of misreading new fields.
+// Registry format 2 added the $MAC_CONFIG_HOME path prefix.
+const (
+	CatalogSchema  = 1
+	RegistrySchema = 2
+)
+
 const (
 	manifestName = "manifest.toml"
 	catalogName  = "catalog.db"
@@ -164,6 +173,9 @@ func Read(data []byte) (*Bundle, error) {
 	var m Manifest
 	if err := toml.Unmarshal(files[manifestName], &m); err != nil || m.Schema != 1 {
 		return nil, fmt.Errorf("bundle: missing or unsupported manifest.toml")
+	}
+	if m.CatalogSchema > CatalogSchema || m.RegistrySchema > RegistrySchema {
+		return nil, fmt.Errorf("bundle: needs a newer Theme Tender (catalog format %d, registry format %d; this one reads up to %d and %d)", m.CatalogSchema, m.RegistrySchema, CatalogSchema, RegistrySchema)
 	}
 	delete(files, manifestName)
 	for p, want := range m.Files {

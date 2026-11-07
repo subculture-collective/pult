@@ -113,7 +113,7 @@
         }
       }
     },
-    "path": { "type": "string", "pattern": "^\\$(HOME|XDG_CONFIG_HOME)/[^\\s].*[^/]$" },
+    "path": { "type": "string", "pattern": "^\\$(HOME|XDG_CONFIG_HOME|MAC_CONFIG_HOME)/[^\\s].*[^/]$" },
     "relativePath": { "type": "string", "pattern": "^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$", "not": { "pattern": "(^|/)\\.\\.?(/|$)" } },
     "template": { "type": "string", "pattern": "^[a-z0-9-]+/[A-Za-z0-9._-]+\\.mustache$" },
     "keyPath": { "type": "string", "pattern": "^[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*$" },

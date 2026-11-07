@@ -71,7 +71,9 @@ Each built-in entry starts with a comment saying which commands and patterns wer
 | `ports` | no | Known upstream ports per palette family, with `kind: official` or `community` |
 | `disabled` | no | User overrides only. `true` removes the app from detection and apply |
 
-Paths start with `$HOME/` or `$XDG_CONFIG_HOME/`. `$XDG_CONFIG_HOME` defaults to `$HOME/.config` on both platforms.
+Paths start with `$HOME/`, `$XDG_CONFIG_HOME/` or, in `macos` paths only, `$MAC_CONFIG_HOME/`. `$XDG_CONFIG_HOME` defaults to `$HOME/.config` on both platforms. `$MAC_CONFIG_HOME` is `$XDG_CONFIG_HOME` when that is set, and `$HOME/Library/Application Support` otherwise, which is where Go programs using `adrg/xdg` (lazygit) look on macOS.
+
+When an app loads several config files and later ones win (Ghostty, tmux), list the candidates in reverse load order, so the first existing one is the file read last and Theme Tender's include is not overridden. The candidate created when none exists should be the one the app itself creates or reads first.
 
 `versions` is a space-separated list of comparisons that must all hold, such as `>=0.14` or `>=1.2 <2`. Operators are `>=`, `<=`, `>`, `<` and `=`; a bare version means `=`. Only the leading dotted number of the installed version counts (`3.5a` is 3.5), and missing parts are zero (0.14 equals 0.14.0). No `versions` means any version.
 

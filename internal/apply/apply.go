@@ -461,6 +461,13 @@ func (o Options) expand(p string) string {
 	if !filepath.IsAbs(cfg) {
 		cfg = filepath.Join(o.Home, ".config")
 	}
+	if rest, ok := strings.CutPrefix(p, "$MAC_CONFIG_HOME/"); ok {
+		mac := o.Getenv("XDG_CONFIG_HOME")
+		if !filepath.IsAbs(mac) {
+			mac = filepath.Join(o.Home, "Library", "Application Support")
+		}
+		return filepath.Join(mac, rest)
+	}
 	p = strings.Replace(p, "$XDG_CONFIG_HOME", cfg, 1)
 	return strings.Replace(p, "$HOME", o.Home, 1)
 }

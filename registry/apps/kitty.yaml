@@ -18,8 +18,11 @@ config:
   env:
     - { name: KITTY_CONFIG_DIRECTORY, kind: dir }
   paths:
-    linux: ["$XDG_CONFIG_HOME/kitty/kitty.conf"]
-    macos: ["$XDG_CONFIG_HOME/kitty/kitty.conf", "$HOME/Library/Preferences/kitty/kitty.conf"]
+    # kitty/launcher/utils.h get_config_dir (kitty de20cf3, 2026-11-07):
+    # $XDG_CONFIG_HOME/kitty, ~/.config/kitty, then on macOS
+    # ~/Library/Preferences/kitty; the first holding kitty.conf wins.
+    linux: ["$XDG_CONFIG_HOME/kitty/kitty.conf", "$HOME/.config/kitty/kitty.conf"]
+    macos: ["$XDG_CONFIG_HOME/kitty/kitty.conf", "$HOME/.config/kitty/kitty.conf", "$HOME/Library/Preferences/kitty/kitty.conf"]
 
 integrations:
   - method: include
