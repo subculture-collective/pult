@@ -27,7 +27,7 @@ jobs:
       # The Arch image has no Node for actions/checkout; fetch the script
       # at this commit instead.
       - name: Fetch the publish script
-        run: curl -fsSL "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/raw/commit/${GITHUB_SHA}/scripts/publish-arch.sh" -o /tmp/publish-arch.sh
+        run: curl -fsSL "${GITHUB_SERVER_URL}/api/v1/repos/${GITHUB_REPOSITORY}/raw/scripts/publish-arch.sh?ref=${GITHUB_SHA}" -o /tmp/publish-arch.sh
       - name: Build and upload the package
         env:
           GITEA_TOKEN: ${{ github.token }}
