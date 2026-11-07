@@ -1,0 +1,35 @@
+# Checked on Arch, helix 25.07.1, 2026-11-07: version regex, and that Helix
+# starts with the generated theme selected and logs no theme error. Arch
+# names the binary helix, other packages hx. Helix reads
+# $XDG_CONFIG_HOME/helix on macOS too. The theme is read at start and by
+# :config-reload; SIGUSR1 also reloads, but the process name differs by
+# package, so no reload command is run.
+schema: 1
+id: helix
+name: Helix
+homepage: https://helix-editor.com/
+platforms: [linux, macos]
+tier: 1
+
+detect:
+  binaries: [hx, helix]
+  version:
+    argv: [hx, --version]
+    regex: 'helix ([0-9.]+)'
+
+config:
+  paths:
+    linux: ["$XDG_CONFIG_HOME/helix/config.toml"]
+    macos: ["$XDG_CONFIG_HOME/helix/config.toml"]
+
+integrations:
+  - method: owned
+    template: helix/theme-tender.toml.mustache
+    target: themes/theme-tender.toml
+    select:
+      format: toml
+      set: { theme: theme-tender }
+
+ports:
+  catppuccin: { url: https://github.com/catppuccin/helix, kind: official }
+  dracula: { url: https://github.com/dracula/helix, kind: official }
