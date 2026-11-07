@@ -8,6 +8,8 @@ url='https://git.subcult.tv/subculture-collective/theme-tender'
 license=('GPL-3.0-only' 'MIT')
 provides=('theme-tender')
 conflicts=('theme-tender')
+# The binary is prebuilt and stripped, so a debug package would be empty.
+options=('!debug')
 source_x86_64=("@BASE@theme-tender-@VERSION@-linux-amd64.tar.gz")
 source_aarch64=("@BASE@theme-tender-@VERSION@-linux-arm64.tar.gz")
 sha256sums_x86_64=('@SHA_LINUX_AMD64@')

@@ -57,4 +57,9 @@ Tarball: download and unpack `theme-tender-<version>-linux-amd64.tar.gz` and run
 - both PKGBUILDs built with `makepkg`, and the source package's `check()` passed all test packages;
 - both packages installed with `pacman -U` into a fresh `archlinux` container, where `tender version`, `search`, `doctor` and `list` ran with the built-in catalog.
 
-Not yet checked: the release workflow (it runs on the first tag), installs from the AUR and the tap (both need publishing), and Homebrew on macOS.
+2026-11-07, `v0.1.0` (pushed by the owner, built by the release workflow on its first run):
+- all ten release files published; the downloaded files match `SHA256SUMS`;
+- the linux-amd64 binary reports `tender 0.1.0` and built-in data `2026.11.07.0`, and `tender update` installed `bundle-2026.11.07.7` from the public release list;
+- the release's filled `PKGBUILD.theme-tender` and `PKGBUILD.theme-tender-bin` built, passed `check()` and installed with `makepkg -si` in a fresh `archlinux` container.
+
+Not yet checked: installs from the AUR and the tap (both need publishing), and Homebrew on macOS.
