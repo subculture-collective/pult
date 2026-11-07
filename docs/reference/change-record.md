@@ -1,6 +1,6 @@
-# Change record (draft v1)
+# Change record (v1)
 
-Every file Theme Tender creates, edits or deletes is recorded before it is touched, so any change can be undone, even by hand if Theme Tender itself is broken.
+Every file Theme Tender creates, edits or deletes is recorded before it is touched, so any change can be undone, even by hand if Theme Tender itself is broken. `internal/changes` implements this contract.
 
 ## Location
 
@@ -28,6 +28,8 @@ finished = 2026-11-06T18:22:06Z
 theme = "catppuccin-mocha"
 tender_version = "0.1.0"
 bundle_version = "2026.11.06.1"
+# rolls_back = "<id>"                 # kind = "rollback": the transaction undone
+# error = "kitty: invalid color"      # validation errors, when status = "failed"
 
 [[change]]
 app = "kitty"
@@ -40,19 +42,22 @@ before = "sha256:9f2c..."                         # "absent" when the file did n
 after = "sha256:41aa..."
 mode = "0644"
 backup = "blobs/sha256/9f/2c....zst"              # omitted when before = "absent"
+# status = "failed"                               # validation failed and the file was restored
 detail = { line = "include theme-tender.conf", line_no = 88 }
 ```
 
 ## Write protocol
 
-1. Take `lock`.
-2. Write the transaction with `status = "pending"` and every planned change.
+1. Take `lock`, an exclusive `flock`. The kernel releases it if Theme Tender dies, so there is no stale lock to clean up. A second run gets "another Theme Tender run holds the lock".
+2. Write the transaction with `status = "pending"` and every planned change. An edit that would not change a file is left out.
 3. Store each `before` file as a blob, if that blob doesn't already exist.
-4. Write each target file atomically: temporary file in the same directory, `fsync`, rename. Keep the original mode and owner.
-5. Run the app's `validate` command. On failure, restore that app's files and mark those changes failed.
+4. Write each target file atomically: temporary file in the same directory, `fsync`, rename, `fsync` of the directory. Keep the original mode and owner; if the owner cannot be kept, the write fails instead of changing it. A symlinked path is written at `resolved`, so the link stays a link.
+5. Run the app's `validate` command. On failure, restore that app's files, mark those changes `status = "failed"` and the transaction `failed`; other apps keep their changes.
 6. Set `status = "complete"` (or `failed`), update `current.toml`, release `lock`.
 
-If Theme Tender stops part-way, the next run and `tender doctor` find the pending transaction and offer to finish or roll it back.
+If Theme Tender stops part-way, the next run and `tender doctor` find the pending transaction. Recovery rolls it back: each file that holds its `after` contents gets its `before` contents again, a file that still holds `before` is left alone, and anything else is reported as edited. The transaction is then `rolled-back`. Finishing an interrupted apply means running the apply again, because new contents are not stored. Tests stop the protocol after every step (lock, pending record, each backup, each write, validation, completion, `current.toml`) and check that recovery restores every file byte for byte.
+
+`current.toml` is rebuilt from the transactions on every read; the file on disk is a copy for people and other tools.
 
 ## Undo rules
 
@@ -62,11 +67,11 @@ For each change, newest first:
 - Current file hash differs from `after`: the user has edited the file since. Show a diff against `before` and change nothing without confirmation.
 - File missing: report it and skip it.
 
-`tender uninstall` undoes every transaction since the first one, which returns every file to its state before Theme Tender first touched it.
+Rollback applies these rules to one transaction. `tender uninstall` applies them per file, comparing the current contents with the last recorded `after` and restoring the pristine `before`, which returns every file to its state before Theme Tender first touched it. Rollback and uninstall are transactions themselves (`kind = "rollback"`, `"uninstall"`). Directories Theme Tender created are left in place.
 
 ## Retention
 
-The first backup of each path ("pristine") is kept until uninstall. Other blobs are pruned once no transaction among the last 20 refers to them. Blobs are only deleted after the transactions that refer to them.
+Not implemented yet; until it is, nothing is pruned. The first backup of each path ("pristine") is kept until uninstall. Other blobs are pruned once no transaction among the last 20 refers to them. Blobs are only deleted after the transactions that refer to them.
 
 ## Restoring by hand
 
