@@ -4,6 +4,19 @@ Theme Tender (`tender`) is a terminal app that themes your other apps from one p
 
 Status: M1 in progress. `tender` works with a catalog you build yourself; the signed data bundle and packages come later. See the [M1 plan](docs/plan/m1.md).
 
+## Install
+
+Arch Linux, from the `subcult` pacman repository on git.subcult.tv (Gitea signs it with its own key):
+
+```bash
+curl -fsS https://git.subcult.tv/api/packages/subculture-collective/arch/repository.key | sudo pacman-key --add -
+sudo pacman-key --lsign-key CCE8B0F3BCDD601D909773E4466AA6E8241453D2
+printf '\n[subcult]\nSigLevel = Required\nServer = https://git.subcult.tv/api/packages/subculture-collective/arch/$repo/$arch\n' | sudo tee -a /etc/pacman.conf
+sudo pacman -Sy theme-tender
+```
+
+Other platforms: release tarballs from [Releases](https://git.subcult.tv/subculture-collective/theme-tender/releases) (`tender` with the catalog built in), or build from source with `go build ./cmd/tender`.
+
 ## Usage
 
 ```bash

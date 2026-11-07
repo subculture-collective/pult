@@ -1,0 +1,37 @@
+name: arch-repo
+
+# Publishes an existing release's theme-tender package to the Gitea pacman
+# repository "subcult", for releases made before release.yml did it, or to
+# retry. Run it from the Actions tab with the version (without "v"). It
+# needs the ARCH_PACKAGE_TOKEN secret (see release.yml).
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version, such as 0.1.0"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  arch:
+    timeout-minutes: 45
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      # The Arch image has no Node for actions/checkout; fetch the script
+      # at this commit instead.
+      - name: Fetch the publish script
+        run: curl -fsSL "${GITHUB_SERVER_URL}/api/v1/repos/${GITHUB_REPOSITORY}/raw/scripts/publish-arch.sh?ref=${GITHUB_SHA}" -o /tmp/publish-arch.sh
+      - name: Build and upload the package
+        env:
+          GITEA_TOKEN: ${{ secrets.ARCH_PACKAGE_TOKEN }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "version must be X.Y.Z" >&2; exit 1; }
+          bash /tmp/publish-arch.sh "$VERSION"
