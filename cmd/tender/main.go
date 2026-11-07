@@ -19,6 +19,7 @@ import (
 
 	themetender "git.subcult.tv/subculture-collective/theme-tender"
 	"git.subcult.tv/subculture-collective/theme-tender/internal/apply"
+	"git.subcult.tv/subculture-collective/theme-tender/internal/bundle"
 	"git.subcult.tv/subculture-collective/theme-tender/internal/catalog"
 	"git.subcult.tv/subculture-collective/theme-tender/internal/changes"
 	"git.subcult.tv/subculture-collective/theme-tender/internal/owner"
@@ -39,7 +40,7 @@ Commands:
   doctor [-recover]                                  check for interrupted runs and owners
   version                                            print the version
 
-Common flags: -catalog PATH, -data DIR, -state DIR
+Common flags: -bundle PATH, -catalog PATH, -data DIR, -state DIR
 `
 
 // env is everything run reads from the outside world. Tests replace it.
@@ -49,12 +50,13 @@ type env struct {
 	sys    apply.System
 	get    catalog.Getter
 	owners owner.Env
+	keys   []string // trusted bundle signing keys
 }
 
 func main() {
 	home, _ := os.UserHomeDir()
 	os.Exit(run(os.Args[1:], os.Stdin, os.Stdout, os.Stderr, env{
-		home: home, getenv: os.Getenv, sys: realSystem{}, get: httpGet, owners: owner.SystemEnv(),
+		home: home, getenv: os.Getenv, sys: realSystem{}, get: httpGet, owners: owner.SystemEnv(), keys: bundle.TrustedKeys,
 	}))
 }
 
@@ -97,7 +99,8 @@ type cli struct {
 	in  *bufio.Reader
 	out io.Writer
 
-	catalogPath, dataDir, stateDir string
+	catalogPath, dataDir, stateDir, bundlePath string
+	data                                       *bundle.Bundle
 }
 
 func (c *cli) flags(name string) *flag.FlagSet {
@@ -106,7 +109,30 @@ func (c *cli) flags(name string) *flag.FlagSet {
 	fl.StringVar(&c.catalogPath, "catalog", "", "catalog.db or catalog.db.zst (default $TENDER_CATALOG or $XDG_DATA_HOME/theme-tender/catalog.db.zst)")
 	fl.StringVar(&c.dataDir, "data", "", "directory holding registry/ and templates/ (default: built in)")
 	fl.StringVar(&c.stateDir, "state", "", "change record directory (default $XDG_STATE_HOME/theme-tender)")
+	fl.StringVar(&c.bundlePath, "bundle", "", "signed data bundle (default $XDG_DATA_HOME/theme-tender/bundle.tar.zst); unsigned or altered bundles are ignored")
 	return fl
+}
+
+// bundle is the signed bundle if one is installed and verifies, else the
+// built-in one.
+func (c *cli) bundle() (*bundle.Bundle, error) {
+	if c.data != nil {
+		return c.data, nil
+	}
+	builtin, err := themetender.Builtin()
+	if err != nil {
+		return nil, err
+	}
+	p := c.bundlePath
+	if p == "" {
+		p = filepath.Join(c.xdg("XDG_DATA_HOME", ".local/share"), "theme-tender", "bundle.tar.zst")
+	}
+	b, warn := bundle.Load(p, c.keys, builtin)
+	if warn != "" {
+		fmt.Fprintln(c.out, "warning:", warn)
+	}
+	c.data = b
+	return b, nil
 }
 
 func (c *cli) xdg(name, fallback string) string {
@@ -121,23 +147,29 @@ func (c *cli) openCatalog() (*catalog.DB, error) {
 	if p == "" {
 		p = c.getenv("TENDER_CATALOG")
 	}
-	if p == "" {
-		p = filepath.Join(c.xdg("XDG_DATA_HOME", ".local/share"), "theme-tender", "catalog.db.zst")
+	if p != "" {
+		return catalog.Open(p)
 	}
-	db, err := catalog.Open(p)
+	b, err := c.bundle()
 	if err != nil {
-		return nil, fmt.Errorf("%w (build one with make catalog, then pass -catalog)", err)
+		return nil, err
 	}
-	return db, nil
+	if b.Catalog == nil {
+		return nil, fmt.Errorf("no catalog: this build has none built in and no signed bundle is installed (build one with make catalog, then pass -catalog)")
+	}
+	return catalog.OpenBytes(b.Catalog)
 }
 
 func (c *cli) options() (apply.Options, error) {
-	var data fs.FS = themetender.Data
-	if c.dataDir != "" {
-		data = os.DirFS(c.dataDir)
+	b, err := c.bundle()
+	if err != nil {
+		return apply.Options{}, err
 	}
-	regFS, _ := fs.Sub(data, "registry")
-	tmplFS, _ := fs.Sub(data, "templates")
+	regFS, tmplFS := b.Registry, b.Templates
+	if c.dataDir != "" {
+		regFS, _ = fs.Sub(os.DirFS(c.dataDir), "registry")
+		tmplFS, _ = fs.Sub(os.DirFS(c.dataDir), "templates")
+	}
 	userDir := filepath.Join(c.xdg("XDG_CONFIG_HOME", ".config"), "theme-tender", "registry.d")
 	reg, err := registry.Load(regFS, userDir)
 	if err != nil {
@@ -164,7 +196,7 @@ func (c *cli) options() (apply.Options, error) {
 	}
 	return apply.Options{
 		Home: c.home, Platform: platform, Getenv: c.getenv, Registry: reg, Templates: tmplFS,
-		Store: store, Owners: det, Sys: c.sys, Meta: changes.Meta{TenderVersion: version},
+		Store: store, Owners: det, Sys: c.sys, Meta: changes.Meta{TenderVersion: version, BundleVersion: b.Manifest.BundleVersion},
 	}, nil
 }
 
@@ -420,6 +452,9 @@ func (c *cli) doctor(args []string) error {
 		theme = "none"
 	}
 	fmt.Fprintf(c.out, "Active theme: %s; %d file(s) changed.\n", theme, len(st.Files))
+	if b, err := c.bundle(); err == nil {
+		fmt.Fprintf(c.out, "Data bundle: %s, version %s, catalog %s.\n", b.Origin, b.Manifest.BundleVersion, map[bool]string{true: "included", false: "not included"}[b.Catalog != nil])
+	}
 	sys := o.Owners.System()
 	if sys.Omarchy {
 		fmt.Fprintf(c.out, "Omarchy: yes, current theme %s.\n", sys.OmarchyTheme)

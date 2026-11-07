@@ -78,3 +78,6 @@ postgres-data/
 
 # Keep generated lockfiles only when a derived template intentionally owns them.
 # Remove ignore rules above as needed for application repositories.
+
+# Built-in catalog written by the release job
+/builtin/catalog.db.zst

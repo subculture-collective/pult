@@ -2,12 +2,19 @@ package main
 
 import (
 	"bytes"
+	"crypto/ed25519"
+	"encoding/base64"
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/klauspost/compress/zstd"
+
+	themetender "git.subcult.tv/subculture-collective/theme-tender"
+	"git.subcult.tv/subculture-collective/theme-tender/internal/bundle"
 	"git.subcult.tv/subculture-collective/theme-tender/internal/catalog"
 	"git.subcult.tv/subculture-collective/theme-tender/internal/owner"
 )
@@ -35,11 +42,13 @@ func (f *fakeSys) Run(argv []string) ([]byte, error) {
 func (f *fakeSys) Running(string) bool { return false }
 
 type fixture struct {
-	t        *testing.T
-	home     string
-	catalog  string
-	sys      *fakeSys
-	download []string
+	noCatalogVar bool
+	keys         []string
+	t            *testing.T
+	home         string
+	catalog      string
+	sys          *fakeSys
+	download     []string
 }
 
 // newFixture builds the catalog from internal/catalog's fixture sources
@@ -86,6 +95,9 @@ func (f *fixture) read(rel string) string {
 func (f *fixture) run(stdin string, args ...string) (string, int) {
 	f.t.Helper()
 	vars := map[string]string{"HOME": f.home, "TENDER_CATALOG": f.catalog}
+	if f.noCatalogVar {
+		delete(vars, "TENDER_CATALOG")
+	}
 	getenv := func(k string) string { return vars[k] }
 	e := env{
 		home: f.home, getenv: getenv, sys: f.sys,
@@ -96,6 +108,7 @@ func (f *fixture) run(stdin string, args ...string) (string, int) {
 		owners: owner.Env{Root: f.home, Home: f.home, Getenv: getenv,
 			LookPath: func(string) (string, error) { return "", errors.New("no") },
 			Run:      func([]string) ([]byte, error) { return nil, errors.New("no") }},
+		keys: f.keys,
 	}
 	var out bytes.Buffer
 	code := run(args, strings.NewReader(stdin), &out, &out, e)
@@ -198,4 +211,87 @@ func TestListAndErrors(t *testing.T) {
 	if out, _ := f.run("", "version"); !strings.HasPrefix(out, "tender ") {
 		t.Errorf("version: %s", out)
 	}
+}
+
+// TestSignedBundle installs a bundle built from the fixture catalog and the
+// built-in registry and templates, signed with a throwaway key.
+func TestSignedBundle(t *testing.T) {
+	f := newFixture(t)
+	f.noCatalogVar = true
+	raw, err := os.ReadFile(f.catalog)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dec := mustDecompress(t, raw)
+	var buf bytes.Buffer
+	if err := bundle.Build(&buf, bundle.Manifest{BundleVersion: "2026.11.07.1"}, dec, themetender.Data); err != nil {
+		t.Fatal(err)
+	}
+	pub, keyFile := testKey(t)
+	sig, err := bundle.Sign(buf.Bytes(), keyFile, "", "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := filepath.Join(f.home, ".local/share/theme-tender")
+	os.MkdirAll(dir, 0o755)
+	os.WriteFile(filepath.Join(dir, "bundle.tar.zst"), buf.Bytes(), 0o644)
+	os.WriteFile(filepath.Join(dir, "bundle.tar.zst.minisig"), sig, 0o644)
+
+	f.keys = []string{pub}
+	out, code := f.run("", "search", "solar")
+	if code != 0 || !strings.Contains(out, "solarized-dark") || strings.Contains(out, "warning") {
+		t.Fatalf("search with signed bundle (%d):\n%s", code, out)
+	}
+	out, _ = f.run("", "doctor")
+	if !strings.Contains(out, "Data bundle: "+filepath.Join(dir, "bundle.tar.zst")+", version 2026.11.07.1, catalog included.") {
+		t.Errorf("doctor:\n%s", out)
+	}
+
+	// Altered after signing: rejected, and the built-in bundle (no catalog
+	// in a source build) is used instead.
+	data := bytes.Clone(buf.Bytes())
+	data[len(data)/2] ^= 0xff
+	os.WriteFile(filepath.Join(dir, "bundle.tar.zst"), data, 0o644)
+	out, code = f.run("", "search", "solar")
+	if code != 1 || !strings.Contains(out, "warning: ignoring") || !strings.Contains(out, "using the built-in bundle") {
+		t.Errorf("tampered bundle (%d):\n%s", code, out)
+	}
+	// Without a trusted key every bundle is rejected.
+	f.keys = nil
+	os.WriteFile(filepath.Join(dir, "bundle.tar.zst"), buf.Bytes(), 0o644)
+	if out, _ = f.run("", "doctor"); !strings.Contains(out, "no trusted signing key") || !strings.Contains(out, "Data bundle: built-in") {
+		t.Errorf("no trusted key:\n%s", out)
+	}
+}
+
+func mustDecompress(t *testing.T, b []byte) []byte {
+	t.Helper()
+	dec, err := zstd.NewReader(bytes.NewReader(b))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer dec.Close()
+	out, err := io.ReadAll(dec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+func testKey(t *testing.T) (pub, keyFile string) {
+	t.Helper()
+	pk, sk, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := []byte{7, 7, 7, 7, 7, 7, 7, 7}
+	var raw []byte
+	raw = append(raw, 'E', 'd', 0, 0, 'B', '2')
+	raw = append(raw, make([]byte, 48)...)
+	raw = append(raw, id...)
+	raw = append(raw, sk...)
+	raw = append(raw, make([]byte, 32)...)
+	keyFile = filepath.Join(t.TempDir(), "k.key")
+	os.WriteFile(keyFile, []byte("untrusted comment: test\n"+base64.StdEncoding.EncodeToString(raw)+"\n"), 0o600)
+	return base64.StdEncoding.EncodeToString(append(append([]byte("Ed"), id...), pk...)), keyFile
 }

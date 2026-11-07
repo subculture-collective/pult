@@ -1,0 +1,56 @@
+name: bundle-release
+
+# Builds, signs and publishes a data bundle when a tag like
+# bundle-2026.11.07.1 is pushed. Needs the TENDER_SIGNING_KEY and
+# TENDER_SIGNING_PASSWORD secrets; see docs/runbooks/bundle-signing.md.
+on:
+  push:
+    tags: ["bundle-*"]
+
+permissions:
+  contents: write
+
+jobs:
+  bundle:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Verify
+        run: make verify
+      - name: Build the catalog from the pinned sources
+        run: make catalog
+      - name: Build and sign the bundle
+        env:
+          TENDER_SIGNING_KEY: ${{ secrets.TENDER_SIGNING_KEY }}
+          TENDER_SIGNING_PASSWORD: ${{ secrets.TENDER_SIGNING_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${TENDER_SIGNING_KEY}" ]; then
+            echo "The TENDER_SIGNING_KEY secret is not set; see docs/runbooks/bundle-signing.md" >&2
+            exit 1
+          fi
+          version="${GITHUB_REF_NAME#bundle-}"
+          key="${RUNNER_TEMP}/tender-signing.key"
+          umask 077
+          printf '%s\n' "${TENDER_SIGNING_KEY}" > "${key}"
+          trap 'rm -f "${key}"' EXIT
+          go run ./cmd/bundle-build -version "${version}" -sign "${key}"
+          sha256sum dist/*
+      - name: Publish the release
+        env:
+          TOKEN: ${{ github.token }}
+          API: ${{ github.server_url }}/api/v1/repos/${{ github.repository }}
+        run: |
+          set -euo pipefail
+          id=$(curl -fsS -X POST -H "Authorization: token ${TOKEN}" -H "Content-Type: application/json" \
+            -d "{\"tag_name\": \"${GITHUB_REF_NAME}\", \"name\": \"Data bundle ${GITHUB_REF_NAME#bundle-}\"}" \
+            "${API}/releases" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')
+          for f in dist/*; do
+            curl -fsS -X POST -H "Authorization: token ${TOKEN}" -F "attachment=@${f}" \
+              "${API}/releases/${id}/assets?name=$(basename "${f}")" > /dev/null
+          done
