@@ -1,0 +1,32 @@
+# Checked on Arch, bat 0.26.1, 2026-11-07: version regex, that the config
+# path matches "bat --config-file", and that bat colors with the terminal's
+# palette under --theme=ansi. The config is a file of command-line options
+# ($BAT_CONFIG_PATH, else config under $BAT_CONFIG_DIR or the XDG config
+# directory, on macOS too: src/bin/bat/directories.rs, bat c231941). bat's
+# built-in "ansi" theme uses the terminal's 16 colors, so it follows every
+# terminal theme with nothing to regenerate. delta reads bat's themes too.
+schema: 1
+id: bat
+name: bat
+homepage: https://github.com/sharkdp/bat
+platforms: [linux, macos]
+tier: 1
+
+detect:
+  binaries: [bat, batcat]
+  version:
+    argv: [bat, --version]
+    regex: 'bat ([0-9.]+)'
+
+config:
+  env:
+    - { name: BAT_CONFIG_PATH, kind: file }
+    - { name: BAT_CONFIG_DIR, kind: dir }
+  paths:
+    linux: ["$XDG_CONFIG_HOME/bat/config"]
+    macos: ["$XDG_CONFIG_HOME/bat/config"]
+
+integrations:
+  - method: ansi
+    format: args
+    set: { theme: ansi }

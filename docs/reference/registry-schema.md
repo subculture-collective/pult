@@ -92,6 +92,8 @@ Every method also takes an optional `versions`.
 
 `owned_file` is a file name written next to the config file, or a path from `$HOME/` or `$XDG_CONFIG_HOME/`. `select` and `set` are maps from dotted key paths to strings, numbers or booleans: `select: { format: toml, set: { flavor.dark: theme-tender } }`.
 
+`select` and `set` can edit `toml`, `ini` and `yaml` files (dotted paths into tables, sections or mappings), `kdl` files (top-level nodes with one argument, such as zellij's `theme "theme-tender"`; the whole line is replaced) and `args` files of command-line options (`theme: ansi` becomes `--theme="ansi"`, replacing an existing `--theme` line), such as bat's config. Registry format 4 added `kdl` and `args`.
+
 A `port` integration is skipped for themes missing from its `flavors`, so it is listed before the integration that generates colors: Catppuccin flavors get Catppuccin's own theme and every other theme the generated one. Theme Tender downloads `https://raw.githubusercontent.com/<owner>/<repo>/<revision>/<path>`, refuses it unless its SHA-256 matches, keeps it in `$XDG_CACHE_HOME/theme-tender/ports/<sha256>`, and installs it at `target` through the change record, so undo and uninstall treat it like a generated file. A failed download or hash mismatch falls back to the next integration and is shown as a note. Port files are downloaded on the user's machine, not shipped in the bundle. Registry format 3 (the bundle's `registry_schema`) added `revision` and `flavors`.
 
 `ansi` is listed first for apps where it looks acceptable, because the app then follows any terminal theme change with nothing to regenerate.

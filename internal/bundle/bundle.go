@@ -59,10 +59,10 @@ type Bundle struct {
 // old binary keeps its built-in data instead of misreading new fields.
 // Registry format 2 added the $MAC_CONFIG_HOME path prefix; 3 made port
 // integrations installable (revision, flavors), which older binaries
-// would treat as manual and stop at.
+// would treat as manual and stop at; 4 added the kdl and args formats.
 const (
 	CatalogSchema  = 1
-	RegistrySchema = 3
+	RegistrySchema = 4
 )
 
 const (
