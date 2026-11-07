@@ -2,7 +2,7 @@ SHELL := /usr/bin/env bash
 .DEFAULT_GOAL := help
 .NOTPARALLEL: verify
 
-.PHONY: help verify fmt lint test compose-config open-pilot-check
+.PHONY: help verify fmt lint test compose-config open-pilot-check catalog
 
 help: ## Show available commands
 	@awk 'BEGIN {FS = ":.*##"; printf "Commands:\n"} /^[a-zA-Z0-9_-]+:.*##/ {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -17,6 +17,10 @@ lint: ## Run Go vet
 
 test: ## Run Go tests
 	go test ./...
+
+catalog: ## Fetch the pinned theme sources and build .cache/catalog.db.zst
+	@mkdir -p .cache
+	go run ./cmd/catalog-build -fetch
 
 compose-config: ## Validate Docker Compose if present
 	@if [ -f docker-compose.yml ]; then docker compose config --quiet; else echo 'skip compose config'; fi

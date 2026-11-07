@@ -1,0 +1,24 @@
+{
+  "ports": [
+    {
+      "key": "kitty",
+      "name": "kitty",
+      "repository": {
+        "name": "kitty",
+        "url": "https://github.com/catppuccin/kitty"
+      }
+    },
+    {
+      "key": "tmux",
+      "name": "tmux",
+      "repository": {
+        "name": "tmux",
+        "url": "https://github.com/catppuccin/tmux"
+      }
+    }
+  ],
+  "collaborators": [],
+  "categories": [],
+  "showcases": [],
+  "archived-ports": []
+}

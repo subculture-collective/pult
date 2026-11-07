@@ -22,6 +22,7 @@ Status: planning. Nothing is usable yet. See the [M1 plan](docs/plan/m1.md).
 
 ```bash
 make verify
+make catalog   # fetch the pinned theme sources and build .cache/catalog.db.zst (needs git and network)
 ```
 
 Gitea (`git.subcult.tv/subculture-collective/theme-tender`) is the primary repository.
