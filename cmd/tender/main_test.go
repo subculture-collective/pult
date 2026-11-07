@@ -51,6 +51,7 @@ type fixture struct {
 	catalog      string
 	sys          *fakeSys
 	download     []string
+	served       map[string][]byte // what fetch returns, by URL
 }
 
 // newFixture builds the catalog from internal/catalog's fixture sources
@@ -106,6 +107,12 @@ func (f *fixture) run(stdin string, args ...string) (string, int) {
 		get: func(u string) ([]byte, error) {
 			f.download = append(f.download, u)
 			return os.ReadFile("../../internal/catalog/testdata/src/mbadolato/ghostty/Unknown One")
+		},
+		fetch: func(u string) ([]byte, error) {
+			if b, ok := f.served[u]; ok {
+				return b, nil
+			}
+			return nil, errors.New(u + ": 404 Not Found")
 		},
 		owners: owner.Env{Root: f.home, Home: f.home, Getenv: getenv,
 			LookPath: func(string) (string, error) { return "", errors.New("no") },
@@ -272,6 +279,71 @@ func TestSignedBundle(t *testing.T) {
 	os.WriteFile(filepath.Join(dir, "bundle.tar.zst"), buf.Bytes(), 0o644)
 	if out, _ = f.run("", "doctor"); !strings.Contains(out, "no trusted signing key") || !strings.Contains(out, "Data bundle: built-in") {
 		t.Errorf("no trusted key:\n%s", out)
+	}
+}
+
+// TestUpdate installs the newest bundle from a release listing, then
+// finds nothing newer, and never installs a bundle that does not verify.
+func TestUpdate(t *testing.T) {
+	f := newFixture(t)
+	pub, keyFile := testKey(t)
+	f.keys = []string{pub}
+	signed := func(v string) ([]byte, []byte) {
+		var buf bytes.Buffer
+		if err := bundle.Build(&buf, bundle.Manifest{BundleVersion: v}, nil, themetender.Data); err != nil {
+			t.Fatal(err)
+		}
+		sig, err := bundle.Sign(buf.Bytes(), keyFile, "", "test")
+		if err != nil {
+			t.Fatal(err)
+		}
+		return buf.Bytes(), sig
+	}
+	listing := func(vs ...string) []byte {
+		var rels []string
+		for _, v := range vs {
+			rels = append(rels, `{"tag_name":"bundle-`+v+`","assets":[`+
+				`{"name":"bundle-`+v+`.tar.zst","browser_download_url":"https://dl/`+v+`"},`+
+				`{"name":"bundle-`+v+`.tar.zst.minisig","browser_download_url":"https://dl/`+v+`.sig"}]}`)
+		}
+		return []byte("[" + strings.Join(rels, ",") + "]")
+	}
+	d1, s1 := signed("2026.11.07.1")
+	d2, s2 := signed("2026.11.08.1")
+	f.served = map[string][]byte{
+		bundle.DefaultReleases: listing("2026.11.07.1"),
+		"https://dl/2026.11.07.1": d1, "https://dl/2026.11.07.1.sig": s1,
+		"https://dl/2026.11.08.1": d2, "https://dl/2026.11.08.1.sig": s2,
+	}
+	installed := filepath.Join(f.home, ".local/share/theme-tender/bundle.tar.zst")
+
+	out, code := f.run("", "update")
+	if code != 0 || !strings.Contains(out, "Installed data bundle 2026.11.07.1 (was built-in)") {
+		t.Fatalf("first update (%d):\n%s", code, out)
+	}
+	if out, _ := f.run("", "doctor"); !strings.Contains(out, "Data bundle: "+installed+", version 2026.11.07.1") {
+		t.Errorf("doctor after update:\n%s", out)
+	}
+	if out, code = f.run("", "update"); code != 0 || !strings.Contains(out, "2026.11.07.1 is up to date") {
+		t.Errorf("second update (%d):\n%s", code, out)
+	}
+
+	// A newer release whose signature does not match is refused, and the
+	// installed bundle stays.
+	f.served[bundle.DefaultReleases] = listing("2026.11.07.1", "2026.11.08.1")
+	f.served["https://dl/2026.11.08.1.sig"] = s1
+	if out, code = f.run("", "update"); code != 1 || !strings.Contains(out, "bundle 2026.11.08.1 not installed") {
+		t.Errorf("bad signature (%d):\n%s", code, out)
+	}
+	if on, _ := os.ReadFile(installed); !bytes.Equal(on, d1) {
+		t.Error("installed bundle replaced by one that does not verify")
+	}
+	f.served["https://dl/2026.11.08.1.sig"] = s2
+	if out, code = f.run("", "update"); code != 0 || !strings.Contains(out, "Installed data bundle 2026.11.08.1 (was 2026.11.07.1)") {
+		t.Errorf("newer release (%d):\n%s", code, out)
+	}
+	if out, code = f.run("", "update", "-url", "https://elsewhere/releases"); code != 1 || !strings.Contains(out, "reading the release list") {
+		t.Errorf("unreachable listing (%d):\n%s", code, out)
 	}
 }
 
