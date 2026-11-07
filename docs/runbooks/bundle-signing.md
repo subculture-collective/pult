@@ -43,7 +43,7 @@ The first signed bundle, `bundle-2026.11.07.6`, was published on 2026-11-07 (2,4
 
 ## Install a bundle
 
-Until `tender update` exists, copy both files to `$XDG_DATA_HOME/theme-tender/bundle.tar.zst` and `bundle.tar.zst.minisig`. `tender doctor` shows which bundle is in use.
+`tender update` reads the release list (`-url`, default the Gitea API for this repository), picks the newest `bundle-*` release that has both assets, and installs it to `$XDG_DATA_HOME/theme-tender/bundle.tar.zst` and `bundle.tar.zst.minisig` (or the `-bundle` path). It installs nothing unless the signature verifies with a built-in key, every file matches the manifest, the manifest's version matches the tag, and the release is newer than the bundle in use. While the repository is private the release list needs a login, so `tender update` fails with 404; until then, download both assets yourself and copy them to those paths. `tender doctor` shows which bundle is in use.
 
 ## Rotate the key
 

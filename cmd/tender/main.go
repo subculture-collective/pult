@@ -46,6 +46,7 @@ Commands:
   tui                                                browse, preview, apply and undo in the terminal
   list                                               show supported apps and their state
   doctor [-recover]                                  check for interrupted runs and owners
+  update [-url URL]                                  install the newest signed data bundle
   version                                            print the version
 
 Common flags: -bundle PATH, -catalog PATH, -data DIR, -state DIR
@@ -56,7 +57,8 @@ type env struct {
 	home   string
 	getenv func(string) string
 	sys    apply.System
-	get    catalog.Getter
+	get    catalog.Getter // theme downloads
+	fetch  catalog.Getter // release listings and bundles, which are larger
 	owners owner.Env
 	keys   []string // trusted bundle signing keys
 }
@@ -64,7 +66,7 @@ type env struct {
 func main() {
 	home, _ := os.UserHomeDir()
 	os.Exit(run(os.Args[1:], os.Stdin, os.Stdout, os.Stderr, env{
-		home: home, getenv: os.Getenv, sys: realSystem{}, get: httpGet, owners: owner.SystemEnv(), keys: bundle.TrustedKeys,
+		home: home, getenv: os.Getenv, sys: realSystem{}, get: httpGetter(1 << 20), fetch: httpGetter(256 << 20), owners: owner.SystemEnv(), keys: bundle.TrustedKeys,
 	}))
 }
 
@@ -92,6 +94,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer, e env) int {
 		err = c.tui(args[1:])
 	case "doctor":
 		err = c.doctor(args[1:])
+	case "update":
+		err = c.update(args[1:])
 	case "version":
 		fmt.Fprintln(stdout, "tender", version)
 	default:
@@ -137,16 +141,59 @@ func (c *cli) bundle() (*bundle.Bundle, error) {
 	if err != nil {
 		return nil, err
 	}
-	p := c.bundlePath
-	if p == "" {
-		p = filepath.Join(c.xdg("XDG_DATA_HOME", ".local/share"), "theme-tender", "bundle.tar.zst")
-	}
-	b, warn := bundle.Load(p, c.keys, builtin)
+	b, warn := bundle.Load(c.bundleFile(), c.keys, builtin)
 	if warn != "" {
 		fmt.Fprintln(c.out, "warning:", warn)
 	}
 	c.data = b
 	return b, nil
+}
+
+func (c *cli) bundleFile() string {
+	if c.bundlePath != "" {
+		return c.bundlePath
+	}
+	return filepath.Join(c.xdg("XDG_DATA_HOME", ".local/share"), "theme-tender", "bundle.tar.zst")
+}
+
+// update installs the newest published bundle if it is newer than the one
+// in use and verifies.
+func (c *cli) update(args []string) error {
+	fl := c.flags("update")
+	url := fl.String("url", bundle.DefaultReleases, "Gitea API release listing to read")
+	if err := fl.Parse(args); err != nil {
+		return err
+	}
+	cur, err := c.bundle()
+	if err != nil {
+		return err
+	}
+	listing, err := c.fetch(*url)
+	if err != nil {
+		return fmt.Errorf("reading the release list: %w", err)
+	}
+	rel, err := bundle.LatestRelease(listing)
+	if err != nil {
+		return err
+	}
+	if !bundle.Newer(rel.Version, cur.Manifest.BundleVersion) {
+		fmt.Fprintf(c.out, "Data bundle %s is up to date (newest published: %s).\n", cur.Manifest.BundleVersion, rel.Version)
+		return nil
+	}
+	data, err := c.fetch(rel.BundleURL)
+	if err != nil {
+		return fmt.Errorf("downloading bundle %s: %w", rel.Version, err)
+	}
+	sig, err := c.fetch(rel.SigURL)
+	if err != nil {
+		return fmt.Errorf("downloading the signature of bundle %s: %w", rel.Version, err)
+	}
+	b, err := bundle.Install(c.bundleFile(), data, sig, c.keys, rel.Version)
+	if err != nil {
+		return fmt.Errorf("bundle %s not installed: %w", rel.Version, err)
+	}
+	fmt.Fprintf(c.out, "Installed data bundle %s (was %s) at %s.\n", rel.Version, cur.Manifest.BundleVersion, b.Origin)
+	return nil
 }
 
 func (c *cli) xdg(name, fallback string) string {
@@ -516,17 +563,24 @@ func (realSystem) Run(argv []string) ([]byte, error) {
 
 func (realSystem) Running(name string) bool { return exec.Command("pgrep", "-x", name).Run() == nil }
 
-func httpGet(url string) ([]byte, error) {
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Get(url)
-	if err != nil {
-		return nil, err
+// httpGetter fetches a URL's body, refusing bodies over limit bytes.
+func httpGetter(limit int64) catalog.Getter {
+	return func(url string) ([]byte, error) {
+		client := &http.Client{Timeout: 2 * time.Minute}
+		resp, err := client.Get(url)
+		if err != nil {
+			return nil, err
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("%s: %s", url, resp.Status)
+		}
+		b, err := io.ReadAll(io.LimitReader(resp.Body, limit+1))
+		if err == nil && int64(len(b)) > limit {
+			err = fmt.Errorf("%s: larger than %d bytes", url, limit)
+		}
+		return b, err
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%s: %s", url, resp.Status)
-	}
-	return io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 }
 
 func (c *cli) tui(args []string) error {
