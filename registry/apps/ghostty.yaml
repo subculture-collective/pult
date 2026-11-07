@@ -1,0 +1,43 @@
+# Not installed on the checking host. The SIGUSR2 reload is the one
+# omarchy-restart-terminal uses on Linux. Version regex, the relative
+# config-file path and a validate command still need checking on a machine
+# with Ghostty.
+schema: 1
+id: ghostty
+name: Ghostty
+homepage: https://ghostty.org/
+platforms: [linux, macos]
+tier: 1
+
+detect:
+  binaries: [ghostty]
+  macos_apps: [Ghostty.app]
+  version:
+    argv: [ghostty, --version]
+    regex: 'Ghostty ([0-9.]+)'
+
+config:
+  paths:
+    linux: ["$XDG_CONFIG_HOME/ghostty/config.ghostty", "$XDG_CONFIG_HOME/ghostty/config"]
+    macos:
+      - "$XDG_CONFIG_HOME/ghostty/config.ghostty"
+      - "$XDG_CONFIG_HOME/ghostty/config"
+      - "$HOME/Library/Application Support/com.mitchellh.ghostty/config.ghostty"
+      - "$HOME/Library/Application Support/com.mitchellh.ghostty/config"
+
+integrations:
+  # "?" makes the file optional, so Ghostty still starts if it is removed.
+  - method: include
+    template: ghostty/theme-tender.ghostty.mustache
+    owned_file: theme-tender.ghostty
+    line: "config-file = ?theme-tender.ghostty"
+    position: end
+
+reload:
+  - argv: [pkill, -USR2, -x, ghostty]
+    when: running
+    platforms: [linux]
+
+ports:
+  catppuccin: { url: https://github.com/catppuccin/ghostty, kind: official }
+  dracula: { url: https://github.com/dracula/ghostty, kind: official }
