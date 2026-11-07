@@ -1,0 +1,34 @@
+# Checked on Arch, starship 1.27.0, 2026-11-06: version regex. Starship
+# rereads its config for every prompt, so it needs no reload. It has no
+# validate command: "starship print-config" exits 0 on parse errors.
+schema: 1
+id: starship
+name: Starship
+homepage: https://starship.rs/
+platforms: [linux, macos]
+tier: 1
+
+detect:
+  binaries: [starship]
+  version:
+    argv: [starship, --version]
+    regex: 'starship ([0-9.]+)'
+
+config:
+  env:
+    - { name: STARSHIP_CONFIG, kind: file }
+  paths:
+    linux: ["$HOME/.config/starship.toml"]
+    macos: ["$HOME/.config/starship.toml"]
+
+integrations:
+  # The palette defines the 26 role names and overrides the ANSI color
+  # names, so the default config and Catppuccin-style configs both follow it.
+  - method: keys
+    format: toml
+    template: starship/palette.toml.mustache
+    paths: [palette, palettes.theme-tender]
+
+ports:
+  catppuccin: { url: https://github.com/catppuccin/starship, kind: official }
+  dracula: { url: https://github.com/dracula/starship, kind: official }

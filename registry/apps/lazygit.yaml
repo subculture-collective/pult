@@ -1,0 +1,33 @@
+# Checked on Arch, lazygit 0.66.2, 2026-11-06: version regex. Lazygit has
+# no reload or validate command. LG_CONFIG_FILE may hold a comma-separated
+# list of files.
+schema: 1
+id: lazygit
+name: lazygit
+homepage: https://github.com/jesseduffield/lazygit
+platforms: [linux, macos]
+tier: 1
+
+detect:
+  binaries: [lazygit]
+  version:
+    argv: [lazygit, --version]
+    regex: 'version=([0-9.]+)'
+
+config:
+  env:
+    - { name: LG_CONFIG_FILE, kind: file }
+    - { name: CONFIG_DIR, kind: dir }
+  paths:
+    linux: ["$XDG_CONFIG_HOME/lazygit/config.yml"]
+    macos: ["$HOME/Library/Application Support/lazygit/config.yml"]
+
+integrations:
+  - method: keys
+    format: yaml
+    template: lazygit/theme.yml.mustache
+    paths: [gui.theme]
+
+ports:
+  catppuccin: { url: https://github.com/catppuccin/lazygit, kind: official }
+  dracula: { url: https://github.com/dracula/lazygit, kind: official }

@@ -1,0 +1,40 @@
+# Checked on Arch, kitty 0.49.2, 2026-11-06: version regex, SIGUSR1 reload
+# (also used by omarchy-restart-terminal), validate exit codes.
+schema: 1
+id: kitty
+name: kitty
+homepage: https://sw.kovidgoyal.net/kitty/
+platforms: [linux, macos]
+tier: 1
+
+detect:
+  binaries: [kitty]
+  macos_apps: [kitty.app]
+  version:
+    argv: [kitty, --version]
+    regex: 'kitty ([0-9.]+)'
+
+config:
+  env:
+    - { name: KITTY_CONFIG_DIRECTORY, kind: dir }
+  paths:
+    linux: ["$XDG_CONFIG_HOME/kitty/kitty.conf"]
+    macos: ["$XDG_CONFIG_HOME/kitty/kitty.conf", "$HOME/Library/Preferences/kitty/kitty.conf"]
+
+integrations:
+  - method: include
+    template: kitty/theme-tender.conf.mustache
+    owned_file: theme-tender.conf
+    line: "include theme-tender.conf"
+    position: end
+
+reload:
+  - argv: [pkill, -USR1, -x, kitty]
+    when: running
+# Fails on invalid values such as a bad color; unknown keys only warn.
+validate:
+  argv: [kitty, +runpy, "import sys; from kitty.config import load_config; load_config(sys.argv[-1])", "{theme_file}"]
+
+ports:
+  catppuccin: { url: https://github.com/catppuccin/kitty, kind: official }
+  dracula: { url: https://github.com/dracula/kitty, kind: official }
