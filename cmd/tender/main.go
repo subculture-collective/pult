@@ -22,9 +22,13 @@ import (
 	"git.subcult.tv/subculture-collective/theme-tender/internal/bundle"
 	"git.subcult.tv/subculture-collective/theme-tender/internal/catalog"
 	"git.subcult.tv/subculture-collective/theme-tender/internal/changes"
+	"git.subcult.tv/subculture-collective/theme-tender/internal/color"
 	"git.subcult.tv/subculture-collective/theme-tender/internal/owner"
 	"git.subcult.tv/subculture-collective/theme-tender/internal/registry"
 	"git.subcult.tv/subculture-collective/theme-tender/internal/render"
+	"git.subcult.tv/subculture-collective/theme-tender/internal/tui"
+
+	tea "charm.land/bubbletea/v2"
 )
 
 // version is set at build time with -ldflags "-X main.version=...".
@@ -36,6 +40,7 @@ Commands:
   search [words] [-tag t]... [-similar id] [-n 20]   find themes in the catalog
   apply [-dry-run] [-yes] <theme>                    theme every supported app
   uninstall [-yes] [-force]                          put every changed file back
+  tui                                                browse, preview, apply and undo in the terminal
   list                                               show supported apps and their state
   doctor [-recover]                                  check for interrupted runs and owners
   version                                            print the version
@@ -76,6 +81,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer, e env) int {
 		err = c.uninstall(args[1:])
 	case "list":
 		err = c.list(args[1:])
+	case "tui":
+		err = c.tui(args[1:])
 	case "doctor":
 		err = c.doctor(args[1:])
 	case "version":
@@ -261,18 +268,7 @@ func (c *cli) apply(args []string) error {
 		return err
 	}
 	defer db.Close()
-	info, err := db.Info(fl.Arg(0))
-	if err != nil {
-		return err
-	}
-	var th apply.Theme
-	th.Theme = render.Theme{Name: info.Name, Slug: info.ID, Author: info.Author, Appearance: info.Appearance}
-	if info.Bundled {
-		th.Palette, err = db.Palette(info.ID)
-	} else {
-		fmt.Fprintf(c.out, "%s (licence %s) is not bundled; downloading it from %s.\n", info.ID, info.License, info.SourceID)
-		th.Palette, err = db.Download(info, filepath.Join(c.xdg("XDG_CACHE_HOME", ".cache"), "theme-tender", "themes"), c.get)
-	}
+	th, info, err := c.loadTheme(db, fl.Arg(0), true)
 	if err != nil {
 		return err
 	}
@@ -324,6 +320,24 @@ func (c *cli) apply(args []string) error {
 		return err
 	}
 	return c.report(res, "Applied "+info.Name)
+}
+
+// loadTheme reads a theme's palette, downloading an unbundled one.
+func (c *cli) loadTheme(db *catalog.DB, id string, say bool) (apply.Theme, catalog.Info, error) {
+	info, err := db.Info(id)
+	if err != nil {
+		return apply.Theme{}, info, err
+	}
+	th := apply.Theme{Theme: render.Theme{Name: info.Name, Slug: info.ID, Author: info.Author, Appearance: info.Appearance}}
+	if info.Bundled {
+		th.Palette, err = db.Palette(info.ID)
+	} else {
+		if say {
+			fmt.Fprintf(c.out, "%s (licence %s) is not bundled; downloading it from %s.\n", info.ID, info.License, info.SourceID)
+		}
+		th.Palette, err = db.Download(info, filepath.Join(c.xdg("XDG_CACHE_HOME", ".cache"), "theme-tender", "themes"), c.get)
+	}
+	return th, info, err
 }
 
 func (c *cli) report(res *apply.Result, done string) error {
@@ -503,4 +517,142 @@ func httpGet(url string) ([]byte, error) {
 		return nil, fmt.Errorf("%s: %s", url, resp.Status)
 	}
 	return io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+}
+
+func (c *cli) tui(args []string) error {
+	fl := c.flags("tui")
+	if err := fl.Parse(args); err != nil {
+		return err
+	}
+	b, err := c.tuiBackend()
+	if err != nil {
+		return err
+	}
+	defer b.db.Close()
+	_, err = tea.NewProgram(tui.New(b)).Run()
+	return err
+}
+
+func (c *cli) tuiBackend() (*tuiBackend, error) {
+	db, err := c.openCatalog()
+	if err != nil {
+		return nil, err
+	}
+	o, err := c.options()
+	if err != nil {
+		db.Close()
+		return nil, err
+	}
+	return &tuiBackend{c: c, db: db, o: o}, nil
+}
+
+// tuiBackend connects the TUI to the catalog and the apply pipeline. Files
+// other tools own are never confirmed here: Confirm stays nil, so they are
+// skipped and shown as owned.
+type tuiBackend struct {
+	c    *cli
+	db   *catalog.DB
+	o    apply.Options
+	plan *apply.Plan
+}
+
+func (b *tuiBackend) Search(q string, tags []string) ([]catalog.Info, error) {
+	return b.db.Search(q, tags, 500)
+}
+
+func (b *tuiBackend) Similar(id string) ([]catalog.Info, error) { return b.db.Similar(id, 30) }
+
+func (b *tuiBackend) Palette(id string) (color.Palette, error) { return b.db.Palette(id) }
+
+func (b *tuiBackend) Apps() ([]tui.AppRow, error) {
+	apps, err := apply.Survey(b.o)
+	if err != nil {
+		return nil, err
+	}
+	var out []tui.AppRow
+	for _, ap := range apps {
+		status := ap.Skip
+		if status == "" {
+			status = fmt.Sprintf("version %s, %s", orUnknown(ap.Version), ap.Integration.Method)
+		}
+		out = append(out, tui.AppRow{ID: ap.ID, Tier: ap.Entry.Tier, Owner: ap.Owner.Record(), Status: status})
+	}
+	return out, nil
+}
+
+func (b *tuiBackend) Plan(id string) ([]string, error) {
+	th, _, err := b.c.loadTheme(b.db, id, false)
+	if err != nil {
+		return nil, err
+	}
+	o := b.o
+	o.Meta.Theme = id
+	if b.plan, err = apply.Prepare(o, th); err != nil {
+		return nil, err
+	}
+	var lines []string
+	for _, ap := range b.plan.Apps {
+		if ap.Skip != "" {
+			lines = append(lines, fmt.Sprintf("%-10s skip: %s", ap.ID, ap.Skip))
+		} else {
+			lines = append(lines, fmt.Sprintf("%-10s %d file(s) via %s", ap.ID, len(ap.Edits), ap.Integration.Method))
+		}
+	}
+	if len(b.plan.Omarchy) > 0 {
+		lines = append(lines, fmt.Sprintf("%-10s theme %s", "omarchy", strings.Join(b.plan.OmarchySwitch[1:], " ")))
+	}
+	return lines, nil
+}
+
+func (b *tuiBackend) Apply(id string) (string, error) {
+	if b.plan == nil || b.plan.Theme.Slug != id {
+		if _, err := b.Plan(id); err != nil {
+			return "", err
+		}
+	}
+	o := b.o
+	o.Meta.Theme = id
+	res, err := apply.Execute(o, b.plan)
+	b.plan = nil
+	if err != nil {
+		return "", err
+	}
+	msg := fmt.Sprintf("Applied %s: transaction %s (%s).", id, res.Tx.ID, res.Tx.Status)
+	if res.Tx.Error != "" {
+		msg += " Validation failed, those apps were restored: " + res.Tx.Error
+	}
+	return msg, nil
+}
+
+// Undo rolls back the newest apply that has not been rolled back.
+func (b *tuiBackend) Undo() (string, error) {
+	txs, err := b.o.Store.Transactions()
+	if err != nil {
+		return "", err
+	}
+	undone := map[string]bool{}
+	for _, tx := range txs {
+		if tx.Kind == "rollback" {
+			undone[tx.RollsBack] = true
+		}
+	}
+	for i := len(txs) - 1; i >= 0; i-- {
+		tx := txs[i]
+		if tx.Kind == "uninstall" {
+			break
+		}
+		if tx.Kind != "apply" || undone[tx.ID] || (tx.Status != "complete" && tx.Status != "failed") {
+			continue
+		}
+		rb, conflicts, err := b.o.Store.Rollback(tx.ID, false)
+		if err != nil {
+			return "", err
+		}
+		msg := fmt.Sprintf("Rolled back %s (%d file(s)).", tx.Theme, len(rb.Changes))
+		if len(conflicts) > 0 {
+			msg += fmt.Sprintf(" %d file(s) changed since were left alone; tender uninstall shows them.", len(conflicts))
+		}
+		return msg, nil
+	}
+	return "Nothing to undo.", nil
 }

@@ -9,6 +9,7 @@ Status: M1 in progress. `tender` works with a catalog you build yourself; the si
 ```bash
 make catalog                                   # build .cache/catalog.db.zst from the pinned sources
 export TENDER_CATALOG=$PWD/.cache/catalog.db.zst
+go run ./cmd/tender tui                        # browse, preview, apply and undo
 go run ./cmd/tender search -tag pastel rose    # find themes; -similar <id> lists close matches
 go run ./cmd/tender apply -dry-run catppuccin-mocha   # plan and diffs, nothing written
 go run ./cmd/tender apply catppuccin-mocha
