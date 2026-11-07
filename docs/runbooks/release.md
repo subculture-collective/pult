@@ -11,7 +11,7 @@ All tarballs are reproducible: `scripts/dist.sh` sorts entries, fixes times and 
 
 ## Before the first release (owner)
 
-1. **Public downloads.** The AUR and Homebrew fetch the source tarball and catalog from the release URL. That only works once those downloads are public: make the Gitea repository public, or publish releases somewhere public and change the base URL passed to `scripts/render-packaging.sh` in `.gitea/workflows/release.yml`. The M1 plan proposes going public when package 10 lands.
+1. **Public downloads.** The AUR and Homebrew fetch the source tarball and catalog from the release URL. The Gitea repository has been public since 2026-11-07, so release downloads need no login. Only `PatrickFanella` may push `v*` tags (tag protection).
 2. **AUR.** An AUR account with an SSH key, to create `theme-tender` and `theme-tender-bin`.
 3. **Homebrew tap.** Create `subculture-collective/homebrew-tap` (mirrored to GitHub, ADR 0002) with a `Formula/` directory.
 
