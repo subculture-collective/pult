@@ -121,7 +121,7 @@
       "type": "string",
       "pattern": "^(>=|<=|>|<|=)?[0-9]+(\\.[0-9]+)*( (>=|<=|>|<|=)?[0-9]+(\\.[0-9]+)*)*$"
     },
-    "format": { "enum": ["yaml", "toml", "json", "jsonc", "ini"] },
+    "format": { "enum": ["yaml", "toml", "json", "jsonc", "ini", "kdl", "args"] },
     "settings": {
       "type": "object",
       "minProperties": 1,

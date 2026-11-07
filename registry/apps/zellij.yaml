@@ -1,0 +1,43 @@
+# Checked on Arch, zellij 0.45.1, 2026-11-07: version regex, and that
+# "zellij --config <theme file> setup --check" accepts the generated theme
+# and rejects a bad color (exit 1; a config whose theme does not exist
+# still exits 0, so the theme file itself is checked). The theme uses the
+# eleven-color format, which 0.45 still reads. Config directory, from
+# zellij-utils/src/home.rs (zellij 43c8710): the first that exists of
+# ~/.config/zellij and the platform config directory ($XDG_CONFIG_HOME/zellij,
+# Application Support/org.Zellij-Contributors.Zellij on macOS); themes are
+# read from its themes/ directory. Zellij reloads its config by itself.
+schema: 1
+id: zellij
+name: Zellij
+homepage: https://zellij.dev/
+platforms: [linux, macos]
+tier: 1
+
+detect:
+  binaries: [zellij]
+  version:
+    argv: [zellij, --version]
+    regex: 'zellij ([0-9.]+)'
+
+config:
+  env:
+    - { name: ZELLIJ_CONFIG_DIR, kind: dir }
+  paths:
+    linux: ["$HOME/.config/zellij/config.kdl", "$XDG_CONFIG_HOME/zellij/config.kdl"]
+    macos: ["$HOME/.config/zellij/config.kdl", "$HOME/Library/Application Support/org.Zellij-Contributors.Zellij/config.kdl"]
+
+integrations:
+  - method: owned
+    template: zellij/theme-tender.kdl.mustache
+    target: themes/theme-tender.kdl
+    select:
+      format: kdl
+      set: { theme: theme-tender }
+
+validate:
+  argv: [zellij, --config, "{theme_file}", setup, --check]
+
+ports:
+  catppuccin: { url: https://github.com/catppuccin/zellij, kind: official }
+  dracula: { url: https://github.com/dracula/zellij, kind: official }

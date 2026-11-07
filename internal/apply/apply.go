@@ -437,6 +437,10 @@ func set(format string, src []byte, values map[string]any) ([]byte, error) {
 		return configedit.TOMLSet(src, values)
 	case "ini":
 		return configedit.INISet(src, values)
+	case "kdl":
+		return configedit.KDLSet(src, values)
+	case "args":
+		return configedit.ArgsSet(src, values)
 	case "yaml":
 		// Build a fragment holding each dotted key and replace those keys.
 		frag := map[string]any{}

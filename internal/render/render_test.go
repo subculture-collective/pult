@@ -176,6 +176,8 @@ func goldenPath(template, slug string) string {
 
 // TestRenderedFilesParse checks each output with the app's own validator
 // when it is installed, and YAML output with a YAML parser.
+var problem = regexp.MustCompile(`(?i)error|warn|invalid|fail|unknown`)
+
 func TestRenderedFilesParse(t *testing.T) {
 	th := goldenThemes(t)[0]
 	for name, e := range templateUses(t) {
@@ -212,7 +214,9 @@ func TestRenderedFilesParse(t *testing.T) {
 			for i := range args {
 				args[i] = strings.ReplaceAll(args[i], "{theme_file}", file)
 			}
-			if msg, err := exec.Command(args[0], args[1:]...).CombinedOutput(); err != nil || len(strings.TrimSpace(string(msg))) > 0 {
+			// Some validators print a report on success (zellij); output
+			// that mentions a problem fails the check as an exit code does.
+			if msg, err := exec.Command(args[0], args[1:]...).CombinedOutput(); err != nil || problem.Match(msg) {
 				t.Errorf("%v: err %v, output %q", args, err, msg)
 			}
 		})
