@@ -191,7 +191,9 @@ func Read(data []byte) (*Bundle, error) {
 
 // Sign signs data with a minisign secret key file (as written by
 // minisign -G). password decrypts the key; it may be empty for an
-// unencrypted key.
+// unencrypted key. A trailing newline in password is dropped: minisign's
+// prompt cannot produce one, but pasting a passphrase into a secret store
+// often adds it.
 func Sign(data []byte, keyFile, password, trustedComment string) ([]byte, error) {
 	raw, err := os.ReadFile(keyFile)
 	if err != nil {
@@ -203,7 +205,7 @@ func Sign(data []byte, keyFile, password, trustedComment string) ([]byte, error)
 	}
 	defer sk.Wipe()
 	if sk.IsEncrypted() {
-		if err := sk.Decrypt(password); err != nil {
+		if err := sk.Decrypt(strings.TrimRight(password, "\r\n")); err != nil {
 			return nil, fmt.Errorf("bundle: secret key: %w", err)
 		}
 	}

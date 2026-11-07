@@ -4,6 +4,8 @@
 !.env.example
 *.pem
 *.key
+# Public test key with a published passphrase; see its README.
+!/internal/bundle/testdata/minisign-0.12/t.key
 *.crt
 *.p12
 *.pfx

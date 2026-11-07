@@ -267,3 +267,33 @@ func TestSecretKeyFormats(t *testing.T) {
 		}
 	}
 }
+
+// TestMinisignInterop uses a key and signature made by the minisign 0.12
+// C tool (testdata/minisign-0.12): Sign decrypts that encrypted key, and
+// Verify accepts minisign's own signature.
+func TestMinisignInterop(t *testing.T) {
+	dir := "testdata/minisign-0.12"
+	pubFile, err := os.ReadFile(filepath.Join(dir, "t.pub"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pub := strings.Split(strings.TrimSpace(string(pubFile)), "\n")[1]
+	data, _ := os.ReadFile(filepath.Join(dir, "data"))
+	theirs, _ := os.ReadFile(filepath.Join(dir, "data.minisig"))
+	if err := Verify(data, theirs, []string{pub}); err != nil {
+		t.Errorf("minisign's signature: %v", err)
+	}
+	for _, pw := range []string{"testpass", "testpass\n", "testpass\r\n"} {
+		sig, err := Sign(data, filepath.Join(dir, "t.key"), pw, "ok")
+		if err != nil {
+			t.Errorf("password %q: %v", pw, err)
+			continue
+		}
+		if err := Verify(data, sig, []string{pub}); err != nil {
+			t.Errorf("password %q: %v", pw, err)
+		}
+	}
+	if _, err := Sign(data, filepath.Join(dir, "t.key"), "wrong", "ok"); err == nil || !strings.Contains(err.Error(), "Wrong password") {
+		t.Errorf("wrong password: %v", err)
+	}
+}
