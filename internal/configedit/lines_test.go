@@ -7,7 +7,13 @@ func TestKDLSet(t *testing.T) {
 		{"append", "// mine\nmouse_mode true\n", "// mine\nmouse_mode true\ntheme \"theme-tender\"\n"},
 		{"append without final newline", "mouse_mode true", "mouse_mode true\ntheme \"theme-tender\"\n"},
 		{"empty file", "", "theme \"theme-tender\"\n"},
-		{"replace", "theme \"dracula\" // old\nmouse_mode true\n", "theme \"theme-tender\"\nmouse_mode true\n"},
+		{"replace keeps a trailing comment", "theme \"dracula\" // old\nmouse_mode true\n", "theme \"theme-tender\" // old\nmouse_mode true\n"},
+		{"other node on the line", "theme \"old\"; default_mode \"locked\"\n", "theme \"theme-tender\"; default_mode \"locked\"\n"},
+		{"inside a block comment", "/*\ntheme \"old\"\n*/\nx 1\n", "/*\ntheme \"old\"\n*/\nx 1\ntheme \"theme-tender\"\n"},
+		{"nested block comment", "/* a /* b */ theme \"x\" */\n", "/* a /* b */ theme \"x\" */\ntheme \"theme-tender\"\n"},
+		{"raw string with a quote", "plugins {\n    x location=r#\"a\"b\"# {\n    }\n    theme \"inner\"\n}\n", "plugins {\n    x location=r#\"a\"b\"# {\n    }\n    theme \"inner\"\n}\ntheme \"theme-tender\"\n"},
+		{"brace in a block comment", "x 1 /* { */\ntheme \"a\"\n", "x 1 /* { */\ntheme \"theme-tender\"\n"},
+		{"escaped quote in a string", "x \"a\\\"{\"\ntheme \"a\"\n", "x \"a\\\"{\"\ntheme \"theme-tender\"\n"},
 		{"CRLF", "theme \"dracula\"\r\nmouse_mode true\r\n", "theme \"theme-tender\"\r\nmouse_mode true\r\n"},
 		{"nested theme left alone", "themes {\n    theme \"x\"\n}\n", "themes {\n    theme \"x\"\n}\ntheme \"theme-tender\"\n"},
 		{"brace in a string", "pane_frames \"{\"\ntheme \"a\"\n", "pane_frames \"{\"\ntheme \"theme-tender\"\n"},
@@ -19,12 +25,17 @@ func TestKDLSet(t *testing.T) {
 		if err != nil || string(got) != tt.want {
 			t.Errorf("%s: %q, %v\nwant %q", tt.name, got, err, tt.want)
 		}
+		if again, _ := KDLSet(got, map[string]any{"theme": "theme-tender"}); string(again) != string(got) {
+			t.Errorf("%s: not idempotent: %q", tt.name, again)
+		}
 	}
 	if got, _ := KDLSet([]byte("x 1\n"), map[string]any{"pane_frames": false, "scroll_buffer_size": 100}); string(got) != "x 1\npane_frames false\nscroll_buffer_size 100\n" {
 		t.Errorf("bool and number: %q", got)
 	}
-	if _, err := KDLSet([]byte("a {\n"), map[string]any{"theme": "x"}); err != nil {
-		t.Errorf("unclosed block is appended after: %v", err)
+	for _, bad := range []string{"a \"x\n", "/* x\n", "r#\"x\n"} {
+		if _, err := KDLSet([]byte(bad), map[string]any{"theme": "x"}); err == nil {
+			t.Errorf("%q accepted", bad)
+		}
 	}
 	if _, err := KDLSet([]byte("}\n"), map[string]any{"theme": "x"}); err == nil {
 		t.Error("unbalanced braces accepted")
@@ -39,13 +50,20 @@ func TestArgsSet(t *testing.T) {
 		{"append", "# mine\n--style=plain\n", "# mine\n--style=plain\n--theme=\"ansi\"\n"},
 		{"empty", "", "--theme=\"ansi\"\n"},
 		{"replace equals", "--theme=\"TwoDark\"\n--italic-text=always\n", "--theme=\"ansi\"\n--italic-text=always\n"},
-		{"replace space form", "  --theme TwoDark\n", "--theme=\"ansi\"\n"},
+		{"replace space form, indent kept", "  --theme TwoDark\n", "  --theme=\"ansi\"\n"},
 		{"comment and longer option kept", "#--theme=x\n--theme-dark=x\n", "#--theme=x\n--theme-dark=x\n--theme=\"ansi\"\n"},
+		{"other options on the line kept", "--theme=\"TwoDark\" --italic-text=always\n", "--theme=\"ansi\" --italic-text=always\n"},
+		{"option later on the line", "--italic-text=always --theme=\"Two Dark\"\n", "--italic-text=always --theme=\"ansi\"\n"},
+		{"space form among others", "--paging never --theme Nord --tabs 2\n", "--paging never --theme=\"ansi\" --tabs 2\n"},
+		{"quoted word containing the option", "--map-syntax=\"--theme:x\"\n", "--map-syntax=\"--theme:x\"\n--theme=\"ansi\"\n"},
 	}
 	for _, tt := range tests {
 		got, err := ArgsSet([]byte(tt.src), map[string]any{"theme": "ansi"})
 		if err != nil || string(got) != tt.want {
 			t.Errorf("%s: %q, %v\nwant %q", tt.name, got, err, tt.want)
+		}
+		if again, _ := ArgsSet(got, map[string]any{"theme": "ansi"}); string(again) != string(got) {
+			t.Errorf("%s: not idempotent: %q", tt.name, again)
 		}
 	}
 	if _, err := ArgsSet(nil, map[string]any{"the me": "x"}); err == nil {
