@@ -117,7 +117,7 @@ Variables available to every template:
 
 Every template has golden files in `internal/render/testdata/golden/` for Catppuccin Mocha, Catppuccin Latte and Dracula (derived roles). `go test ./internal/render -update` rewrites them; review the diff before committing.
 
-Whether Aether's template variables can be offered as aliases is an M1 research item.
+- Aether's template variables under `aether.`: `{{aether.red}}`, `{{aether.lighter_bg.rgbs}}`, `{{aether.mode}}`. They follow Aether's meanings, which differ from ours: Aether's `red` is ANSI red, while `{{red}}` here is Catppuccin's red role. `tender render -aether` converts an Aether template's `{name}` placeholders and renders it. See [the Aether comparison](../research/aether-templates.md).
 
 ## Command safety
 
