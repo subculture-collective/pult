@@ -52,6 +52,7 @@ func Vars(t Theme, p color.Palette) (map[string]any, error) {
 	for _, r := range color.AllRoles() {
 		ctx[string(r)] = colorFields(p[r])
 	}
+	ctx["aether"] = aetherVars(t, p)
 	for i, r := range baseSlots {
 		slot := fmt.Sprintf("base%02X", i)
 		ctx[slot] = colorFields(p[r])

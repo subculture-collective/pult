@@ -41,7 +41,7 @@ Commands:
   search [words] [-tag t]... [-similar id] [-n 20]   find themes in the catalog
   apply [-dry-run] [-yes] <theme>                    theme every supported app
   palette [-format json|toml] <theme>                print the resolved palette, changing nothing
-  render [-o file] <theme> <template>                render one template, changing nothing
+  render [-o file] [-aether] <theme> <template>      render one template, changing nothing
   uninstall [-yes] [-force]                          put every changed file back
   tui                                                browse, preview, apply and undo in the terminal
   list                                               show supported apps and their state
@@ -798,6 +798,7 @@ func (c *cli) palette(args []string) error {
 func (c *cli) render(args []string) error {
 	fl := c.flags("render")
 	out := fl.String("o", "", "write to this file instead of stdout")
+	aether := fl.Bool("aether", false, "the template uses Aether's {name} placeholders")
 	if err := fl.Parse(args); err != nil {
 		return err
 	}
@@ -825,6 +826,13 @@ func (c *cli) render(args []string) error {
 		}
 	} else if err != nil {
 		return err
+	}
+	if *aether {
+		conv, err := render.AetherToMustache(string(src))
+		if err != nil {
+			return err
+		}
+		src = []byte(conv)
 	}
 	tm, err := render.Parse(name, string(src))
 	if err != nil {

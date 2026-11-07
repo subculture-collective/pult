@@ -501,3 +501,16 @@ func TestRenderTemplate(t *testing.T) {
 		}
 	}
 }
+
+func TestRenderAetherTemplate(t *testing.T) {
+	f := newFixture(t)
+	f.write("aether.conf", "background {background}\nhighlight {lighter_bg.strip}\n")
+	out, code := f.run("", "render", "-aether", "catppuccin-mocha", filepath.Join(f.home, "aether.conf"))
+	if code != 0 || out != "background #1e1e2e\nhighlight 353543\n" {
+		t.Errorf("render -aether (%d):\n%s", code, out)
+	}
+	f.write("bad.conf", "x {red.rgba:0.5}\n")
+	if out, code = f.run("", "render", "-aether", "catppuccin-mocha", filepath.Join(f.home, "bad.conf")); code != 1 || !strings.Contains(out, "{red.rgba:0.5}") {
+		t.Errorf("unsupported placeholder (%d):\n%s", code, out)
+	}
+}
