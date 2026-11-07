@@ -1,6 +1,9 @@
-# Checked on Arch, yazi 26.9.1, 2026-11-06: version regex. Older releases
-# print "Yazi 0.4.2 (...)". Yazi loads flavors at start, so there is no
-# reload; settings in the user's own theme.toml still win over the flavor.
+# Checked on Arch, yazi 26.9.1, 2026-11-06: version regex, and that Yazi
+# starts with the generated flavor. Yazi also starts with invalid values,
+# so that check proves little; the flavor's keys follow catppuccin/yazi.
+# Older releases print "Yazi 0.4.2 (...)". Yazi loads flavors at start, so
+# there is no reload; settings in the user's own theme.toml still win over
+# the flavor.
 schema: 1
 id: yazi
 name: Yazi
@@ -22,21 +25,16 @@ config:
     macos: ["$HOME/.config/yazi/theme.toml"]
 
 integrations:
-  # 0.4 replaced flavor.use with separate dark and light flavors.
+  # 25.5.28 renamed the [manager] section to [mgr]; the flavor uses [mgr].
   - method: owned
-    versions: ">=0.4"
+    versions: ">=25.5.28"
     template: yazi/flavor.toml.mustache
     target: flavors/theme-tender.yazi/flavor.toml
     select:
       format: toml
       set: { flavor.dark: theme-tender, flavor.light: theme-tender }
-  - method: owned
-    versions: "<0.4"
-    template: yazi/flavor.toml.mustache
-    target: flavors/theme-tender.yazi/flavor.toml
-    select:
-      format: toml
-      set: { flavor.use: theme-tender }
+  - method: manual
+    url: https://yazi-rs.github.io/docs/flavors/overview
 
 ports:
   catppuccin: { url: https://github.com/catppuccin/yazi, kind: official }

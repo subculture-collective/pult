@@ -100,12 +100,20 @@ The merged entry must still match the schema. If a user file is unreadable, malf
 
 ## Templates
 
-Templates are Mustache files, compatible with the Base16 builder specification, so Tinted Theming templates can be reused. A built-in entry's templates live under `templates/<id>/`. Variables available to every template:
+Templates are Mustache files under `templates/<id>/` (MIT), rendered by `internal/render`. The renderer supports what theme templates need: variables, dotted names, sections, inverted sections and comments. It differs from full Mustache in three ways:
 
-- the 26 roles: `{{rosewater.hex}}`, `{{crust.rgb}}` … (`hex`, `hex_bare`, `rgb`, `r`, `g`, `b`)
-- `{{ansi0.hex}}` … `{{ansi15.hex}}`, `{{background}}`, `{{foreground}}`, `{{cursor}}`, `{{selection_bg}}`, `{{selection_fg}}`
-- Base16 and Base24 aliases `base00` … `base17`
-- `{{theme.name}}`, `{{theme.slug}}`, `{{theme.appearance}}`
+- Output is a config file, so nothing is HTML-escaped: `{{name}}`, `{{&name}}` and `{{{name}}}` are the same.
+- A name that does not resolve is an error, so a typo fails the template's golden test instead of rendering empty.
+- Partials and delimiter changes are rejected.
+
+Variables available to every template:
+
+- Every role in `color.AllRoles`: the 26 Catppuccin roles, `ansi0` … `ansi15`, `background`, `foreground`, `cursor`, `selection_bg`, `selection_fg`. Each has `.hex` (`#cdd6f4`), `.hex_bare` (`cdd6f4`), `.rgb` (`205, 214, 244`), `.r`, `.g` and `.b` (decimal). On its own, `{{mauve}}` is the same as `{{mauve.hex}}`.
+- `{{theme.name}}`, `{{theme.slug}}`, `{{theme.author}}`, `{{theme.appearance}}` (`dark` or `light`).
+- Base16/Base24 aliases `base00` … `base17`, with the same fields as roles. Slots map to roles as Tinted Theming's own Catppuccin Base24 schemes assign them (`base00` base, `base0E` mauve, `base11` crust, `base17` pink, …).
+- Base16 builder specification names, so Tinted Theming templates can be reused: `{{base00-hex}}` (no `#`), `-hex-r`/`-g`/`-b`, `-rgb-r`/`-g`/`-b`, `-dec-r`/`-g`/`-b`, `-hex-bgr`, plus `scheme-name`, `scheme-author`, `scheme-slug`, `scheme-slug-underscored`, `scheme-system` (`base24`), `scheme-variant`, `scheme-is-dark-variant` and `scheme-is-light-variant`.
+
+Every template has golden files in `internal/render/testdata/golden/` for Catppuccin Mocha, Catppuccin Latte and Dracula (derived roles). `go test ./internal/render -update` rewrites them; review the diff before committing.
 
 Whether Aether's template variables can be offered as aliases is an M1 research item.
 
