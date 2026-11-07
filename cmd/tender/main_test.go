@@ -161,6 +161,14 @@ func TestApplyDryRunThenApplyThenUninstall(t *testing.T) {
 	if !strings.Contains(out, "No interrupted runs.") || !strings.Contains(out, "Active theme: catppuccin-mocha; 4 file(s) changed.") {
 		t.Errorf("doctor:\n%s", out)
 	}
+	if !strings.Contains(out, "No app upgrades since the last apply.") {
+		t.Errorf("doctor before an upgrade:\n%s", out)
+	}
+	f.sys.versions["btop"] = "btop version: 1.5.0"
+	out, _ = f.run("", "doctor")
+	if !strings.Contains(out, "btop upgraded from 1.4.7 to 1.5.0 since the last apply: same integration; it has no validator") {
+		t.Errorf("doctor after an upgrade:\n%s", out)
+	}
 	out, code = f.run("", "uninstall", "-yes")
 	if code != 0 || !strings.Contains(out, "Uninstalled") {
 		t.Fatalf("uninstall (%d):\n%s", code, out)

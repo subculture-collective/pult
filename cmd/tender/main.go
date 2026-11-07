@@ -473,6 +473,28 @@ func (c *cli) doctor(args []string) error {
 		theme = "none"
 	}
 	fmt.Fprintf(c.out, "Active theme: %s; %d file(s) changed.\n", theme, len(st.Files))
+	if len(st.Files) > 0 {
+		ups, err := apply.Upgrades(o)
+		if err != nil {
+			return err
+		}
+		if len(ups) == 0 {
+			fmt.Fprintln(c.out, "No app upgrades since the last apply.")
+		}
+		for _, u := range ups {
+			fmt.Fprintf(c.out, "%s upgraded from %s to %s since the last apply: ", u.App, u.Was, u.Now)
+			switch {
+			case u.WasIntegration != u.NowIntegration:
+				fmt.Fprintf(c.out, "Theme Tender would now use %s instead of %s. Run tender apply %s again.\n", u.NowIntegration, u.WasIntegration, st.Theme)
+			case u.ValidateErr != nil:
+				fmt.Fprintf(c.out, "its validator rejects the current files (%v). Run tender apply %s again.\n", u.ValidateErr, st.Theme)
+			case u.Validated:
+				fmt.Fprintln(c.out, "same integration, and its validator accepts the current files.")
+			default:
+				fmt.Fprintln(c.out, "same integration; it has no validator to check the files with.")
+			}
+		}
+	}
 	if b, err := c.bundle(); err == nil {
 		fmt.Fprintf(c.out, "Data bundle: %s, version %s, catalog %s.\n", b.Origin, b.Manifest.BundleVersion, map[bool]string{true: "included", false: "not included"}[b.Catalog != nil])
 	}
