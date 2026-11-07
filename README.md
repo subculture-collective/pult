@@ -2,7 +2,21 @@
 
 Theme Tender (`tender`) is a terminal app that themes your other apps from one palette. It finds which apps you have installed, changes only their colors, and records every change so it can put your configs back exactly as they were.
 
-Status: planning. Nothing is usable yet. See the [M1 plan](docs/plan/m1.md).
+Status: M1 in progress. `tender` works with a catalog you build yourself; the signed data bundle and packages come later. See the [M1 plan](docs/plan/m1.md).
+
+## Usage
+
+```bash
+make catalog                                   # build .cache/catalog.db.zst from the pinned sources
+export TENDER_CATALOG=$PWD/.cache/catalog.db.zst
+go run ./cmd/tender search -tag pastel rose    # find themes; -similar <id> lists close matches
+go run ./cmd/tender apply -dry-run catppuccin-mocha   # plan and diffs, nothing written
+go run ./cmd/tender apply catppuccin-mocha
+go run ./cmd/tender uninstall                  # put every changed file back
+go run ./cmd/tender doctor                     # interrupted runs, Omarchy, frameworks
+```
+
+Files that stow, chezmoi, a palette generator or a Hyprland framework manage are only written after you confirm. On Omarchy, Theme Tender writes an Omarchy theme and switches to it instead of editing Omarchy's files.
 
 ## Goals
 

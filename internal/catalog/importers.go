@@ -347,36 +347,43 @@ func importGogh(fsys fs.FS) ([]imported, []Port, error) {
 	}
 	var out []imported
 	for _, file := range names {
-		data, err := fs.ReadFile(fsys, file)
+		p, name, author, err := parseGogh(fsys, file)
 		if err != nil {
 			return nil, nil, err
 		}
-		var t map[string]any
-		if err := yaml.Unmarshal(data, &t); err != nil {
-			return nil, nil, fmt.Errorf("%s: %w", file, err)
-		}
-		str := func(k string) string { s, _ := t[k].(string); return s }
-		p := color.Palette{}
-		for i := range 16 {
-			if err := setHex(p, color.ANSIRoles[i], str(fmt.Sprintf("color_%02d", i+1))); err != nil {
-				return nil, nil, fmt.Errorf("%s: %w", file, err)
-			}
-		}
-		for r, k := range map[color.Role]string{color.Background: "background", color.Foreground: "foreground", color.Cursor: "cursor"} {
-			if r == color.Cursor && str(k) == "" {
-				continue // optional
-			}
-			if err := setHex(p, r, str(k)); err != nil {
-				return nil, nil, fmt.Errorf("%s: %w", file, err)
-			}
-		}
-		name := orDefault(str("name"), strings.TrimSuffix(path.Base(file), ".yml"))
 		out = append(out, imported{
-			Name: name, Family: family(name), Author: str("author"),
+			Name: name, Family: family(name), Author: author,
 			SourcePath: file, License: "MIT OR Apache-2.0", Colors: p, Provenance: official,
 		})
 	}
 	return out, nil, nil
+}
+
+func parseGogh(fsys fs.FS, file string) (p color.Palette, name, author string, err error) {
+	data, err := fs.ReadFile(fsys, file)
+	if err != nil {
+		return nil, "", "", err
+	}
+	var t map[string]any
+	if err := yaml.Unmarshal(data, &t); err != nil {
+		return nil, "", "", fmt.Errorf("%s: %w", file, err)
+	}
+	str := func(k string) string { s, _ := t[k].(string); return s }
+	p = color.Palette{}
+	for i := range 16 {
+		if err := setHex(p, color.ANSIRoles[i], str(fmt.Sprintf("color_%02d", i+1))); err != nil {
+			return nil, "", "", fmt.Errorf("%s: %w", file, err)
+		}
+	}
+	for r, k := range map[color.Role]string{color.Background: "background", color.Foreground: "foreground", color.Cursor: "cursor"} {
+		if r == color.Cursor && str(k) == "" {
+			continue // optional
+		}
+		if err := setHex(p, r, str(k)); err != nil {
+			return nil, "", "", fmt.Errorf("%s: %w", file, err)
+		}
+	}
+	return p, orDefault(str("name"), strings.TrimSuffix(path.Base(file), ".yml")), str("author"), nil
 }
 
 func setHex(p color.Palette, r color.Role, hex string) error {

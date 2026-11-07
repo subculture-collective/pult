@@ -84,7 +84,7 @@ func Prepare(o Options, th Theme) (*Plan, error) {
 	}
 	p := &Plan{Theme: th}
 	for _, e := range o.Registry.Entries() {
-		ap, err := o.planApp(e, th)
+		ap, err := o.planApp(e, &th)
 		if err != nil {
 			return nil, fmt.Errorf("apply: %s: %w", e.ID, err)
 		}
@@ -104,7 +104,24 @@ func Prepare(o Options, th Theme) (*Plan, error) {
 	return p, nil
 }
 
-func (o Options) planApp(e registry.Entry, th Theme) (AppPlan, error) {
+// Survey reports each app's platform, installation, version, config path,
+// owner and integration, without a theme and without asking.
+func Survey(o Options) ([]AppPlan, error) {
+	o.Confirm = func(string, owner.Owner) bool { return true }
+	var out []AppPlan
+	for _, e := range o.Registry.Entries() {
+		ap, err := o.planApp(e, nil)
+		if err != nil {
+			return nil, fmt.Errorf("apply: %s: %w", e.ID, err)
+		}
+		out = append(out, ap)
+	}
+	return out, nil
+}
+
+// planApp plans one app; with th nil it stops after choosing the
+// integration.
+func (o Options) planApp(e registry.Entry, th *Theme) (AppPlan, error) {
 	ap := AppPlan{ID: e.ID, Entry: e}
 	if !slices.Contains(e.Platforms, o.Platform) {
 		ap.Skip = "not available on " + string(o.Platform)
@@ -142,7 +159,10 @@ func (o Options) planApp(e registry.Entry, th Theme) (AppPlan, error) {
 		ap.Skip = "manual setup: " + in.URL
 		return ap, nil
 	}
-	return ap, o.planEdits(&ap, th)
+	if th == nil {
+		return ap, nil
+	}
+	return ap, o.planEdits(&ap, *th)
 }
 
 func (o Options) planEdits(ap *AppPlan, th Theme) error {
