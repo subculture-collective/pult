@@ -70,6 +70,9 @@ var configs = map[string]string{
 	".config/lazygit/config.yml":       "gui:\n  showIcons: true\n",
 	".config/yazi/theme.toml":          "[mgr]\ncwd = { fg = \"#ffffff\" }\n",
 	".config/btop/btop.conf":           "color_theme = \"Default\"\ntheme_background = True\n",
+	".config/helix/config.toml":        "[editor]\nline-number = \"relative\"\n",
+	".config/cava/config":              "[general]\nframerate = 60\n\n[color]\ngradient = 0\n",
+	".config/eza/theme.yml":            "# mine\nfilenames:\n  Cargo.toml: {icon: {glyph: C}}\n",
 }
 
 func newWorld(t *testing.T, extra map[string]string) *world {
@@ -83,6 +86,7 @@ func newWorld(t *testing.T, extra map[string]string) *world {
 			"kitty": "kitty 0.49.2 created by Kovid Goyal", "ghostty": "Ghostty 1.2.3", "alacritty": "alacritty 0.15.1",
 			"tmux": "tmux 3.8", "starship": "starship 1.27.0", "lazygit": "commit=x, version=0.66.2, os=linux",
 			"yazi": "Yazi\n    Version: 26.9.1", "btop": "btop version: \x1b[1m1.4.7\x1b[0m",
+			"helix": "helix 25.07.1 (a05c151b)", "cava": "cava 1.0.0", "eza": "eza - A modern, maintained replacement for ls\nv0.23.5 [+git]",
 		},
 		running: map[string]bool{"kitty": true, "btop": true},
 		fail:    map[string]bool{},
@@ -246,6 +250,23 @@ func TestApplyAndUninstallAllApps(t *testing.T) {
 	}
 	if !strings.Contains(w.read(".config/btop/themes/theme-tender.theme"), `theme[main_bg]="#1e1e2e"`) {
 		t.Error("btop theme not rendered")
+	}
+
+	if got := w.read(".config/helix/config.toml"); got != "theme = \"theme-tender\"\n\n[editor]\nline-number = \"relative\"\n" {
+		t.Errorf("helix config.toml = %q", got)
+	}
+	if !strings.Contains(w.read(".config/helix/themes/theme-tender.toml"), `base = "#1e1e2e"`) {
+		t.Error("helix theme not rendered")
+	}
+	if got := w.read(".config/cava/config"); !strings.Contains(got, "[color]\ngradient = 0\ntheme = \"theme-tender\"\n") || !strings.HasPrefix(got, "[general]\nframerate = 60\n") {
+		t.Errorf("cava config = %q", got)
+	}
+	if !strings.Contains(w.read(".config/cava/themes/theme-tender"), "gradient_color_1 = '#94e2d5'") {
+		t.Error("cava theme not rendered")
+	}
+	var eza map[string]any
+	if got := w.read(".config/eza/theme.yml"); !strings.HasPrefix(got, "# mine\nfilenames:\n") || yaml.Unmarshal([]byte(got), &eza) != nil || eza["filekinds"] == nil || eza["filenames"] == nil {
+		t.Errorf("eza theme.yml = %q", got)
 	}
 
 	// Validators ran with real paths; reloads ran for running apps only.

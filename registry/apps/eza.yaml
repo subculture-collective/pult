@@ -1,0 +1,33 @@
+# Checked on Arch, eza 0.23.5, 2026-11-07: version regex, and that eza
+# colors a listing from the theme. From src/options/theme.rs (eza 471bfbc):
+# $EZA_CONFIG_DIR/theme.yml, else theme.yml under dirs::config_dir()/eza,
+# which is $XDG_CONFIG_HOME (or ~/.config) on Linux and Application Support
+# on macOS. Colors may be "#rrggbb". eza reads the theme on every run.
+schema: 1
+id: eza
+name: eza
+homepage: https://github.com/eza-community/eza
+platforms: [linux, macos]
+tier: 1
+
+detect:
+  binaries: [eza]
+  version:
+    argv: [eza, --version]
+    regex: 'v([0-9.]+)'
+
+config:
+  env:
+    - { name: EZA_CONFIG_DIR, kind: dir }
+  paths:
+    linux: ["$XDG_CONFIG_HOME/eza/theme.yml"]
+    macos: ["$HOME/Library/Application Support/eza/theme.yml"]
+
+integrations:
+  - method: keys
+    format: yaml
+    template: eza/theme.yml.mustache
+    paths: [colourful, filekinds, perms, size, users, links, git, git_repo, punctuation, date, inode, blocks, header, octal, flags, symlink_path, control_char, broken_symlink, broken_path_overlay]
+
+ports:
+  catppuccin: { url: https://github.com/catppuccin/eza, kind: official }

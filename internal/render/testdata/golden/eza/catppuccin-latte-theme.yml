@@ -1,0 +1,141 @@
+colourful: true
+filekinds:
+  normal:
+    foreground: "#4c4f69"
+  directory:
+    foreground: "#1e66f5"
+    is_bold: true
+  symlink:
+    foreground: "#04a5e5"
+  pipe:
+    foreground: "#8c8fa1"
+  block_device:
+    foreground: "#d20f39"
+  char_device:
+    foreground: "#d20f39"
+  socket:
+    foreground: "#ea76cb"
+  special:
+    foreground: "#8839ef"
+  executable:
+    foreground: "#40a02b"
+    is_bold: true
+  mount_point:
+    foreground: "#209fb5"
+perms:
+  user_read:
+    foreground: "#df8e1d"
+  user_write:
+    foreground: "#d20f39"
+  user_execute_file:
+    foreground: "#40a02b"
+  user_execute_other:
+    foreground: "#40a02b"
+  group_read:
+    foreground: "#df8e1d"
+  group_write:
+    foreground: "#d20f39"
+  group_execute:
+    foreground: "#40a02b"
+  other_read:
+    foreground: "#df8e1d"
+  other_write:
+    foreground: "#d20f39"
+  other_execute:
+    foreground: "#40a02b"
+  special_user_file:
+    foreground: "#8839ef"
+  special_other:
+    foreground: "#7c7f93"
+  attribute:
+    foreground: "#6c6f85"
+size:
+  major:
+    foreground: "#5c5f77"
+  minor:
+    foreground: "#6c6f85"
+  number_byte:
+    foreground: "#5c5f77"
+  number_kilo:
+    foreground: "#179299"
+  number_mega:
+    foreground: "#209fb5"
+  number_giga:
+    foreground: "#8839ef"
+  number_huge:
+    foreground: "#d20f39"
+  unit_byte:
+    foreground: "#7c7f93"
+  unit_kilo:
+    foreground: "#179299"
+  unit_mega:
+    foreground: "#209fb5"
+  unit_giga:
+    foreground: "#8839ef"
+  unit_huge:
+    foreground: "#d20f39"
+users:
+  user_you:
+    foreground: "#fe640b"
+  user_root:
+    foreground: "#d20f39"
+  user_other:
+    foreground: "#7287fd"
+  group_yours:
+    foreground: "#fe640b"
+  group_other:
+    foreground: "#8c8fa1"
+  group_root:
+    foreground: "#d20f39"
+links:
+  normal:
+    foreground: "#04a5e5"
+  multi_link_file:
+    foreground: "#209fb5"
+git:
+  new:
+    foreground: "#40a02b"
+  modified:
+    foreground: "#df8e1d"
+  deleted:
+    foreground: "#d20f39"
+  renamed:
+    foreground: "#179299"
+  typechange:
+    foreground: "#8839ef"
+  ignored:
+    foreground: "#9ca0b0"
+  conflicted:
+    foreground: "#e64553"
+git_repo:
+  branch_main:
+    foreground: "#4c4f69"
+  branch_other:
+    foreground: "#8839ef"
+  git_clean:
+    foreground: "#40a02b"
+  git_dirty:
+    foreground: "#d20f39"
+punctuation:
+  foreground: "#8c8fa1"
+date:
+  foreground: "#179299"
+inode:
+  foreground: "#6c6f85"
+blocks:
+  foreground: "#7c7f93"
+header:
+  foreground: "#4c4f69"
+  is_bold: true
+octal:
+  foreground: "#179299"
+flags:
+  foreground: "#8839ef"
+symlink_path:
+  foreground: "#04a5e5"
+control_char:
+  foreground: "#fe640b"
+broken_symlink:
+  foreground: "#d20f39"
+broken_path_overlay:
+  foreground: "#acb0be"

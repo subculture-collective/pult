@@ -1,0 +1,37 @@
+# Checked on Arch, cava 1.0.0, 2026-11-07: version regex, and that cava
+# loads the theme file. From config.c (cava 5eb61ec): with [color] theme
+# set, colors come from themes/<name> under cava's config directory
+# ($XDG_CONFIG_HOME/cava, else ~/.config/cava) instead of the config file.
+# SIGUSR2 reloads colors only.
+schema: 1
+id: cava
+name: cava
+homepage: https://github.com/karlstav/cava
+platforms: [linux, macos]
+tier: 1
+
+detect:
+  binaries: [cava]
+  version:
+    argv: [cava, -v]
+    regex: 'cava ([0-9.]+)'
+
+config:
+  paths:
+    linux: ["$XDG_CONFIG_HOME/cava/config"]
+    macos: ["$XDG_CONFIG_HOME/cava/config"]
+
+integrations:
+  - method: owned
+    template: cava/theme-tender.mustache
+    target: themes/theme-tender
+    select:
+      format: ini
+      set: { color.theme: theme-tender }
+
+reload:
+  - argv: [pkill, -USR2, -x, cava]
+    when: running
+
+ports:
+  catppuccin: { url: https://github.com/catppuccin/cava, kind: official }

@@ -417,7 +417,18 @@ func (o Options) version(e registry.Entry) string {
 	if v == nil {
 		return ""
 	}
-	out, err := o.Sys.Run(v.Argv)
+	argv := slices.Clone(v.Argv)
+	// The same program may be installed under another of its names (helix
+	// is hx elsewhere): run the version command with the one found.
+	if _, err := o.Sys.LookPath(argv[0]); err != nil && slices.Contains(e.Detect.Binaries, argv[0]) {
+		for _, b := range e.Detect.Binaries {
+			if _, err := o.Sys.LookPath(b); err == nil {
+				argv[0] = b
+				break
+			}
+		}
+	}
+	out, err := o.Sys.Run(argv)
 	if err != nil {
 		return ""
 	}
