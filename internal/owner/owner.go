@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -136,6 +137,7 @@ type Detector struct {
 	env            Env
 	sys            System
 	omarchyDirs    []string
+	omarchyHooks   map[string][]byte // theme-set hook name -> contents
 	frameworkDirs  map[string][]string
 	generatorFiles map[string][]string // generator -> output files
 	generatorDirs  map[string][]string // generator -> output directories
@@ -161,6 +163,17 @@ func New(env Env) (*Detector, error) {
 	}
 	if d.sys.Omarchy {
 		d.omarchyDirs = append(d.omarchyDirs, filepath.Join(cfg, "omarchy"), filepath.Join(state, "omarchy"))
+		// Theme-set hooks run on every theme switch and may regenerate
+		// configs from the Omarchy palette.
+		d.omarchyHooks = map[string][]byte{}
+		hookDir := filepath.Join(cfg, "omarchy", "hooks", "theme-set.d")
+		if entries, err := os.ReadDir(hookDir); err == nil {
+			for _, e := range entries {
+				if b, err := readSmall(filepath.Join(hookDir, e.Name())); err == nil && b != nil {
+					d.omarchyHooks[e.Name()] = b
+				}
+			}
+		}
 		if b, err := os.ReadFile(filepath.Join(state, "omarchy/current/theme.name")); err == nil {
 			d.sys.OmarchyTheme = strings.TrimSpace(string(b))
 		} else if t, err := os.Readlink(filepath.Join(cfg, "omarchy/current/theme")); err == nil {
@@ -290,6 +303,14 @@ func (d *Detector) File(path string) (Owner, error) {
 		if d.mentions(content, filepath.Join(d.env.Home, ".config/omarchy"), "") {
 			return Owner{Kind: Omarchy, Detail: "uses Omarchy's theme files"}, nil
 		}
+		for _, name := range slices.Sorted(maps.Keys(d.omarchyHooks)) {
+			if d.mentions(d.omarchyHooks[name], path, "") || (resolved != path && d.mentions(d.omarchyHooks[name], resolved, "")) {
+				return Owner{Kind: Omarchy, Detail: "the Omarchy theme-set hook " + name + " rewrites it on every theme switch"}, nil
+			}
+		}
+		if generatedByOmarchy(content) {
+			return Owner{Kind: Omarchy, Detail: "its header says Omarchy generates it"}, nil
+		}
 	}
 	for _, name := range d.sys.Frameworks {
 		if p, ok := refers(d.frameworkDirs[name], nil); ok {
@@ -404,6 +425,19 @@ func containsWord(b []byte, s string) bool {
 func isPathByte(c byte) bool {
 	return c == '/' || c == '.' || c == '_' || c == '-' || c == '~' ||
 		(c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+}
+
+// generatedByOmarchy looks for a "generated ... Omarchy" note in the first
+// lines, such as "# Generated from the active Omarchy palette".
+func generatedByOmarchy(content []byte) bool {
+	lines := strings.SplitN(string(content), "\n", 11)
+	for _, l := range lines[:min(10, len(lines))] {
+		l = strings.ToLower(l)
+		if strings.Contains(l, "generated") && strings.Contains(l, "omarchy") {
+			return true
+		}
+	}
+	return false
 }
 
 func within(path, dir string) bool {
