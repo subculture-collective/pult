@@ -187,6 +187,35 @@ func TestOwners(t *testing.T) {
 			record: "omarchy", action: HandOff,
 		},
 		{
+			name: "written by an Omarchy theme-set hook",
+			setup: func(h *home) {
+				h.file(".local/share/omarchy/version", "4.5\n")
+				h.file(".config/omarchy/hooks/theme-set.d/90-shell", "#!/bin/bash\nstarship_target=\"$HOME/.config/starship.toml\"\ncp \"$src\" \"$starship_target\"\n")
+				h.file(".config/starship.toml", "palette = \"mine\"\n")
+			},
+			path:   ".config/starship.toml",
+			record: "omarchy", action: HandOff,
+		},
+		{
+			name: "generated from the Omarchy palette",
+			setup: func(h *home) {
+				h.file(".local/share/omarchy/version", "4.5\n")
+				h.file(".config/starship.toml", "# Generated from the active Omarchy palette. Do not edit ~/.config/starship.toml directly.\n\npalette = \"omarchy\"\n")
+			},
+			path:   ".config/starship.toml",
+			record: "omarchy", action: HandOff,
+		},
+		{
+			name: "hook writing a different file",
+			setup: func(h *home) {
+				h.file(".local/share/omarchy/version", "4.5\n")
+				h.file(".config/omarchy/hooks/theme-set.d/90-shell", "cp a \"$HOME/.config/tmux/themes/omarchy.tmux.conf\"\n")
+				h.file(".config/starship.toml", "palette = \"mine\"\n")
+			},
+			path:   ".config/starship.toml",
+			record: "none", action: Write,
+		},
+		{
 			name: "omarchy-looking include without omarchy installed",
 			setup: func(h *home) {
 				h.file(kitty, "include ~/.local/state/omarchy/current/theme/kitty.conf\n")
