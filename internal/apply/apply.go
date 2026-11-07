@@ -248,7 +248,11 @@ func (o Options) planEdits(ap *AppPlan, th Theme) error {
 				newCfg = configedit.IncludeLine(cfg, line, in.Position == "start")
 			}
 		} else if in.Format == "toml" {
-			newCfg, err = configedit.TOMLAppend(cfg, in.Key, ap.ThemeFile)
+			var aliases []string
+			if rel, err := filepath.Rel(o.Home, ap.ThemeFile); err == nil && filepath.IsLocal(rel) {
+				aliases = append(aliases, "~/"+filepath.ToSlash(rel), "$HOME/"+filepath.ToSlash(rel))
+			}
+			newCfg, err = configedit.TOMLAppend(cfg, in.Key, ap.ThemeFile, aliases...)
 		} else {
 			err = fmt.Errorf("include by key in %s files is not supported", in.Format)
 		}

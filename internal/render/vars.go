@@ -2,9 +2,11 @@ package render
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"strings"
+	"unicode"
 
 	"git.subcult.tv/subculture-collective/theme-tender/internal/color"
 )
@@ -38,7 +40,11 @@ func Vars(t Theme, p color.Palette) (map[string]any, error) {
 		return nil, fmt.Errorf("render: palette is missing %v", m)
 	}
 	ctx := map[string]any{
-		"theme": map[string]any{"name": t.Name, "slug": t.Slug, "author": t.Author, "appearance": t.Appearance},
+		// Names may come from a downloaded theme: control characters are
+		// replaced so a name cannot end a comment line, and *_escaped is
+		// the text for inside a double-quoted JSON or TOML string.
+		"theme": map[string]any{"name": oneLine(t.Name), "slug": t.Slug, "author": oneLine(t.Author), "appearance": t.Appearance,
+			"name_escaped": jsonText(oneLine(t.Name)), "author_escaped": jsonText(oneLine(t.Author))},
 		// Base16 builder specification names, for reused Tinted Theming templates.
 		"scheme-name":             t.Name,
 		"scheme-author":           t.Author,
@@ -70,6 +76,23 @@ func Vars(t Theme, p color.Palette) (map[string]any, error) {
 		}
 	}
 	return ctx, nil
+}
+
+// oneLine replaces control characters, line breaks included, with spaces.
+func oneLine(s string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsControl(r) {
+			return ' '
+		}
+		return r
+	}, s)
+}
+
+// jsonText escapes s for inside a JSON (or TOML basic) string, without the
+// quotes. JSON's escapes are all valid in TOML basic strings.
+func jsonText(s string) string {
+	b, _ := json.Marshal(s)
+	return string(b[1 : len(b)-1])
 }
 
 func colorFields(c color.RGB) colorVar {

@@ -152,6 +152,7 @@ type FileState struct {
 	Hash     string `toml:"hash"`     // what the file should contain now
 	Pristine string `toml:"pristine"` // what it contained before Theme Tender first touched it
 	Backup   string `toml:"backup,omitempty"`
+	Mode     string `toml:"mode,omitempty"` // of the pristine file
 	// Edited means the file changed outside Theme Tender between two of
 	// its changes, so restoring Pristine would undo those edits too.
 	Edited bool `toml:"edited,omitempty"`
@@ -191,7 +192,7 @@ func (s *Store) State() (*State, error) {
 			}
 			f, ok := files[c.Resolved]
 			if !ok {
-				f = &FileState{Path: c.Path, Resolved: c.Resolved, Pristine: c.Before, Backup: c.Backup}
+				f = &FileState{Path: c.Path, Resolved: c.Resolved, Pristine: c.Before, Backup: c.Backup, Mode: c.Mode}
 				files[c.Resolved] = f
 			} else if c.Before != f.Hash {
 				f.Edited = true

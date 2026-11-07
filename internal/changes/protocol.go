@@ -52,11 +52,18 @@ type owner struct{ uid, gid int }
 // file are left out.
 func (s *Store) Apply(m Meta, edits []Edit, validate Validator) (*Transaction, error) {
 	var plans []plan
+	seen := map[string]string{}
 	for _, e := range edits {
 		p, skip, err := planEdit(e)
 		if err != nil {
 			return nil, err
 		}
+		// Two edits to one file would record the same before twice, and
+		// the second would overwrite the first.
+		if other, dup := seen[p.c.Resolved]; dup {
+			return nil, fmt.Errorf("changes: %s and %s both edit %s", other, e.App, p.c.Resolved)
+		}
+		seen[p.c.Resolved] = e.App
 		if !skip {
 			plans = append(plans, p)
 		}
@@ -329,7 +336,7 @@ func (s *Store) Uninstall(force bool) (*Transaction, []Conflict, error) {
 			edited = append(edited, Conflict{Path: f.Resolved, Reason: "edited", Before: before, Current: data})
 			continue
 		}
-		targets = append(targets, target{Change{App: f.App, Path: f.Path, Resolved: f.Resolved, Method: f.Method}, f.Hash, f.Pristine, f.Backup})
+		targets = append(targets, target{Change{App: f.App, Path: f.Path, Resolved: f.Resolved, Method: f.Method, Mode: f.Mode}, f.Hash, f.Pristine, f.Backup})
 	}
 	plans, conflicts, err := s.undoPlans(targets, force)
 	conflicts = append(edited, conflicts...)

@@ -168,6 +168,12 @@ func TestTOMLAppend(t *testing.T) {
 			want: "[general]\nimport = [\n  \"~/a.toml\", \"" + file + "\",\n]\n",
 		},
 		{
+			name: "already present under another spelling",
+			src:  "import = [\"/home/u/.config/alacritty/theme-tender.toml\"]\n",
+			key:  "import",
+			want: "import = [\"/home/u/.config/alacritty/theme-tender.toml\"]\n",
+		},
+		{
 			name: "empty array",
 			src:  "import = []\n",
 			key:  "import",
@@ -194,7 +200,7 @@ func TestTOMLAppend(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := TOMLAppend([]byte(tt.src), tt.key, file)
+			got, err := TOMLAppend([]byte(tt.src), tt.key, file, "/home/u/.config/alacritty/theme-tender.toml")
 			check(t, got, err, tt.want, tt.wantErr)
 		})
 	}
