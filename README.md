@@ -17,6 +17,7 @@ go run ./cmd/tender uninstall                  # put every changed file back
 go run ./cmd/tender palette catppuccin-mocha   # print the resolved palette as JSON (or -format toml)
 go run ./cmd/tender render catppuccin-mocha my.conf.mustache   # render one template, nothing applied
 go run ./cmd/tender doctor                     # interrupted runs, app upgrades, Omarchy, frameworks
+go run ./cmd/tender update                     # install the newest signed data bundle
 ```
 
 Files that stow, chezmoi, a palette generator or a Hyprland framework manage are only written after you confirm. On Omarchy, Theme Tender writes an Omarchy theme and switches to it instead of editing Omarchy's files.

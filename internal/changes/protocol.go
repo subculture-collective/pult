@@ -237,6 +237,7 @@ func (s *Store) run(kind, rollsBack string, m Meta, plans []plan, validate Valid
 	if err := s.step("state"); err != nil {
 		return nil, err
 	}
+	s.prune()
 	return tx, nil
 }
 

@@ -73,7 +73,15 @@ Rollback applies these rules to one transaction. `tender uninstall` applies them
 
 ## Retention
 
-Not implemented yet; until it is, nothing is pruned. The first backup of each path ("pristine") is kept until uninstall. Other blobs are pruned once no transaction among the last 20 refers to them. Blobs are only deleted after the transactions that refer to them.
+Pruning runs at the end of every run, under the lock, after the transaction and `current.toml` are written. A blob is kept while any of these refers to it:
+
+- one of the 20 newest transactions,
+- a pending transaction, which recovery needs,
+- a file Theme Tender still has a change to, as its pristine backup.
+
+Every other blob is deleted, along with emptied fan-out directories. A transaction older than the newest 20 can then no longer be rolled back on its own, but uninstall still works. Pruning is best effort: if it stops part-way, the blobs left over are ones it would have deleted anyway.
+
+A file whose contents are back to pristine, after an uninstall or a rollback, has no change outstanding and is dropped from `current.toml`. The next change to it records the contents it finds then as pristine, so edits the user made in between are what the next uninstall restores.
 
 ## Restoring by hand
 
