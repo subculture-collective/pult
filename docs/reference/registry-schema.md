@@ -60,7 +60,7 @@ Each built-in entry starts with a comment saying which commands and patterns wer
 | `platforms` | yes | Subset of `linux`, `macos` |
 | `tier` | yes | `1` generate and reload, `2` install an upstream port, `3` manual instructions only |
 | `detect.binaries` | one of | Names looked up on `PATH` |
-| `detect.macos_apps` | one of | Bundle names under `/Applications` and `~/Applications` |
+| `detect.macos_apps` | one of | Bundle names under `/Applications`, `/System/Applications` (and `Utilities/` in each) or `~/Applications` |
 | `detect.packages` | one of | Package names per manager (`pacman`, `brew`, `dpkg`, `rpm`) |
 | `detect.version` | no | `argv` to run and `regex` with exactly one capture group. Result cached per binary path and modification time |
 | `config.env` | no | Environment variables that override the config location, in order. `kind: dir` names the directory that holds the config file, which keeps the file name of the first path; `kind: file` names the file |
@@ -110,7 +110,7 @@ Templates are Mustache files under `templates/<id>/` (MIT), rendered by `interna
 
 Variables available to every template:
 
-- Every role in `color.AllRoles`: the 26 Catppuccin roles, `ansi0` … `ansi15`, `background`, `foreground`, `cursor`, `selection_bg`, `selection_fg`. Each has `.hex` (`#cdd6f4`), `.hex_bare` (`cdd6f4`), `.rgb` (`205, 214, 244`), `.r`, `.g` and `.b` (decimal), and `.dec_r`, `.dec_g` and `.dec_b` (0 to 1, eight decimals, as iTerm2 and Terminal.app store colors). On its own, `{{mauve}}` is the same as `{{mauve.hex}}`.
+- Every role in `color.AllRoles`: the 26 Catppuccin roles, `ansi0` … `ansi15`, `background`, `foreground`, `cursor`, `selection_bg`, `selection_fg`. Each has `.hex` (`#cdd6f4`), `.hex_bare` (`cdd6f4`), `.rgb` (`205, 214, 244`), `.r`, `.g` and `.b` (decimal), and `.dec_r`, `.dec_g` and `.dec_b` (0 to 1, eight decimals, as iTerm2 stores colors). `.nscolor` is the color as Terminal.app profiles store it: a base64 NSKeyedArchiver archive of a calibrated-RGB NSColor, for a `<data>` element. On its own, `{{mauve}}` is the same as `{{mauve.hex}}`.
 - `{{theme.name}}`, `{{theme.slug}}`, `{{theme.author}}`, `{{theme.appearance}}` (`dark` or `light`).
 - Base16/Base24 aliases `base00` … `base17`, with the same fields as roles. Slots map to roles as Tinted Theming's own Catppuccin Base24 schemes assign them (`base00` base, `base0E` mauve, `base11` crust, `base17` pink, …).
 - Base16 builder specification names, so Tinted Theming templates can be reused: `{{base00-hex}}` (no `#`), `-hex-r`/`-g`/`-b`, `-rgb-r`/`-g`/`-b`, `-dec-r`/`-g`/`-b`, `-hex-bgr`, plus `scheme-name`, `scheme-author`, `scheme-slug`, `scheme-slug-underscored`, `scheme-system` (`base24`), `scheme-variant`, `scheme-is-dark-variant` and `scheme-is-light-variant`.

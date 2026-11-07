@@ -402,7 +402,7 @@ func (o Options) installed(e registry.Entry) bool {
 	}
 	if o.Platform == registry.MacOS {
 		for _, app := range e.Detect.MacOSApps {
-			for _, dir := range []string{"/Applications", filepath.Join(o.Home, "Applications")} {
+			for _, dir := range []string{"/Applications", "/Applications/Utilities", "/System/Applications", "/System/Applications/Utilities", filepath.Join(o.Home, "Applications")} {
 				if fi, err := os.Stat(filepath.Join(dir, app)); err == nil && fi.IsDir() {
 					return true
 				}
