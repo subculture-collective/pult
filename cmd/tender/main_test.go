@@ -106,6 +106,7 @@ func (f *fixture) run(stdin string, args ...string) (string, int) {
 	}
 	getenv := func(k string) string { return vars[k] }
 	e := env{
+		root: f.home,
 		home: f.home, getenv: getenv, sys: f.sys,
 		get: func(u string) ([]byte, error) {
 			f.download = append(f.download, u)
@@ -400,7 +401,7 @@ func TestTUIBackend(t *testing.T) {
 	f := newFixture(t)
 	vars := map[string]string{"HOME": f.home, "TENDER_CATALOG": f.catalog}
 	getenv := func(k string) string { return vars[k] }
-	c := &cli{env: env{home: f.home, getenv: getenv, sys: f.sys,
+	c := &cli{env: env{root: f.home, home: f.home, getenv: getenv, sys: f.sys,
 		owners: owner.Env{Root: f.home, Home: f.home, Getenv: getenv,
 			LookPath: func(string) (string, error) { return "", errors.New("no") },
 			Run:      func([]string) ([]byte, error) { return nil, errors.New("no") }}}, out: &bytes.Buffer{}}

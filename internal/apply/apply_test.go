@@ -125,7 +125,7 @@ func (w *world) with(reg *registry.Registry, getenv func(string) string) *world 
 	if err != nil {
 		w.t.Fatal(err)
 	}
-	w.opts = Options{Home: w.home, Platform: registry.Linux, Getenv: getenv, Registry: reg,
+	w.opts = Options{Home: w.home, Root: w.home, Platform: registry.Linux, Getenv: getenv, Registry: reg,
 		Templates: os.DirFS("../../templates"), Store: store, Owners: det, Sys: w.sys,
 		Meta: changes.Meta{Theme: "catppuccin-mocha", TenderVersion: "test"}}
 	return w

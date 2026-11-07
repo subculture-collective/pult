@@ -25,7 +25,12 @@ type fixture struct {
 
 func newFixture(t *testing.T) *fixture {
 	t.Helper()
-	root := t.TempDir()
+	// Resolved, because macOS's temporary directory is under the /var
+	// symlink and recorded paths are resolved.
+	root, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 	f := &fixture{home: filepath.Join(root, "home"), state: filepath.Join(root, "state")}
 	f.kitty = filepath.Join(f.home, ".config/kitty/kitty.conf")
 	f.tmux = filepath.Join(f.home, ".config/tmux/tmux.conf")

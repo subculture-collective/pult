@@ -55,6 +55,9 @@ type Options struct {
 	// Get nil, ports are only used from the cache.
 	Get      func(url string) ([]byte, error)
 	CacheDir string
+	// Root is prefixed to system paths such as /Applications; "" is the
+	// real root. Tests point it at a fixture.
+	Root string
 }
 
 // Theme is a catalog theme with its full palette.
@@ -545,7 +548,11 @@ func (o Options) installed(e registry.Entry) bool {
 	}
 	if o.Platform == registry.MacOS {
 		for _, app := range e.Detect.MacOSApps {
-			for _, dir := range []string{"/Applications", "/Applications/Utilities", "/System/Applications", "/System/Applications/Utilities", filepath.Join(o.Home, "Applications")} {
+			dirs := []string{filepath.Join(o.Home, "Applications")}
+			for _, d := range []string{"/Applications", "/Applications/Utilities", "/System/Applications", "/System/Applications/Utilities"} {
+				dirs = append(dirs, filepath.Join("/", o.Root, d))
+			}
+			for _, dir := range dirs {
 				if fi, err := os.Stat(filepath.Join(dir, app)); err == nil && fi.IsDir() {
 					return true
 				}
