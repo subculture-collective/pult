@@ -1,0 +1,52 @@
+# Checked in containers on 2026-11-07: Arch foot 1.28.0 (version regex;
+# "foot --check-config" accepts the >=1.26 include and rejects a bad color
+# and the [colors] layout) and Ubuntu 24.04 foot 1.16.2 (accepts the <1.23
+# template, rejects colors.cursor). The 1.23-1.25 template is unchecked. foot 1.26 renamed [colors] to [colors-dark] (and [colors2] to
+# [colors-light]); 1.28 rejects [colors]. 1.23 moved cursor.color to
+# colors.cursor (CHANGELOG.md, foot 152487e). include must be an absolute
+# path or start with ~/, and keeps the including file in its default
+# section, so the line goes at the start. foot has no live reload; new
+# windows use the theme.
+schema: 1
+id: foot
+name: foot
+homepage: https://codeberg.org/dnkl/foot
+platforms: [linux]
+tier: 1
+
+detect:
+  binaries: [foot]
+  version:
+    argv: [foot, --version]
+    regex: 'foot version: ([0-9.]+)'
+
+config:
+  paths:
+    linux: ["$XDG_CONFIG_HOME/foot/foot.ini"]
+
+integrations:
+  - method: include
+    versions: ">=1.26"
+    template: foot/theme-tender.ini.mustache
+    owned_file: theme-tender.ini
+    line: "include={theme_file}"
+    position: start
+  - method: include
+    versions: ">=1.23 <1.26"
+    template: foot/theme-tender-1.23.ini.mustache
+    owned_file: theme-tender.ini
+    line: "include={theme_file}"
+    position: start
+  - method: include
+    versions: "<1.23"
+    template: foot/theme-tender-1.0.ini.mustache
+    owned_file: theme-tender.ini
+    line: "include={theme_file}"
+    position: start
+
+validate:
+  argv: [foot, --check-config, -c, "{config}"]
+
+ports:
+  catppuccin: { url: https://github.com/catppuccin/foot, kind: official }
+  dracula: { url: https://github.com/dracula/foot, kind: official }

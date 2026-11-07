@@ -73,6 +73,8 @@ var configs = map[string]string{
 	".config/helix/config.toml":        "[editor]\nline-number = \"relative\"\n",
 	".config/cava/config":              "[general]\nframerate = 60\n\n[color]\ngradient = 0\n",
 	".config/eza/theme.yml":            "# mine\nfilenames:\n  Cargo.toml: {icon: {glyph: C}}\n",
+	".config/foot/foot.ini":            "[main]\nfont=monospace:size=11\n",
+	".config/lsd/config.yaml":          "icons:\n  when: never\n",
 }
 
 func newWorld(t *testing.T, extra map[string]string) *world {
@@ -86,7 +88,7 @@ func newWorld(t *testing.T, extra map[string]string) *world {
 			"kitty": "kitty 0.49.2 created by Kovid Goyal", "ghostty": "Ghostty 1.2.3", "alacritty": "alacritty 0.15.1",
 			"tmux": "tmux 3.8", "starship": "starship 1.27.0", "lazygit": "commit=x, version=0.66.2, os=linux",
 			"yazi": "Yazi\n    Version: 26.9.1", "btop": "btop version: \x1b[1m1.4.7\x1b[0m",
-			"helix": "helix 25.07.1 (a05c151b)", "cava": "cava 1.0.0", "eza": "eza - A modern, maintained replacement for ls\nv0.23.5 [+git]",
+			"helix": "helix 25.07.1 (a05c151b)", "cava": "cava 1.0.0", "foot": "foot version: 1.28.0 (Sep 08 2026)", "lsd": "lsd 1.2.0", "eza": "eza - A modern, maintained replacement for ls\nv0.23.5 [+git]",
 		},
 		running: map[string]bool{"kitty": true, "btop": true},
 		fail:    map[string]bool{},
@@ -269,8 +271,22 @@ func TestApplyAndUninstallAllApps(t *testing.T) {
 		t.Errorf("eza theme.yml = %q", got)
 	}
 
+	if got := w.read(".config/foot/foot.ini"); got != "include="+filepath.Join(cfg, "foot/theme-tender.ini")+"\n[main]\nfont=monospace:size=11\n" {
+		t.Errorf("foot.ini = %q", got)
+	}
+	if !strings.Contains(w.read(".config/foot/theme-tender.ini"), "[colors-dark]\ncursor=1e1e2e f5e0dc\nbackground=1e1e2e\n") {
+		t.Error("foot theme not rendered for 1.26+")
+	}
+	var lsd map[string]map[string]any
+	if err := yaml.Unmarshal([]byte(w.read(".config/lsd/config.yaml")), &lsd); err != nil || lsd["color"]["theme"] != "custom" || lsd["icons"]["when"] != "never" {
+		t.Errorf("lsd config = %v, %v", lsd, err)
+	}
+	if got := w.read(".config/lsd/colors.yaml"); !strings.Contains(got, "\nuser: [") || !strings.Contains(got, "  conflicted: [") {
+		t.Error("lsd colors not rendered")
+	}
+
 	// Validators ran with real paths; reloads ran for running apps only.
-	if !w.sys.ranCommand("tmux", "-L", "theme-tender-validate") || !w.sys.ranCommand("kitty", "+runpy") {
+	if !w.sys.ranCommand("tmux", "-L", "theme-tender-validate") || !w.sys.ranCommand("kitty", "+runpy") || !w.sys.ranCommand("foot", "--check-config", "-c", filepath.Join(cfg, "foot/foot.ini")) {
 		t.Errorf("validators not run: %v", w.sys.ran)
 	}
 	if !w.sys.ranCommand("pkill", "-USR1", "-x", "kitty") || !w.sys.ranCommand("pkill", "-USR2", "-x", "btop") {

@@ -1,0 +1,36 @@
+# Checked on Arch, lsd 1.2.0, 2026-11-07: version regex, and that a
+# listing uses the generated colors. From src/config_file.rs (lsd
+# 4b6c14a): the config directory is the first of ~/.config/lsd,
+# dirs::config_dir()/lsd (Application Support on macOS) and
+# $XDG_CONFIG_HOME/lsd that holds config.yaml, and colors.yaml is read
+# from there when color.theme is "custom". Colors are [r, g, b] arrays.
+# A colors.yaml the user already has is replaced while the theme is
+# applied and restored on uninstall.
+schema: 1
+id: lsd
+name: lsd
+homepage: https://github.com/lsd-rs/lsd
+platforms: [linux, macos]
+tier: 1
+
+detect:
+  binaries: [lsd]
+  version:
+    argv: [lsd, --version]
+    regex: 'lsd ([0-9.]+)'
+
+config:
+  paths:
+    linux: ["$HOME/.config/lsd/config.yaml", "$XDG_CONFIG_HOME/lsd/config.yaml"]
+    macos: ["$HOME/.config/lsd/config.yaml", "$HOME/Library/Application Support/lsd/config.yaml", "$XDG_CONFIG_HOME/lsd/config.yaml"]
+
+integrations:
+  - method: owned
+    template: lsd/colors.yaml.mustache
+    target: colors.yaml
+    select:
+      format: yaml
+      set: { color.theme: custom }
+
+ports:
+  catppuccin: { url: https://github.com/catppuccin/lsd, kind: official }
