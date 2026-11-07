@@ -10,7 +10,6 @@ on:
 
 permissions:
   contents: write
-  packages: write
 
 jobs:
   release:
@@ -62,7 +61,9 @@ jobs:
           done
 
   # The theme-tender pacman package, built from the release's PKGBUILD and
-  # uploaded to the Gitea pacman repository "subcult".
+  # uploaded to the Gitea pacman repository "subcult". The Actions token may
+  # not publish packages (401 reqPackageAccess), so this needs the
+  # ARCH_PACKAGE_TOKEN secret: a token with package write access.
   arch:
     needs: release
     timeout-minutes: 45
@@ -79,5 +80,10 @@ jobs:
         run: curl -fsSL "${GITHUB_SERVER_URL}/api/v1/repos/${GITHUB_REPOSITORY}/raw/scripts/publish-arch.sh?ref=${GITHUB_SHA}" -o /tmp/publish-arch.sh
       - name: Build and upload the package
         env:
-          GITEA_TOKEN: ${{ github.token }}
-        run: bash /tmp/publish-arch.sh "${GITHUB_REF_NAME#v}"
+          GITEA_TOKEN: ${{ secrets.ARCH_PACKAGE_TOKEN }}
+        run: |
+          if [ -z "${GITEA_TOKEN}" ]; then
+            echo "::warning::ARCH_PACKAGE_TOKEN is not set; the pacman package was not published (docs/runbooks/release.md)"
+            exit 0
+          fi
+          bash /tmp/publish-arch.sh "${GITHUB_REF_NAME#v}"
