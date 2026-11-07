@@ -14,6 +14,8 @@ import (
 	"slices"
 	"strings"
 
+	"go.yaml.in/yaml/v3"
+
 	"git.subcult.tv/subculture-collective/theme-tender/internal/changes"
 	"git.subcult.tv/subculture-collective/theme-tender/internal/color"
 	"git.subcult.tv/subculture-collective/theme-tender/internal/configedit"
@@ -368,6 +370,29 @@ func set(format string, src []byte, values map[string]any) ([]byte, error) {
 		return configedit.TOMLSet(src, values)
 	case "ini":
 		return configedit.INISet(src, values)
+	case "yaml":
+		// Build a fragment holding each dotted key and replace those keys.
+		frag := map[string]any{}
+		var paths []string
+		for k, v := range values {
+			paths = append(paths, k)
+			m, parts := frag, strings.Split(k, ".")
+			for _, p := range parts[:len(parts)-1] {
+				next, ok := m[p].(map[string]any)
+				if !ok {
+					next = map[string]any{}
+					m[p] = next
+				}
+				m = next
+			}
+			m[parts[len(parts)-1]] = v
+		}
+		b, err := yaml.Marshal(frag)
+		if err != nil {
+			return nil, err
+		}
+		slices.Sort(paths)
+		return configedit.YAMLKeys(src, b, paths)
 	}
 	return nil, fmt.Errorf("setting keys in %s files is not supported", format)
 }
