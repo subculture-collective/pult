@@ -1,0 +1,38 @@
+# Checked on Arch, tmux 3.8, 2026-11-06: version regex and validate. The
+# validate command sources only the theme file on a private server, which
+# exits at once; it fails on unknown options and bad styles. "source-file -n"
+# does not catch either, so it is not used.
+schema: 1
+id: tmux
+name: tmux
+homepage: https://github.com/tmux/tmux
+platforms: [linux, macos]
+tier: 1
+
+detect:
+  binaries: [tmux]
+  version:
+    argv: [tmux, -V]
+    regex: 'tmux (?:next-)?([0-9.]+)'
+
+config:
+  paths:
+    linux: &paths ["$HOME/.tmux.conf", "$XDG_CONFIG_HOME/tmux/tmux.conf", "$HOME/.config/tmux/tmux.conf"]
+    macos: *paths
+
+integrations:
+  - method: include
+    template: tmux/theme-tender.conf.mustache
+    owned_file: "$XDG_CONFIG_HOME/tmux/theme-tender.conf"
+    line: 'source-file -q "{theme_file}"'
+    position: end
+
+reload:
+  - argv: [tmux, source-file, "{theme_file}"]
+    when: running
+validate:
+  argv: [tmux, -L, theme-tender-validate, -f, /dev/null, start-server, ";", source-file, "{theme_file}"]
+
+ports:
+  catppuccin: { url: https://github.com/catppuccin/tmux, kind: official }
+  dracula: { url: https://github.com/dracula/tmux, kind: official }

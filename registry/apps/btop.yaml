@@ -1,0 +1,41 @@
+# Checked on Arch, btop 1.4.7, 2026-11-06: version regex (btop prints ANSI
+# bold around the number) and the color_theme setting. The SIGUSR2 reload is
+# the one omarchy-restart-btop uses. btop has no validate command. There is
+# no dracula/btop repository.
+schema: 1
+id: btop
+name: btop
+homepage: https://github.com/aristocratos/btop
+platforms: [linux, macos]
+tier: 1
+
+detect:
+  binaries: [btop]
+  version:
+    argv: [btop, --version]
+    regex: 'btop version: (?:\x1b\[[0-9;]*m)?([0-9.]+)'
+
+config:
+  paths:
+    linux: ["$XDG_CONFIG_HOME/btop/btop.conf"]
+    macos: ["$XDG_CONFIG_HOME/btop/btop.conf"]
+
+integrations:
+  - method: owned
+    template: btop/theme-tender.theme.mustache
+    target: themes/theme-tender.theme
+    select:
+      format: ini
+      set: { color_theme: theme-tender }
+  # btop's built-in TTY theme uses the terminal's 16 colors.
+  - method: ansi
+    format: ini
+    set: { color_theme: TTY }
+
+reload:
+  - argv: [pkill, -USR2, -x, btop]
+    when: running
+    platforms: [linux]
+
+ports:
+  catppuccin: { url: https://github.com/catppuccin/btop, kind: official }

@@ -1,0 +1,48 @@
+# Not installed on the checking host. Reload touches the config the way
+# omarchy-restart-terminal does, so live_config_reload picks up the import.
+# Import paths must be absolute or start with "~/".
+schema: 1
+id: alacritty
+name: Alacritty
+homepage: https://alacritty.org/
+platforms: [linux, macos]
+tier: 1
+
+detect:
+  binaries: [alacritty]
+  macos_apps: [Alacritty.app]
+  version:
+    argv: [alacritty, --version]
+    regex: 'alacritty ([0-9.]+)'
+
+config:
+  paths:
+    linux: &paths
+      - "$XDG_CONFIG_HOME/alacritty/alacritty.toml"
+      - "$XDG_CONFIG_HOME/alacritty.toml"
+      - "$HOME/.config/alacritty/alacritty.toml"
+      - "$HOME/.alacritty.toml"
+    macos: *paths
+
+integrations:
+  # 0.14 moved import under [general].
+  - method: include
+    versions: ">=0.14"
+    template: alacritty/theme-tender.toml.mustache
+    owned_file: theme-tender.toml
+    format: toml
+    key: general.import
+  - method: include
+    versions: "<0.14"
+    template: alacritty/theme-tender.toml.mustache
+    owned_file: theme-tender.toml
+    format: toml
+    key: import
+
+reload:
+  - argv: [touch, "{config}"]
+    when: running
+
+ports:
+  catppuccin: { url: https://github.com/catppuccin/alacritty, kind: official }
+  dracula: { url: https://github.com/dracula/alacritty, kind: official }

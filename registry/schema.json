@@ -1,0 +1,279 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Theme Tender app registry entry, schema 1",
+  "description": "See docs/reference/registry-schema.md. A built-in entry must match #/$defs/entry; a user override must match #/$defs/override, and the merged result must match #/$defs/entry.",
+  "$ref": "#/$defs/entry",
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "id", "name", "homepage", "platforms", "tier", "detect", "config", "integrations"],
+      "properties": {
+        "schema": { "const": 1 },
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string", "minLength": 1 },
+        "homepage": { "type": "string", "pattern": "^https://" },
+        "platforms": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/platform" }
+        },
+        "tier": { "enum": [1, 2, 3] },
+        "detect": { "$ref": "#/$defs/detect" },
+        "config": { "$ref": "#/$defs/config" },
+        "integrations": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/integration" }
+        },
+        "reload": { "type": "array", "items": { "$ref": "#/$defs/reload" } },
+        "validate": { "$ref": "#/$defs/command" },
+        "ports": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/id" },
+          "additionalProperties": { "$ref": "#/$defs/port" }
+        }
+      }
+    },
+    "override": {
+      "type": "object",
+      "required": ["schema", "id"],
+      "properties": {
+        "schema": { "const": 1 },
+        "id": { "$ref": "#/$defs/id" },
+        "disabled": { "type": "boolean" }
+      }
+    },
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "platform": { "enum": ["linux", "macos"] },
+    "nonEmptyStrings": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "detect": {
+      "type": "object",
+      "additionalProperties": false,
+      "anyOf": [{ "required": ["binaries"] }, { "required": ["macos_apps"] }, { "required": ["packages"] }],
+      "properties": {
+        "binaries": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "pattern": "^[^/\\s]+$" }
+        },
+        "macos_apps": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "pattern": "^[^/]+\\.app$" }
+        },
+        "packages": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": { "enum": ["pacman", "brew", "dpkg", "rpm"] },
+          "additionalProperties": { "$ref": "#/$defs/nonEmptyStrings" }
+        },
+        "version": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["argv", "regex"],
+          "properties": {
+            "argv": { "$ref": "#/$defs/argv" },
+            "regex": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+    "config": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["paths"],
+      "properties": {
+        "env": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "kind"],
+            "properties": {
+              "name": { "type": "string", "pattern": "^[A-Z_][A-Z0-9_]*$" },
+              "kind": { "enum": ["dir", "file"] }
+            }
+          }
+        },
+        "paths": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": { "$ref": "#/$defs/platform" },
+          "additionalProperties": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "$ref": "#/$defs/path" }
+          }
+        }
+      }
+    },
+    "path": { "type": "string", "pattern": "^\\$(HOME|XDG_CONFIG_HOME)/[^\\s].*[^/]$" },
+    "relativePath": { "type": "string", "pattern": "^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$", "not": { "pattern": "(^|/)\\.\\.?(/|$)" } },
+    "template": { "type": "string", "pattern": "^[a-z0-9-]+/[A-Za-z0-9._-]+\\.mustache$" },
+    "keyPath": { "type": "string", "pattern": "^[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*$" },
+    "versions": {
+      "type": "string",
+      "pattern": "^(>=|<=|>|<|=)?[0-9]+(\\.[0-9]+)*( (>=|<=|>|<|=)?[0-9]+(\\.[0-9]+)*)*$"
+    },
+    "format": { "enum": ["yaml", "toml", "json", "jsonc", "ini"] },
+    "settings": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/keyPath" },
+      "additionalProperties": { "type": ["string", "number", "boolean"] }
+    },
+    "edit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "set"],
+      "properties": {
+        "format": { "$ref": "#/$defs/format" },
+        "set": { "$ref": "#/$defs/settings" }
+      }
+    },
+    "argv": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" },
+      "prefixItems": [{ "type": "string", "pattern": "^[^\\s]+$" }]
+    },
+    "command": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["argv"],
+      "properties": {
+        "argv": { "$ref": "#/$defs/argv" }
+      }
+    },
+    "reload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["argv", "when"],
+      "properties": {
+        "argv": { "$ref": "#/$defs/argv" },
+        "when": { "enum": ["running", "always"] },
+        "platforms": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/platform" }
+        }
+      }
+    },
+    "port": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "kind"],
+      "properties": {
+        "url": { "type": "string", "pattern": "^https://" },
+        "kind": { "enum": ["official", "community"] }
+      }
+    },
+    "integration": {
+      "type": "object",
+      "required": ["method"],
+      "properties": {
+        "method": { "enum": ["include", "owned", "keys", "ansi", "port", "manual"] }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "method": { "const": "include" } } },
+          "then": { "oneOf": [{ "$ref": "#/$defs/includeLine" }, { "$ref": "#/$defs/includeKey" }] }
+        },
+        { "if": { "properties": { "method": { "const": "owned" } } }, "then": { "$ref": "#/$defs/owned" } },
+        { "if": { "properties": { "method": { "const": "keys" } } }, "then": { "$ref": "#/$defs/keys" } },
+        { "if": { "properties": { "method": { "const": "ansi" } } }, "then": { "$ref": "#/$defs/ansi" } },
+        { "if": { "properties": { "method": { "const": "port" } } }, "then": { "$ref": "#/$defs/portInstall" } },
+        { "if": { "properties": { "method": { "const": "manual" } } }, "then": { "$ref": "#/$defs/manual" } }
+      ]
+    },
+    "ownedFile": {
+      "description": "A file name written next to the config file, or a path from $HOME or $XDG_CONFIG_HOME.",
+      "anyOf": [{ "type": "string", "pattern": "^[A-Za-z0-9._-]+$" }, { "$ref": "#/$defs/path" }]
+    },
+    "includeLine": {
+      "description": "include: one text line in the user's config that loads the owned file.",
+      "additionalProperties": false,
+      "required": ["method", "template", "owned_file", "line", "position"],
+      "properties": {
+        "method": { "const": "include" },
+        "versions": { "$ref": "#/$defs/versions" },
+        "template": { "$ref": "#/$defs/template" },
+        "owned_file": { "$ref": "#/$defs/ownedFile" },
+        "line": { "type": "string", "minLength": 1, "pattern": "^[^\\n]+$" },
+        "position": { "enum": ["start", "end"] }
+      }
+    },
+    "includeKey": {
+      "description": "include: the owned file's path appended to an array-valued key in the user's config.",
+      "additionalProperties": false,
+      "required": ["method", "template", "owned_file", "format", "key"],
+      "properties": {
+        "method": { "const": "include" },
+        "versions": { "$ref": "#/$defs/versions" },
+        "template": { "$ref": "#/$defs/template" },
+        "owned_file": { "$ref": "#/$defs/ownedFile" },
+        "format": { "enum": ["yaml", "toml"] },
+        "key": { "$ref": "#/$defs/keyPath" }
+      }
+    },
+    "owned": {
+      "additionalProperties": false,
+      "required": ["method", "template", "target"],
+      "properties": {
+        "method": { "const": "owned" },
+        "versions": { "$ref": "#/$defs/versions" },
+        "template": { "$ref": "#/$defs/template" },
+        "target": { "$ref": "#/$defs/relativePath" },
+        "select": { "$ref": "#/$defs/edit" }
+      }
+    },
+    "keys": {
+      "additionalProperties": false,
+      "required": ["method", "format", "template", "paths"],
+      "properties": {
+        "method": { "const": "keys" },
+        "versions": { "$ref": "#/$defs/versions" },
+        "format": { "$ref": "#/$defs/format" },
+        "template": { "$ref": "#/$defs/template" },
+        "paths": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/keyPath" } }
+      }
+    },
+    "ansi": {
+      "additionalProperties": false,
+      "required": ["method", "format", "set"],
+      "properties": {
+        "method": { "const": "ansi" },
+        "versions": { "$ref": "#/$defs/versions" },
+        "format": { "$ref": "#/$defs/format" },
+        "set": { "$ref": "#/$defs/settings" }
+      }
+    },
+    "portInstall": {
+      "additionalProperties": false,
+      "required": ["method", "url", "target"],
+      "properties": {
+        "method": { "const": "port" },
+        "versions": { "$ref": "#/$defs/versions" },
+        "url": { "type": "string", "pattern": "^https://" },
+        "target": { "$ref": "#/$defs/relativePath" },
+        "select": { "$ref": "#/$defs/edit" }
+      }
+    },
+    "manual": {
+      "additionalProperties": false,
+      "required": ["method", "url"],
+      "properties": {
+        "method": { "const": "manual" },
+        "versions": { "$ref": "#/$defs/versions" },
+        "url": { "type": "string", "pattern": "^https://" }
+      }
+    }
+  }
+}
