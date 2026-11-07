@@ -1,0 +1,38 @@
+# Checked on Arch, delta 0.20.1, 2026-11-07: version regex, and that delta
+# reads syntax-theme = ansi from ~/.gitconfig and then colors syntax with
+# the terminal's 16 colors. Added and removed lines keep delta's default
+# background colors. delta
+# reads its settings from git's config: git reads $XDG_CONFIG_HOME/git/config
+# and then ~/.gitconfig, the later one winning, so ~/.gitconfig is tried
+# first. bat's "ansi" theme uses the terminal's 16 colors, so delta's syntax
+# colors follow every terminal theme. git config --list validates the file.
+schema: 1
+id: delta
+name: delta
+homepage: https://github.com/dandavison/delta
+platforms: [linux, macos]
+tier: 1
+
+detect:
+  binaries: [delta]
+  version:
+    argv: [delta, --version]
+    regex: 'delta ([0-9.]+)'
+
+config:
+  env:
+    - { name: GIT_CONFIG_GLOBAL, kind: file }
+  paths:
+    linux: &paths ["$HOME/.gitconfig", "$XDG_CONFIG_HOME/git/config"]
+    macos: *paths
+
+integrations:
+  - method: ansi
+    format: ini
+    set: { delta.syntax-theme: ansi }
+
+validate:
+  argv: [git, config, --file, "{config}", --list]
+
+ports:
+  catppuccin: { url: https://github.com/catppuccin/delta, kind: official }
