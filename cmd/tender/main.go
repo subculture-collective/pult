@@ -4,6 +4,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -39,6 +40,8 @@ const usage = `Usage: tender <command> [flags]
 Commands:
   search [words] [-tag t]... [-similar id] [-n 20]   find themes in the catalog
   apply [-dry-run] [-yes] <theme>                    theme every supported app
+  palette [-format json|toml] <theme>                print the resolved palette, changing nothing
+  render [-o file] <theme> <template>                render one template, changing nothing
   uninstall [-yes] [-force]                          put every changed file back
   tui                                                browse, preview, apply and undo in the terminal
   list                                               show supported apps and their state
@@ -77,6 +80,10 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer, e env) int {
 		err = c.search(args[1:])
 	case "apply":
 		err = c.apply(args[1:])
+	case "palette":
+		err = c.palette(args[1:])
+	case "render":
+		err = c.render(args[1:])
 	case "uninstall":
 		err = c.uninstall(args[1:])
 	case "list":
@@ -658,4 +665,106 @@ func (b *tuiBackend) Undo() (string, error) {
 		return msg, nil
 	}
 	return "Nothing to undo.", nil
+}
+
+// palette prints a theme's full palette: the 26 roles, ANSI 0-15 and the
+// terminal specials, with derived roles filled in. Nothing is written.
+// The format is docs/reference/palette-export.md.
+func (c *cli) palette(args []string) error {
+	fl := c.flags("palette")
+	format := fl.String("format", "json", "json or toml")
+	if err := fl.Parse(args); err != nil {
+		return err
+	}
+	if fl.NArg() != 1 {
+		return fmt.Errorf("palette needs one theme ID")
+	}
+	db, err := c.openCatalog()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	th, info, err := c.loadTheme(db, fl.Arg(0), false)
+	if err != nil {
+		return err
+	}
+	q := func(s string) string { b, _ := json.Marshal(s); return string(b) }
+	var b strings.Builder
+	switch *format {
+	case "json":
+		fmt.Fprintf(&b, "{\n  \"schema\": 1,\n  \"theme\": {\"id\": %s, \"name\": %s, \"author\": %s, \"appearance\": %s, \"license\": %s},\n  \"colors\": {\n",
+			q(info.ID), q(info.Name), q(info.Author), q(info.Appearance), q(info.License))
+		roles := color.AllRoles()
+		for i, r := range roles {
+			sep := ","
+			if i == len(roles)-1 {
+				sep = ""
+			}
+			fmt.Fprintf(&b, "    %s: %s%s\n", q(string(r)), q(th.Palette[r].Hex()), sep)
+		}
+		b.WriteString("  }\n}\n")
+	case "toml":
+		fmt.Fprintf(&b, "schema = 1\n\n[theme]\nid = %s\nname = %s\nauthor = %s\nappearance = %s\nlicense = %s\n\n[colors]\n",
+			q(info.ID), q(info.Name), q(info.Author), q(info.Appearance), q(info.License))
+		for _, r := range color.AllRoles() {
+			fmt.Fprintf(&b, "%s = %s\n", r, q(th.Palette[r].Hex()))
+		}
+	default:
+		return fmt.Errorf("unknown format %q; use json or toml", *format)
+	}
+	_, err = io.WriteString(c.out, b.String())
+	return err
+}
+
+// render renders one Mustache template, a file or a bundled template name
+// such as kitty/theme-tender.conf.mustache, to stdout or -o. It does not
+// go through the change record.
+func (c *cli) render(args []string) error {
+	fl := c.flags("render")
+	out := fl.String("o", "", "write to this file instead of stdout")
+	if err := fl.Parse(args); err != nil {
+		return err
+	}
+	if fl.NArg() != 2 {
+		return fmt.Errorf("render needs a theme ID and a template")
+	}
+	db, err := c.openCatalog()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	th, _, err := c.loadTheme(db, fl.Arg(0), false)
+	if err != nil {
+		return err
+	}
+	name := fl.Arg(1)
+	src, err := os.ReadFile(name)
+	if errors.Is(err, fs.ErrNotExist) {
+		o, oerr := c.options()
+		if oerr != nil {
+			return oerr
+		}
+		if src, err = fs.ReadFile(o.Templates, name); err != nil {
+			return fmt.Errorf("%s is neither a file nor a bundled template", name)
+		}
+	} else if err != nil {
+		return err
+	}
+	tm, err := render.Parse(name, string(src))
+	if err != nil {
+		return err
+	}
+	vars, err := render.Vars(th.Theme, th.Palette)
+	if err != nil {
+		return err
+	}
+	text, err := tm.Render(vars)
+	if err != nil {
+		return err
+	}
+	if *out == "" {
+		_, err = io.WriteString(c.out, text)
+		return err
+	}
+	return os.WriteFile(*out, []byte(text), 0o644)
 }

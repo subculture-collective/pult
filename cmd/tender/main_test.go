@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/ed25519"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"io"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/klauspost/compress/zstd"
+	"github.com/pelletier/go-toml/v2"
 
 	themetender "git.subcult.tv/subculture-collective/theme-tender"
 	"git.subcult.tv/subculture-collective/theme-tender/internal/bundle"
@@ -346,5 +348,73 @@ func TestDoctorReportsSubarchy(t *testing.T) {
 	f.write("etc/os-release", "ID=subarchy\n")
 	if out, _ := f.run("", "doctor"); !strings.Contains(out, "Subarchy: yes.") {
 		t.Errorf("doctor:\n%s", out)
+	}
+}
+
+func TestPaletteExport(t *testing.T) {
+	f := newFixture(t)
+	out, code := f.run("", "palette", "catppuccin-mocha")
+	if code != 0 {
+		t.Fatalf("palette (%d):\n%s", code, out)
+	}
+	var doc struct {
+		Schema int
+		Theme  struct{ ID, Name, Appearance, License string }
+		Colors map[string]string
+	}
+	if err := json.Unmarshal([]byte(out), &doc); err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	if doc.Schema != 1 || doc.Theme.ID != "catppuccin-mocha" || len(doc.Colors) != 47 || doc.Colors["mauve"] != "#cba6f7" || doc.Colors["selection_bg"] == "" {
+		t.Errorf("json export = %+v", doc)
+	}
+	if !strings.Contains(out, "\"rosewater\"") || strings.Index(out, "\"rosewater\"") > strings.Index(out, "\"ansi0\"") {
+		t.Error("colors are not in role order")
+	}
+	out, _ = f.run("", "palette", "-format", "toml", "catppuccin-mocha")
+	var tdoc struct {
+		Schema int
+		Theme  map[string]string
+		Colors map[string]string
+	}
+	if err := toml.Unmarshal([]byte(out), &tdoc); err != nil || tdoc.Colors["crust"] != "#11111b" || tdoc.Theme["appearance"] != "dark" {
+		t.Errorf("toml export: %v\n%s", err, out)
+	}
+	if _, code := f.run("", "palette", "-format", "yaml", "catppuccin-mocha"); code != 1 {
+		t.Error("unknown format accepted")
+	}
+	out, code = f.run("", "palette", "unknown-one")
+	if code != 0 || !strings.Contains(out, "#aa3333") || len(f.download) != 1 {
+		t.Errorf("unbundled palette (%d, %v):\n%s", code, f.download, out)
+	}
+}
+
+func TestRenderTemplate(t *testing.T) {
+	f := newFixture(t)
+	before := f.read(".config/kitty/kitty.conf")
+	tpl := filepath.Join(f.home, "sddm.conf.mustache")
+	os.WriteFile(tpl, []byte("[General]\nbackground={{background.hex_bare}}\naccent={{mauve}}\nname={{theme.name}}\n"), 0o644)
+	out, code := f.run("", "render", "catppuccin-mocha", tpl)
+	if code != 0 || out != "[General]\nbackground=1e1e2e\naccent=#cba6f7\nname=Catppuccin Mocha\n" {
+		t.Fatalf("render file (%d): %q", code, out)
+	}
+	dest := filepath.Join(f.home, "out", "kitty.conf")
+	os.MkdirAll(filepath.Dir(dest), 0o755)
+	if _, code := f.run("", "render", "-o", dest, "catppuccin-mocha", "kitty/theme-tender.conf.mustache"); code != 0 {
+		t.Fatal("render bundled template failed")
+	}
+	if b, _ := os.ReadFile(dest); !strings.Contains(string(b), "background              #1e1e2e") {
+		t.Errorf("bundled template output:\n%s", b)
+	}
+	if out, code := f.run("", "render", "catppuccin-mocha", "nope/missing.mustache"); code != 1 || !strings.Contains(out, "neither a file nor a bundled template") {
+		t.Errorf("missing template (%d): %s", code, out)
+	}
+	if f.read(".config/kitty/kitty.conf") != before {
+		t.Error("render changed a config")
+	}
+	if _, err := os.Stat(filepath.Join(f.home, ".local/state/theme-tender/transactions")); err == nil {
+		if entries, _ := os.ReadDir(filepath.Join(f.home, ".local/state/theme-tender/transactions")); len(entries) != 0 {
+			t.Error("render wrote a transaction")
+		}
 	}
 }
