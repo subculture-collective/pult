@@ -1,0 +1,32 @@
+# Not installed on the checking host (iTerm2 is macOS only). From iTerm2's
+# Dynamic Profiles documentation (iterm2.com/documentation-dynamic-profiles,
+# read 2026-11-07): iTerm2 watches ~/Library/Application Support/iTerm2/
+# DynamicProfiles and reloads every file there when one changes, so no
+# reload command is needed. A profile needs only Guid and Name; keys it
+# leaves out come from the default profile, so fonts and other settings
+# stay the user's. One malformed file there stops all reloads. The user
+# selects the "Theme Tender" profile once, or makes it the default.
+# Theme Tender owns the whole profile file, so config path and target are
+# the same file and nothing else is edited.
+schema: 1
+id: iterm2
+name: iTerm2
+homepage: https://iterm2.com/
+platforms: [macos]
+tier: 1
+
+detect:
+  macos_apps: [iTerm.app]
+
+config:
+  paths:
+    macos: ["$HOME/Library/Application Support/iTerm2/DynamicProfiles/theme-tender.json"]
+
+integrations:
+  - method: owned
+    template: iterm2/theme-tender.json.mustache
+    target: theme-tender.json
+
+ports:
+  catppuccin: { url: https://github.com/catppuccin/iterm, kind: official }
+  dracula: { url: https://github.com/dracula/iterm, kind: official }

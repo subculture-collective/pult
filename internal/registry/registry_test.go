@@ -13,7 +13,8 @@ import (
 
 const builtinDir = "../../registry"
 
-var m1Apps = []string{"alacritty", "btop", "ghostty", "kitty", "lazygit", "starship", "tmux", "yazi"}
+// builtinApps is every built-in registry entry, in id order.
+var builtinApps = []string{"alacritty", "btop", "ghostty", "iterm2", "kitty", "lazygit", "starship", "tmux", "yazi"}
 
 const demoYAML = `
 schema: 1
@@ -65,8 +66,8 @@ func TestBuiltinRegistry(t *testing.T) {
 			}
 		}
 	}
-	if !slices.Equal(ids, m1Apps) {
-		t.Fatalf("entries = %v, want %v", ids, m1Apps)
+	if !slices.Equal(ids, builtinApps) {
+		t.Fatalf("entries = %v, want %v", ids, builtinApps)
 	}
 	kitty, ok := reg.Get("kitty")
 	if !ok || kitty.Config.Paths[Linux][0] != "$XDG_CONFIG_HOME/kitty/kitty.conf" || kitty.Integrations[0].Method != Include {
