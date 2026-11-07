@@ -25,6 +25,7 @@ import (
 	"git.subcult.tv/subculture-collective/theme-tender/internal/changes"
 	"git.subcult.tv/subculture-collective/theme-tender/internal/color"
 	"git.subcult.tv/subculture-collective/theme-tender/internal/owner"
+	"git.subcult.tv/subculture-collective/theme-tender/internal/profile"
 	"git.subcult.tv/subculture-collective/theme-tender/internal/registry"
 	"git.subcult.tv/subculture-collective/theme-tender/internal/render"
 	"git.subcult.tv/subculture-collective/theme-tender/internal/tui"
@@ -39,7 +40,7 @@ const usage = `Usage: tender <command> [flags]
 
 Commands:
   search [words] [-tag t]... [-similar id] [-n 20]   find themes in the catalog
-  apply [-dry-run] [-yes] <theme>                    theme every supported app
+  apply [-dry-run] [-yes] [-profile p] [theme]       theme every supported app (theme: catalog ID or palette file)
   palette [-format json|toml] <theme>                print the resolved palette, changing nothing
   render [-o file] [-aether] <theme> <template>      render one template, changing nothing
   uninstall [-yes] [-force]                          put every changed file back
@@ -47,6 +48,7 @@ Commands:
   list                                               show supported apps and their state
   doctor [-recover]                                  check for interrupted runs and owners
   update [-url URL]                                  install the newest signed data bundle
+  profiles                                           list profiles in $XDG_CONFIG_HOME/theme-tender/profiles
   version                                            print the version
 
 Common flags: -bundle PATH, -catalog PATH, -data DIR, -state DIR
@@ -95,6 +97,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer, e env) int {
 		err = c.tui(args[1:])
 	case "doctor":
 		err = c.doctor(args[1:])
+	case "profiles":
+		err = c.profiles(args[1:])
 	case "update":
 		err = c.update(args[1:])
 	case "version":
@@ -354,24 +358,38 @@ func (c *cli) apply(args []string) error {
 	fl := c.flags("apply")
 	dry := fl.Bool("dry-run", false, "show the plan and diffs, change nothing")
 	yes := fl.Bool("yes", false, "apply without asking for final confirmation (files other tools own are still asked about)")
+	profName := fl.String("profile", "", "profile name (in $XDG_CONFIG_HOME/theme-tender/profiles) or file: theme, apps and font")
 	if err := c.parse(fl, args); err != nil {
 		return err
 	}
-	if fl.NArg() != 1 {
-		return fmt.Errorf("apply needs one theme ID; find one with tender search")
+	var prof *profile.Profile
+	if *profName != "" {
+		var err error
+		if prof, err = profile.Load(*profName, c.profileDir()); err != nil {
+			return err
+		}
 	}
-	db, err := c.openCatalog()
-	if err != nil {
-		return err
+	themeID := ""
+	switch {
+	case fl.NArg() == 1:
+		themeID = fl.Arg(0)
+	case fl.NArg() == 0 && prof != nil && prof.Theme != "":
+		themeID = prof.Theme
+	default:
+		return fmt.Errorf("apply needs one theme ID or palette file (find one with tender search), or a profile that names one")
 	}
-	defer db.Close()
-	th, info, err := c.loadTheme(db, fl.Arg(0), true)
+	th, info, err := c.theme(themeID, true)
 	if err != nil {
 		return err
 	}
 	o, err := c.options()
 	if err != nil {
 		return err
+	}
+	if prof != nil {
+		o.Wants = prof.Wants
+		th.Font = prof.Font
+		c.checkFont(prof.Font)
 	}
 	o.Meta.Theme = info.ID
 	o.Confirm = func(app string, ow owner.Owner) bool {
@@ -423,6 +441,72 @@ func (c *cli) apply(args []string) error {
 }
 
 // loadTheme reads a theme's palette, downloading an unbundled one.
+// theme loads a catalog theme, or a palette file when id is a path.
+func (c *cli) theme(id string, say bool) (apply.Theme, catalog.Info, error) {
+	if profile.IsPath(id) {
+		t, p, err := profile.LoadPalette(id)
+		info := catalog.Info{ID: t.Slug, Name: t.Name, Author: t.Author, Appearance: t.Appearance, License: "user", Bundled: true}
+		return apply.Theme{Theme: t, Palette: p}, info, err
+	}
+	db, err := c.openCatalog()
+	if err != nil {
+		return apply.Theme{}, catalog.Info{}, err
+	}
+	defer db.Close()
+	return c.loadTheme(db, id, say)
+}
+
+func (c *cli) profileDir() string {
+	return filepath.Join(c.xdg("XDG_CONFIG_HOME", ".config"), "theme-tender", "profiles")
+}
+
+// checkFont warns when a profile's font is not installed. Only Linux has
+// fontconfig to ask; Theme Tender never installs fonts.
+func (c *cli) checkFont(f *render.Font) {
+	if f == nil || runtime.GOOS != "linux" {
+		return
+	}
+	out, err := c.sys.Run([]string{"fc-list", ":", "family"})
+	if err != nil {
+		return
+	}
+	if !strings.Contains(strings.ToLower(string(out)), strings.ToLower(f.Family)) {
+		fmt.Fprintf(c.errw, "warning: font %q is not installed (fc-list); terminals will fall back to another font\n", f.Family)
+	}
+}
+
+// profiles lists the user's profiles.
+func (c *cli) profiles(args []string) error {
+	fl := c.flags("profiles")
+	if err := c.parse(fl, args); err != nil {
+		return err
+	}
+	names, err := profile.List(c.profileDir())
+	if err != nil {
+		return err
+	}
+	if len(names) == 0 {
+		fmt.Fprintf(c.out, "No profiles in %s. See docs/reference/profiles.md.\n", c.profileDir())
+	}
+	for _, n := range names {
+		p, err := profile.Load(n, c.profileDir())
+		if err != nil {
+			fmt.Fprintf(c.out, "%-16s error: %v\n", n, err)
+			continue
+		}
+		apps := "all apps"
+		if len(p.Apps) > 0 {
+			apps = strings.Join(p.Apps, ",")
+		}
+		font := ""
+		if p.Font != nil {
+			font = ", font " + p.Font.Family
+		}
+		fmt.Fprintf(c.out, "%-16s theme %s, %s%s\n", n, orUnknown(p.Theme), apps, font)
+	}
+	return nil
+}
+
 func (c *cli) loadTheme(db *catalog.DB, id string, say bool) (apply.Theme, catalog.Info, error) {
 	info, err := db.Info(id)
 	if err != nil {
@@ -804,12 +888,7 @@ func (c *cli) palette(args []string) error {
 	if fl.NArg() != 1 {
 		return fmt.Errorf("palette needs one theme ID")
 	}
-	db, err := c.openCatalog()
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-	th, info, err := c.loadTheme(db, fl.Arg(0), false)
+	th, info, err := c.theme(fl.Arg(0), false)
 	if err != nil {
 		return err
 	}
@@ -854,12 +933,7 @@ func (c *cli) render(args []string) error {
 	if fl.NArg() != 2 {
 		return fmt.Errorf("render needs a theme ID and a template")
 	}
-	db, err := c.openCatalog()
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-	th, _, err := c.loadTheme(db, fl.Arg(0), false)
+	th, _, err := c.theme(fl.Arg(0), false)
 	if err != nil {
 		return err
 	}

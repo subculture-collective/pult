@@ -544,3 +544,37 @@ func TestCommandLine(t *testing.T) {
 		t.Errorf("render with a bad override (%d): stdout %q, stderr %q", code, out, f.stderr.String())
 	}
 }
+
+// TestApplyProfile: a profile names a palette file, limits the apps and
+// sets a font; uninstall undoes it all.
+func TestApplyProfile(t *testing.T) {
+	f := newFixture(t)
+	f.write("palettes/mine.json", `{"schema": 1, "theme": {"id": "mine", "name": "Mine"}, "colors": {
+"ansi0": "#100b19", "ansi1": "#ff5577", "ansi2": "#00ff88", "ansi3": "#ffcc55", "ansi4": "#7799ff", "ansi5": "#bb77ff", "ansi6": "#55ddee", "ansi7": "#c8c2b8",
+"ansi8": "#3b2470", "ansi9": "#ff7799", "ansi10": "#55ffaa", "ansi11": "#ffdd88", "ansi12": "#99bbff", "ansi13": "#cc99ff", "ansi14": "#88eeff", "ansi15": "#f0ece4",
+"background": "#100b19", "foreground": "#f0ece4"}}`)
+	f.write(".config/theme-tender/profiles/desk.toml", "schema = 1\ntheme = \""+filepath.Join(f.home, "palettes/mine.json")+"\"\napps = [\"kitty\"]\n[font]\nfamily = \"JetBrains Mono\"\nsize = 12\n")
+	if out, _ := f.run("", "profiles"); !strings.Contains(out, "desk") || !strings.Contains(out, "kitty, font JetBrains Mono") {
+		t.Errorf("profiles:\n%s", out)
+	}
+	out, code := f.run("", "apply", "-yes", "-profile", "desk")
+	if code != 0 || !strings.Contains(out, "btop       skip: not in the profile") || !strings.Contains(out, "Applied Mine") {
+		t.Fatalf("apply -profile (%d):\n%s", code, out)
+	}
+	theme := f.read(".config/kitty/theme-tender.conf")
+	if !strings.Contains(theme, "background              #100b19") || !strings.Contains(theme, "font_family JetBrains Mono\nfont_size 12\n") {
+		t.Errorf("kitty theme file:\n%s", theme)
+	}
+	if f.read(".config/btop/btop.conf") != "color_theme = \"Default\"\n" {
+		t.Error("btop changed although the profile leaves it out")
+	}
+	if out, _ := f.run("", "palette", filepath.Join(f.home, "palettes/mine.json")); !strings.Contains(out, "\"id\": \"mine\"") {
+		t.Errorf("palette of a palette file:\n%s", out)
+	}
+	if out, code := f.run("", "uninstall", "-yes"); code != 0 || f.read(".config/kitty/kitty.conf") != "font_size 12\n" {
+		t.Errorf("uninstall (%d):\n%s", code, out)
+	}
+	if _, code := f.run("", "apply", "-profile", "nope"); code != 1 {
+		t.Errorf("missing profile exit %d", code)
+	}
+}

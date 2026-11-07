@@ -58,6 +58,9 @@ type Options struct {
 	// Root is prefixed to system paths such as /Applications; "" is the
 	// real root. Tests point it at a fixture.
 	Root string
+	// Wants, when set, limits applying to the apps it accepts (a
+	// profile's apps and skip lists).
+	Wants func(app string) bool
 }
 
 // Theme is a catalog theme with its full palette.
@@ -145,6 +148,10 @@ func Survey(o Options) ([]AppPlan, error) {
 // integration.
 func (o Options) planApp(e registry.Entry, th *Theme) (AppPlan, error) {
 	ap := AppPlan{ID: e.ID, Entry: e}
+	if o.Wants != nil && !o.Wants(e.ID) {
+		ap.Skip = "not in the profile"
+		return ap, nil
+	}
 	if !slices.Contains(e.Platforms, o.Platform) {
 		ap.Skip = "not available on " + string(o.Platform)
 		return ap, nil

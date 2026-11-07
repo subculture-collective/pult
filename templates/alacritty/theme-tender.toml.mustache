@@ -31,3 +31,12 @@ blue = "{{ansi12}}"
 magenta = "{{ansi13}}"
 cyan = "{{ansi14}}"
 white = "{{ansi15}}"
+{{#font}}
+
+# Font, from the profile.
+[font]
+normal = { family = "{{font.family}}" }
+{{#font.size}}
+size = {{font.size}}
+{{/font.size}}
+{{/font}}
