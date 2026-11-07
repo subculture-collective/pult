@@ -187,6 +187,23 @@ func TestOwners(t *testing.T) {
 			record: "omarchy", action: HandOff,
 		},
 		{
+			name: "Subarchy default",
+			setup: func(h *home) {
+				h.file("usr/share/subcult/default/kitty/kitty.conf", "include theme-tender.conf\n")
+			},
+			path:   "usr/share/subcult/default/kitty/kitty.conf",
+			record: "subarchy", action: HandOff,
+		},
+		{
+			name: "user file linked to a Subarchy default",
+			setup: func(h *home) {
+				h.file("usr/share/subcult/default/kitty/kitty.conf", "include theme-tender.conf\n")
+				h.link(kitty, h.path("usr/share/subcult/default/kitty/kitty.conf"))
+			},
+			path:   kitty,
+			record: "subarchy", action: HandOff,
+		},
+		{
 			name: "written by an Omarchy theme-set hook",
 			setup: func(h *home) {
 				h.file(".local/share/omarchy/version", "4.5\n")
@@ -350,5 +367,27 @@ func TestRealChezmoi(t *testing.T) {
 	}
 	if o := detect(t, h, env, ".config/btop/btop.conf"); o.Record() != "none" {
 		t.Fatalf("unmanaged file owner = %+v", o)
+	}
+}
+
+func TestSubarchyFromOSRelease(t *testing.T) {
+	for content, want := range map[string]bool{
+		"NAME=\"Subarchy\"\nID=subarchy\nID_LIKE=arch\n": true,
+		"ID=\"subarchy\"\n":              true,
+		"NAME=\"Arch Linux\"\nID=arch\n": false,
+	} {
+		h := newHome(t)
+		h.file("etc/os-release", content)
+		d, err := New(h.env())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if d.System().Subarchy != want {
+			t.Errorf("%q: Subarchy = %v, want %v", content, d.System().Subarchy, want)
+		}
+	}
+	h := newHome(t)
+	if d, _ := New(h.env()); d.System().Subarchy {
+		t.Error("Subarchy without os-release")
 	}
 }

@@ -420,3 +420,63 @@ func union(a, b map[string]string) map[string]bool {
 	}
 	return out
 }
+
+// TestSubarchyLayeredDefaults: a user file that already includes Theme
+// Tender's file, in its own spelling, is left as it is and only the owned
+// file is written; a config that is a Subarchy default is never edited.
+func TestSubarchyLayeredDefaults(t *testing.T) {
+	w := newWorld(t, map[string]string{
+		".config/kitty/kitty.conf":                 "# Subarchy overrides\ninclude ~/.config/kitty/theme-tender.conf\n",
+		"etc/os-release":                           "ID=subarchy\n",
+		"usr/share/subcult/default/btop/btop.conf": "color_theme = \"theme-tender\"\n",
+	})
+	os.Remove(filepath.Join(w.home, ".config/btop/btop.conf"))
+	if err := os.Symlink(filepath.Join(w.home, "usr/share/subcult/default/btop/btop.conf"), filepath.Join(w.home, ".config/btop/btop.conf")); err != nil {
+		t.Fatal(err)
+	}
+	w = w.with(w.opts.Registry, w.opts.Getenv)
+	plan, err := Prepare(w.opts, mocha(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	apps := map[string]AppPlan{}
+	for _, ap := range plan.Apps {
+		apps[ap.ID] = ap
+	}
+	if k := apps["kitty"]; k.Skip != "" || len(k.Edits) != 1 || k.Edits[0].Path != filepath.Join(w.home, ".config/kitty/theme-tender.conf") {
+		t.Errorf("kitty plan: skip %q, edits %+v", k.Skip, k.Edits)
+	}
+	if b := apps["btop"]; !strings.HasPrefix(b.Skip, "Subarchy default, left alone") {
+		t.Errorf("btop skip = %q", b.Skip)
+	}
+	if !w.opts.Owners.System().Subarchy {
+		t.Error("Subarchy not detected")
+	}
+	if _, err := Execute(w.opts, plan); err != nil {
+		t.Fatal(err)
+	}
+	if got := w.read(".config/kitty/kitty.conf"); got != "# Subarchy overrides\ninclude ~/.config/kitty/theme-tender.conf\n" {
+		t.Errorf("kitty.conf edited: %q", got)
+	}
+	if !strings.Contains(w.read(".config/kitty/theme-tender.conf"), "#1e1e2e") {
+		t.Error("owned file not written")
+	}
+}
+
+func TestIncludesFile(t *testing.T) {
+	const f = "/home/u/.config/kitty/theme-tender.conf"
+	for cfg, want := range map[string]bool{
+		"include theme-tender.conf\n":                                  true,
+		"include ~/.config/kitty/theme-tender.conf\n":                  true,
+		"config-file = ?theme-tender.conf\n":                           true,
+		"source-file -q \"/home/u/.config/kitty/theme-tender.conf\"\n": true,
+		"# include theme-tender.conf\n":                                false,
+		"include my-theme-tender.conf\n":                               false,
+		"include theme-tender.conf.bak\n":                              false,
+		"":                                                             false,
+	} {
+		if got := includesFile([]byte(cfg), f); got != want {
+			t.Errorf("includesFile(%q) = %v, want %v", cfg, got, want)
+		}
+	}
+}

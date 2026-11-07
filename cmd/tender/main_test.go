@@ -343,6 +343,14 @@ func TestTUIBackend(t *testing.T) {
 	}
 }
 
+func TestDoctorReportsSubarchy(t *testing.T) {
+	f := newFixture(t)
+	f.write("etc/os-release", "ID=subarchy\n")
+	if out, _ := f.run("", "doctor"); !strings.Contains(out, "Subarchy: yes.") {
+		t.Errorf("doctor:\n%s", out)
+	}
+}
+
 func TestPaletteExport(t *testing.T) {
 	f := newFixture(t)
 	out, code := f.run("", "palette", "catppuccin-mocha")

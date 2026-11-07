@@ -140,7 +140,11 @@ func (o Options) planApp(e registry.Entry, th *Theme) (AppPlan, error) {
 	ap.Owner = own
 	switch own.Action() {
 	case owner.HandOff:
-		ap.Skip = "Omarchy themes it: " + own.Detail
+		if own.Kind == owner.Subarchy {
+			ap.Skip = "Subarchy default, left alone: " + own.Detail
+		} else {
+			ap.Skip = "Omarchy themes it: " + own.Detail
+		}
 		return ap, nil
 	case owner.Ask:
 		if o.Confirm == nil || !o.Confirm(e.ID, own) {
@@ -190,7 +194,10 @@ func (o Options) planEdits(ap *AppPlan, th Theme) error {
 	case registry.Include:
 		if in.Line != "" {
 			line := strings.ReplaceAll(in.Line, "{theme_file}", ap.ThemeFile)
-			newCfg = configedit.IncludeLine(cfg, line, in.Position == "start")
+			newCfg = cfg
+			if !includesFile(cfg, ap.ThemeFile) {
+				newCfg = configedit.IncludeLine(cfg, line, in.Position == "start")
+			}
 		} else if in.Format == "toml" {
 			newCfg, err = configedit.TOMLAppend(cfg, in.Key, ap.ThemeFile)
 		} else {
@@ -236,6 +243,34 @@ func (ap *AppPlan) add(e changes.Edit, before []byte) {
 
 func (o Options) edit(ap *AppPlan, path string, content []byte) changes.Edit {
 	return changes.Edit{App: ap.ID, Path: path, Owner: ap.Owner.Record(), Method: string(ap.Integration.Method), Content: content}
+}
+
+// includesFile reports whether a config already loads file on a line that
+// is not a comment, by any spelling of its name: Subarchy's layered user
+// files ship the include line already, in whatever form the distribution
+// chose.
+func includesFile(cfg []byte, file string) bool {
+	base := filepath.Base(file)
+	for _, l := range strings.Split(string(cfg), "\n") {
+		l = strings.TrimSpace(l)
+		if l == "" || strings.HasPrefix(l, "#") || strings.HasPrefix(l, ";") {
+			continue
+		}
+		for i := strings.Index(l, base); i >= 0; {
+			end := i + len(base)
+			before := i == 0 || strings.ContainsRune(" \t\"'/=?~", rune(l[i-1]))
+			after := end == len(l) || strings.ContainsRune(" \t\"'", rune(l[end]))
+			if before && after {
+				return true
+			}
+			next := strings.Index(l[i+1:], base)
+			if next < 0 {
+				break
+			}
+			i += 1 + next
+		}
+	}
+	return false
 }
 
 func set(format string, src []byte, values map[string]any) ([]byte, error) {
