@@ -480,3 +480,72 @@ func TestIncludesFile(t *testing.T) {
 		}
 	}
 }
+
+// validateFails fails kitty's validator but answers everything else.
+type validateFails struct{ *fakeSys }
+
+func (v validateFails) Run(argv []string) ([]byte, error) {
+	if slices.Contains(argv, "+runpy") {
+		v.ran = append(v.ran, argv)
+		return []byte("unknown option"), errors.New("exit status 1")
+	}
+	return v.fakeSys.Run(argv)
+}
+
+// TestUpgrades: after an apply, doctor's check reports apps whose version
+// changed, whether apply would now choose another integration, and the
+// validator's verdict on the current files.
+func TestUpgrades(t *testing.T) {
+	w := newWorld(t, nil)
+	plan, err := Prepare(w.opts, mocha(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Execute(w.opts, plan); err != nil {
+		t.Fatal(err)
+	}
+	if ups, err := Upgrades(w.opts); err != nil || len(ups) != 0 {
+		t.Fatalf("no upgrades yet: %+v %v", ups, err)
+	}
+	w.sys.versions["yazi"] = "Yazi 25.2.11"             // before [mgr]: manual
+	w.sys.versions["kitty"] = "kitty 0.50.1 created by" // validator runs
+	w.sys.versions["tmux"] = "tmux 3.9"                 // validator runs
+	w.sys.versions["lazygit"] = "version=0.67.0"        // no validator
+	ups, err := Upgrades(w.opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]Upgrade{}
+	for _, u := range ups {
+		got[u.App] = u
+	}
+	if len(got) != 4 {
+		t.Fatalf("upgrades = %+v", ups)
+	}
+	if y := got["yazi"]; y.Was != "26.9.1" || y.Now != "25.2.11" || y.WasIntegration != "owned (>=25.5.28)" || y.NowIntegration != "manual" {
+		t.Errorf("yazi = %+v", y)
+	}
+	if k := got["kitty"]; k.WasIntegration != "include" || k.NowIntegration != "include" || !k.Validated || k.ValidateErr != nil {
+		t.Errorf("kitty = %+v", k)
+	}
+	if !w.sys.ranCommand("kitty", "+runpy") {
+		t.Error("kitty's validator did not run")
+	}
+	if l := got["lazygit"]; l.Validated || l.Was != "0.66.2" || l.Now != "0.67.0" {
+		t.Errorf("lazygit = %+v", l)
+	}
+	w.opts.Sys = validateFails{w.sys}
+	ups, _ = Upgrades(w.opts)
+	for _, u := range ups {
+		if u.App == "kitty" && (u.ValidateErr == nil || !strings.Contains(u.ValidateErr.Error(), "unknown option")) {
+			t.Errorf("failing validator: %+v", u)
+		}
+	}
+	// After uninstall nothing is themed, so nothing is reported.
+	if _, _, err := Uninstall(w.opts, false); err != nil {
+		t.Fatal(err)
+	}
+	if ups, _ := Upgrades(w.opts); len(ups) != 0 {
+		t.Errorf("after uninstall: %+v", ups)
+	}
+}
