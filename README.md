@@ -14,6 +14,8 @@ go run ./cmd/tender search -tag pastel rose    # find themes; -similar <id> list
 go run ./cmd/tender apply -dry-run catppuccin-mocha   # plan and diffs, nothing written
 go run ./cmd/tender apply catppuccin-mocha
 go run ./cmd/tender uninstall                  # put every changed file back
+go run ./cmd/tender palette catppuccin-mocha   # print the resolved palette as JSON (or -format toml)
+go run ./cmd/tender render catppuccin-mocha my.conf.mustache   # render one template, nothing applied
 go run ./cmd/tender doctor                     # interrupted runs, Omarchy, frameworks
 ```
 
