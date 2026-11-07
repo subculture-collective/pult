@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -17,6 +18,14 @@ type Theme struct {
 	Slug       string
 	Author     string
 	Appearance string // "dark" or "light"
+	// Font is set by a profile that asks for one; nil leaves fonts alone.
+	Font *Font
+}
+
+// Font is a terminal font from a profile.
+type Font struct {
+	Family string  `toml:"family"`
+	Size   float64 `toml:"size"` // points; 0 leaves the size alone
 }
 
 // colorVar is a color's template fields. Rendered on its own it is the
@@ -57,6 +66,16 @@ func Vars(t Theme, p color.Palette) (map[string]any, error) {
 	}
 	for _, r := range color.AllRoles() {
 		ctx[string(r)] = colorFields(p[r])
+	}
+	// {{#font}} … {{/font}} renders only when a profile sets a font, and
+	// {{#font.size}} only when it sets a size.
+	ctx["font"] = false
+	if f := t.Font; f != nil {
+		font := map[string]any{"family": f.Family, "size": false}
+		if f.Size > 0 {
+			font["size"] = strconv.FormatFloat(f.Size, 'f', -1, 64)
+		}
+		ctx["font"] = font
 	}
 	ctx["aether"] = aetherVars(t, p)
 	for i, r := range baseSlots {

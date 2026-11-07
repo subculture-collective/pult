@@ -334,3 +334,48 @@ func TestHostileThemeName(t *testing.T) {
 		t.Errorf("comment line broken:\n%s", out)
 	}
 }
+
+// TestFontSections: terminal templates set the profile's font, and leave
+// it out when the profile has none or sets no size.
+func TestFontSections(t *testing.T) {
+	th := goldenThemes(t)[0]
+	want := map[string][]string{
+		"kitty/theme-tender.conf.mustache":      {"font_family JetBrains Mono\n", "font_size 11.5\n"},
+		"ghostty/theme-tender.ghostty.mustache": {"font-family = \"JetBrains Mono\"\n", "font-size = 11.5\n"},
+		"alacritty/theme-tender.toml.mustache":  {"[font]\nnormal = { family = \"JetBrains Mono\" }\nsize = 11.5\n"},
+		"foot/theme-tender.ini.mustache":        {"[main]\nfont=JetBrains Mono:size=11.5\n"},
+		"foot/theme-tender-1.23.ini.mustache":   {"[main]\nfont=JetBrains Mono:size=11.5\n"},
+		"foot/theme-tender-1.0.ini.mustache":    {"[main]\nfont=JetBrains Mono:size=11.5\n"},
+	}
+	for name, parts := range want {
+		plain, err := File(os.DirFS(templatesDir), name, th.Theme, th.palette)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(plain, "JetBrains") || strings.Contains(plain, "Font, from") {
+			t.Errorf("%s: font without a profile font", name)
+		}
+		withFont := th.Theme
+		withFont.Font = &Font{Family: "JetBrains Mono", Size: 11.5}
+		out, err := File(os.DirFS(templatesDir), name, withFont, th.palette)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, p := range parts {
+			if !strings.Contains(out, p) {
+				t.Errorf("%s lacks %q:\n%s", name, p, out[max(0, len(out)-200):])
+			}
+		}
+		if strings.HasSuffix(name, ".toml.mustache") {
+			var v map[string]any
+			if err := toml.Unmarshal([]byte(out), &v); err != nil {
+				t.Errorf("%s: %v", name, err)
+			}
+		}
+		withFont.Font = &Font{Family: "JetBrains Mono"}
+		out, _ = File(os.DirFS(templatesDir), name, withFont, th.palette)
+		if strings.Contains(out, "size") && !strings.Contains(name, "foot") || strings.Contains(out, ":size=") {
+			t.Errorf("%s: size without a profile size:\n%s", name, out[max(0, len(out)-200):])
+		}
+	}
+}

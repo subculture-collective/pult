@@ -6,6 +6,8 @@ This directory is the current project knowledge base.
 
 - `plan/m1.md` — milestone 1 scope, acceptance criteria and work packages
 - `adr/0002-theme-tender-foundations.md` — accepted product and architecture decisions
+- `adr/0003-profiles-fonts.md` — M4: profiles, palette files and fonts; opinionated settings declined
+- `reference/profiles.md` — profile and palette file formats, v1
 - `reference/registry-schema.md` — app registry contract, v1, with `registry/schema.json`
 - `reference/catalog-schema.md` — catalog contract, v1, built by `cmd/catalog-build`
 - `reference/change-record.md` — change record contract, v1, implemented by `internal/changes`
