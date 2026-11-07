@@ -156,7 +156,13 @@ func delinearize(v float64) float64 {
 	return math.Copysign(1.055*math.Pow(math.Abs(v), 1/2.4)-0.055, v)
 }
 
-func clamp01(v float64) float64 { return min(1, max(0, v)) }
+// clamp01 limits v to [0, 1]; NaN becomes 0, so Hex never prints garbage.
+func clamp01(v float64) float64 {
+	if math.IsNaN(v) {
+		return 0
+	}
+	return min(1, max(0, v))
+}
 
 // wrap180 maps an angle difference in degrees to (-180, 180].
 func wrap180(d float64) float64 {

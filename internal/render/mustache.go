@@ -109,6 +109,10 @@ func lex(name, src string) ([]token, error) {
 // markStandalone implements Mustache's standalone rule: a section, inverted,
 // closing or comment tag alone on its line removes the whole line.
 func markStandalone(toks []token) {
+	// bol marks text tokens that begin a line: the first one, and one
+	// whose leading newline a standalone tag before it removed, so the next
+	// tag on its own line is standalone too.
+	bol := map[int]bool{0: true}
 	for i := range toks {
 		if !strings.ContainsRune("#^/!", rune(toks[i].kind)) || toks[i].kind == 0 {
 			continue
@@ -119,7 +123,7 @@ func markStandalone(toks []token) {
 			t := toks[i-1].text
 			nl := strings.LastIndexByte(t, '\n')
 			before = t[nl+1:]
-			atStart = nl >= 0 || i == 1
+			atStart = nl >= 0 || bol[i-1]
 		}
 		atEnd := i == len(toks)-1
 		if i+1 < len(toks) && toks[i+1].kind == 0 {
@@ -143,6 +147,7 @@ func markStandalone(toks []token) {
 			t := toks[i+1].text
 			if nl := strings.IndexByte(t, '\n'); nl >= 0 {
 				toks[i+1].text = t[nl+1:]
+				bol[i+1] = true
 			} else {
 				toks[i+1].text = ""
 			}

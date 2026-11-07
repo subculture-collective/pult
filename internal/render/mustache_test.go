@@ -92,3 +92,22 @@ func TestMustacheErrors(t *testing.T) {
 		}
 	}
 }
+
+// Consecutive standalone tags each remove their whole line.
+func TestConsecutiveStandalone(t *testing.T) {
+	data := map[string]any{"x": true, "y": true}
+	for src, want := range map[string]string{
+		"a\n{{#x}}\n{{#y}}\nin\n{{/y}}\n{{/x}}\nb\n": "a\nin\nb\n",
+		"a\n{{! c1 }}\n{{! c2 }}\nb\n":               "a\nb\n",
+		"{{#x}}\n{{#y}}\nin\n{{/y}}\n{{/x}}\n":       "in\n",
+		"a {{#x}}\nin\n{{/x}}\n":                     "a \nin\n",
+	} {
+		tm, err := Parse("t", src)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got, err := tm.Render(data); err != nil || got != want {
+			t.Errorf("%q: got %q %v, want %q", src, got, err, want)
+		}
+	}
+}

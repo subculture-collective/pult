@@ -170,3 +170,9 @@ func closeRGB(a, b RGB, tol float64) bool {
 func hueDistance(a, b float64) float64 {
 	return math.Abs(wrap180(a - b))
 }
+
+func TestHexNaN(t *testing.T) {
+	if got := (RGB{math.NaN(), 0.5, math.Inf(1)}).Hex(); got != "#0080ff" {
+		t.Errorf("Hex = %s", got)
+	}
+}

@@ -75,7 +75,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer, e env) int {
 		fmt.Fprint(stdout, usage)
 		return 0
 	}
-	c := &cli{env: e, in: bufio.NewReader(stdin), out: stdout}
+	c := &cli{env: e, in: bufio.NewReader(stdin), out: stdout, errw: stderr}
 	var err error
 	switch args[0] {
 	case "search":
@@ -103,7 +103,11 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer, e env) int {
 		return 2
 	}
 	if errors.Is(err, flag.ErrHelp) {
-		return 2
+		return 0
+	}
+	var bad usageError
+	if errors.As(err, &bad) {
+		return 2 // flag has already said what is wrong
 	}
 	if err != nil {
 		fmt.Fprintln(stderr, "tender:", err)
@@ -114,8 +118,9 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer, e env) int {
 
 type cli struct {
 	env
-	in  *bufio.Reader
-	out io.Writer
+	in   *bufio.Reader
+	out  io.Writer
+	errw io.Writer // warnings, so they never mix into palette or render output
 
 	catalogPath, dataDir, stateDir, bundlePath string
 	data                                       *bundle.Bundle
@@ -123,12 +128,48 @@ type cli struct {
 
 func (c *cli) flags(name string) *flag.FlagSet {
 	fl := flag.NewFlagSet("tender "+name, flag.ContinueOnError)
-	fl.SetOutput(c.out)
+	fl.SetOutput(c.errw)
 	fl.StringVar(&c.catalogPath, "catalog", "", "catalog.db or catalog.db.zst (default $TENDER_CATALOG or $XDG_DATA_HOME/theme-tender/catalog.db.zst)")
 	fl.StringVar(&c.dataDir, "data", "", "directory holding registry/ and templates/ (default: built in)")
 	fl.StringVar(&c.stateDir, "state", "", "change record directory (default $XDG_STATE_HOME/theme-tender)")
 	fl.StringVar(&c.bundlePath, "bundle", "", "signed data bundle (default $XDG_DATA_HOME/theme-tender/bundle.tar.zst); unsigned or altered bundles are ignored")
 	return fl
+}
+
+// usageError is a flag the command does not take; flag has printed why.
+type usageError struct{ error }
+
+// parse parses flags anywhere among the arguments, so
+// "tender search catppuccin -tag dark" works as written in the usage.
+// Arguments after "--" are never flags. Help goes to stdout.
+func (c *cli) parse(fl *flag.FlagSet, args []string) error {
+	for _, a := range args {
+		if a == "--" {
+			break
+		}
+		if a == "-h" || a == "-help" || a == "--help" {
+			fl.SetOutput(c.out)
+		}
+	}
+	var words []string
+	for len(args) > 0 {
+		if err := fl.Parse(args); err != nil {
+			if errors.Is(err, flag.ErrHelp) {
+				return err
+			}
+			return usageError{err}
+		}
+		rest := fl.Args()
+		if len(rest) == 0 {
+			break
+		}
+		if used := len(args) - len(rest); used > 0 && args[used-1] == "--" {
+			words = append(words, rest...)
+			break
+		}
+		words, args = append(words, rest[0]), rest[1:]
+	}
+	return fl.Parse(append([]string{"--"}, words...))
 }
 
 // bundle is the signed bundle if one is installed and verifies, else the
@@ -143,7 +184,7 @@ func (c *cli) bundle() (*bundle.Bundle, error) {
 	}
 	b, warn := bundle.Load(c.bundleFile(), c.keys, builtin)
 	if warn != "" {
-		fmt.Fprintln(c.out, "warning:", warn)
+		fmt.Fprintln(c.errw, "warning:", warn)
 	}
 	c.data = b
 	return b, nil
@@ -161,7 +202,7 @@ func (c *cli) bundleFile() string {
 func (c *cli) update(args []string) error {
 	fl := c.flags("update")
 	url := fl.String("url", bundle.DefaultReleases, "Gitea API release listing to read")
-	if err := fl.Parse(args); err != nil {
+	if err := c.parse(fl, args); err != nil {
 		return err
 	}
 	cur, err := c.bundle()
@@ -237,7 +278,7 @@ func (c *cli) options() (apply.Options, error) {
 		return apply.Options{}, err
 	}
 	for _, p := range reg.Problems {
-		fmt.Fprintln(c.out, "warning:", p)
+		fmt.Fprintln(c.errw, "warning:", p)
 	}
 	state := c.stateDir
 	if state == "" {
@@ -278,7 +319,7 @@ func (c *cli) search(args []string) error {
 	fl.Var(&tags, "tag", "require a tag (repeatable): dark, light, pastel, neon, muted, warm, cool, high-contrast, low-contrast")
 	similar := fl.String("similar", "", "list the themes closest to this theme ID")
 	n := fl.Int("n", 20, "maximum number of results")
-	if err := fl.Parse(args); err != nil {
+	if err := c.parse(fl, args); err != nil {
 		return err
 	}
 	db, err := c.openCatalog()
@@ -312,7 +353,7 @@ func (c *cli) apply(args []string) error {
 	fl := c.flags("apply")
 	dry := fl.Bool("dry-run", false, "show the plan and diffs, change nothing")
 	yes := fl.Bool("yes", false, "apply without asking for final confirmation (files other tools own are still asked about)")
-	if err := fl.Parse(args); err != nil {
+	if err := c.parse(fl, args); err != nil {
 		return err
 	}
 	if fl.NArg() != 1 {
@@ -421,7 +462,7 @@ func (c *cli) uninstall(args []string) error {
 	fl := c.flags("uninstall")
 	yes := fl.Bool("yes", false, "don't ask for confirmation")
 	force := fl.Bool("force", false, "also restore files edited since Theme Tender wrote them")
-	if err := fl.Parse(args); err != nil {
+	if err := c.parse(fl, args); err != nil {
 		return err
 	}
 	o, err := c.options()
@@ -459,7 +500,7 @@ func (c *cli) uninstall(args []string) error {
 
 func (c *cli) list(args []string) error {
 	fl := c.flags("list")
-	if err := fl.Parse(args); err != nil {
+	if err := c.parse(fl, args); err != nil {
 		return err
 	}
 	o, err := c.options()
@@ -483,7 +524,7 @@ func (c *cli) list(args []string) error {
 func (c *cli) doctor(args []string) error {
 	fl := c.flags("doctor")
 	doRecover := fl.Bool("recover", false, "roll back interrupted runs")
-	if err := fl.Parse(args); err != nil {
+	if err := c.parse(fl, args); err != nil {
 		return err
 	}
 	o, err := c.options()
@@ -611,7 +652,7 @@ func httpGetter(limit int64) catalog.Getter {
 
 func (c *cli) tui(args []string) error {
 	fl := c.flags("tui")
-	if err := fl.Parse(args); err != nil {
+	if err := c.parse(fl, args); err != nil {
 		return err
 	}
 	b, err := c.tuiBackend()
@@ -756,7 +797,7 @@ func (b *tuiBackend) Undo() (string, error) {
 func (c *cli) palette(args []string) error {
 	fl := c.flags("palette")
 	format := fl.String("format", "json", "json or toml")
-	if err := fl.Parse(args); err != nil {
+	if err := c.parse(fl, args); err != nil {
 		return err
 	}
 	if fl.NArg() != 1 {
@@ -806,7 +847,7 @@ func (c *cli) render(args []string) error {
 	fl := c.flags("render")
 	out := fl.String("o", "", "write to this file instead of stdout")
 	aether := fl.Bool("aether", false, "the template uses Aether's {name} placeholders")
-	if err := fl.Parse(args); err != nil {
+	if err := c.parse(fl, args); err != nil {
 		return err
 	}
 	if fl.NArg() != 2 {
