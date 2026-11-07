@@ -30,6 +30,7 @@ const (
 	Generator
 	Framework
 	Omarchy
+	Subarchy
 )
 
 // Action is what Theme Tender should do with a file.
@@ -66,6 +67,8 @@ func (o Owner) Record() string {
 		return "framework:" + o.Name
 	case Omarchy:
 		return "omarchy"
+	case Subarchy:
+		return "subarchy"
 	}
 	return "none"
 }
@@ -75,7 +78,7 @@ func (o Owner) Action() Action {
 	switch o.Kind {
 	case None:
 		return Write
-	case Omarchy:
+	case Omarchy, Subarchy:
 		return HandOff
 	}
 	return Ask
@@ -125,6 +128,7 @@ var frameworks = []struct {
 
 // System is what detection found on the machine as a whole.
 type System struct {
+	Subarchy     bool // /etc/os-release says ID=subarchy
 	Omarchy      bool
 	OmarchyTheme string
 	Frameworks   []string
@@ -134,13 +138,16 @@ type System struct {
 // Detector holds what New found; File checks one path against it.
 // chezmoi is asked about each file with "chezmoi source-path <path>".
 type Detector struct {
-	env            Env
-	sys            System
-	omarchyDirs    []string
-	omarchyHooks   map[string][]byte // theme-set hook name -> contents
-	frameworkDirs  map[string][]string
-	generatorFiles map[string][]string // generator -> output files
-	generatorDirs  map[string][]string // generator -> output directories
+	env          Env
+	sys          System
+	omarchyDirs  []string
+	omarchyHooks map[string][]byte // theme-set hook name -> contents
+	// subarchyDefaults is where Subarchy ships the defaults its user files
+	// layer over; Theme Tender never edits them.
+	subarchyDefaults string
+	frameworkDirs    map[string][]string
+	generatorFiles   map[string][]string // generator -> output files
+	generatorDirs    map[string][]string // generator -> output directories
 }
 
 // New scans the machine for Omarchy, frameworks and generators.
@@ -149,6 +156,9 @@ func New(env Env) (*Detector, error) {
 	cfg := env.xdg("XDG_CONFIG_HOME", ".config")
 	state := env.xdg("XDG_STATE_HOME", ".local/state")
 	cache := env.xdg("XDG_CACHE_HOME", ".cache")
+
+	d.sys.Subarchy = osReleaseID(filepath.Join(env.Root, "/etc/os-release")) == "subarchy"
+	d.subarchyDefaults = filepath.Join(env.Root, "/usr/share/subcult/default")
 
 	// Omarchy: the install, then the current theme name.
 	installs := []string{filepath.Join(env.Home, ".local/share/omarchy"), filepath.Join(env.Root, "/usr/share/omarchy")}
@@ -296,6 +306,9 @@ func (d *Detector) File(path string) (Owner, error) {
 		return "", false
 	}
 
+	if within(resolved, d.subarchyDefaults) || within(path, d.subarchyDefaults) {
+		return Owner{Kind: Subarchy, Source: resolved, Detail: "Subarchy ships it as a default in " + d.subarchyDefaults + "; Theme Tender never edits it"}, nil
+	}
 	if d.sys.Omarchy {
 		if p, ok := refers(d.omarchyDirs, nil); ok {
 			return Owner{Kind: Omarchy, Detail: "uses Omarchy's theme files (" + d.short(p) + ")"}, nil
@@ -425,6 +438,20 @@ func containsWord(b []byte, s string) bool {
 func isPathByte(c byte) bool {
 	return c == '/' || c == '.' || c == '_' || c == '-' || c == '~' ||
 		(c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+}
+
+// osReleaseID is the ID field of an os-release file, or "".
+func osReleaseID(file string) string {
+	b, err := os.ReadFile(file)
+	if err != nil {
+		return ""
+	}
+	for _, l := range strings.Split(string(b), "\n") {
+		if v, ok := strings.CutPrefix(strings.TrimSpace(l), "ID="); ok {
+			return strings.Trim(v, `"'`)
+		}
+	}
+	return ""
 }
 
 // generatedByOmarchy looks for a "generated ... Omarchy" note in the first

@@ -470,6 +470,9 @@ func (c *cli) doctor(args []string) error {
 		fmt.Fprintf(c.out, "Data bundle: %s, version %s, catalog %s.\n", b.Origin, b.Manifest.BundleVersion, map[bool]string{true: "included", false: "not included"}[b.Catalog != nil])
 	}
 	sys := o.Owners.System()
+	if sys.Subarchy {
+		fmt.Fprintln(c.out, "Subarchy: yes. Its defaults in /usr/share/subcult/default are never edited.")
+	}
 	if sys.Omarchy {
 		fmt.Fprintf(c.out, "Omarchy: yes, current theme %s.\n", sys.OmarchyTheme)
 	} else {
