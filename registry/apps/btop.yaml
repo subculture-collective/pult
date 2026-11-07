@@ -21,6 +21,21 @@ config:
     macos: ["$XDG_CONFIG_HOME/btop/btop.conf"]
 
 integrations:
+  # Catppuccin's official btop themes, for the four official flavors
+  # (catppuccin/btop f437574, MIT, hashes taken 2026-11-07). Other themes,
+  # or a failed download, use the generated theme below.
+  - method: port
+    url: https://github.com/catppuccin/btop
+    revision: f437574b600f1c6d932627050b15ff5153b58fa3
+    flavors:
+      catppuccin-latte: { path: themes/catppuccin_latte.theme, sha256: 90e963ead5ee083a1359dcb694d9784c1bfe41ec2e0d486d3b04f0d9bdb9173b }
+      catppuccin-frappe: { path: themes/catppuccin_frappe.theme, sha256: 1689b67c1c6ce2f4985a0047fad6535acecf7872c21963785fa749868a01a2c9 }
+      catppuccin-macchiato: { path: themes/catppuccin_macchiato.theme, sha256: f8b18ccb217bd4ebc184806a91d49a12cb312b9cf37d8ba23322653a78ac8850 }
+      catppuccin-mocha: { path: themes/catppuccin_mocha.theme, sha256: 4c7469ab9bda282c1ff606aca37c9c0b84cd0cb66d041e4e7e1fed39791f4644 }
+    target: themes/theme-tender.theme
+    select:
+      format: ini
+      set: { color_theme: theme-tender }
   - method: owned
     template: btop/theme-tender.theme.mustache
     target: themes/theme-tender.theme

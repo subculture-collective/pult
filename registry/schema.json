@@ -257,11 +257,26 @@
     },
     "portInstall": {
       "additionalProperties": false,
-      "required": ["method", "url", "target"],
+      "required": ["method", "url", "revision", "flavors", "target"],
       "properties": {
         "method": { "const": "port" },
         "versions": { "$ref": "#/$defs/versions" },
-        "url": { "type": "string", "pattern": "^https://" },
+        "url": { "type": "string", "pattern": "^https://github\\.com/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$" },
+        "revision": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "flavors": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": { "$ref": "#/$defs/id" },
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "sha256"],
+            "properties": {
+              "path": { "$ref": "#/$defs/relativePath" },
+              "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+            }
+          }
+        },
         "target": { "$ref": "#/$defs/relativePath" },
         "select": { "$ref": "#/$defs/edit" }
       }

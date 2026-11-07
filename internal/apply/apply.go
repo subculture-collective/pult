@@ -5,6 +5,8 @@
 package apply
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -48,6 +50,10 @@ type Options struct {
 	// chezmoi, a generator, a framework). nil means no.
 	Confirm func(app string, o owner.Owner) bool
 	Meta    changes.Meta
+	// Get downloads upstream port files; CacheDir keeps them by hash. With
+	// Get nil, ports are only used from the cache.
+	Get      func(url string) ([]byte, error)
+	CacheDir string
 }
 
 // Theme is a catalog theme with its full palette.
@@ -68,6 +74,10 @@ type AppPlan struct {
 	Edits       []changes.Edit
 	Diffs       []string
 	Skip        string // why the app is left alone
+	// Notes are things worth telling the user, such as a port that could
+	// not be used.
+	Notes []string
+	port  []byte // the downloaded port file, for a port integration
 }
 
 // Plan is a whole apply.
@@ -154,14 +164,37 @@ func (o Options) planApp(e registry.Entry, th *Theme) (AppPlan, error) {
 			return ap, nil
 		}
 	}
-	in := chooseIntegration(e.Integrations, ap.Version)
-	if in == nil {
-		ap.Skip = "no integration for version " + ap.Version
-		return ap, nil
+	themeID := o.Meta.Theme
+	if th != nil {
+		themeID = th.Slug
+	}
+	ins := e.Integrations
+	var in *registry.Integration
+	for {
+		in = chooseIntegration(ins, ap.Version, themeID)
+		if in == nil {
+			ap.Skip = "no integration for version " + ap.Version
+			return ap, nil
+		}
+		if in.Method != registry.Port || th == nil {
+			break
+		}
+		data, err := o.fetchPort(in, themeID)
+		if err == nil {
+			ap.port = data
+			break
+		}
+		// Fall back to the integrations after the port.
+		ap.Notes = append(ap.Notes, "upstream port not used: "+err.Error())
+		for i := range ins {
+			if &ins[i] == in {
+				ins = ins[i+1:]
+				break
+			}
+		}
 	}
 	ap.Integration = in
-	switch in.Method {
-	case registry.Port, registry.Manual:
+	if in.Method == registry.Manual {
 		ap.Skip = "manual setup: " + in.URL
 		return ap, nil
 	}
@@ -177,7 +210,7 @@ func (o Options) planEdits(ap *AppPlan, th Theme) error {
 	if err != nil {
 		return err
 	}
-	var rendered []byte
+	rendered := ap.port
 	if in.Template != "" {
 		out, err := render.File(o.Templates, in.Template, th.Theme, th.Palette)
 		if err != nil {
@@ -200,7 +233,7 @@ func (o Options) planEdits(ap *AppPlan, th Theme) error {
 		} else {
 			err = fmt.Errorf("include by key in %s files is not supported", in.Format)
 		}
-	case registry.Owned:
+	case registry.Owned, registry.Port:
 		newCfg = cfg
 		if in.Select != nil {
 			newCfg, err = set(in.Select.Format, cfg, in.Select.Set)
@@ -244,10 +277,44 @@ func (o Options) themeFile(ap *AppPlan) string {
 	switch in := ap.Integration; in.Method {
 	case registry.Include:
 		return o.ownedFile(ap.Config, in.OwnedFile)
-	case registry.Owned:
+	case registry.Owned, registry.Port:
 		return filepath.Join(filepath.Dir(ap.Config), filepath.FromSlash(in.Target))
 	}
 	return ""
+}
+
+// fetchPort returns a port's file for a theme: from the cache if it holds
+// a copy with the pinned hash, else downloaded from the pinned revision
+// and checked against that hash.
+func (o Options) fetchPort(in *registry.Integration, themeID string) ([]byte, error) {
+	f := in.Flavors[themeID]
+	cache := ""
+	if o.CacheDir != "" {
+		cache = filepath.Join(o.CacheDir, "ports", f.SHA256)
+		if b, err := os.ReadFile(cache); err == nil && sha256Hex(b) == f.SHA256 {
+			return b, nil
+		}
+	}
+	if o.Get == nil {
+		return nil, errors.New("downloads are off")
+	}
+	url := "https://raw.githubusercontent.com/" + strings.TrimPrefix(in.URL, "https://github.com/") + "/" + in.Revision + "/" + f.Path
+	b, err := o.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	if sha256Hex(b) != f.SHA256 {
+		return nil, fmt.Errorf("%s does not match its pinned SHA-256", url)
+	}
+	if cache != "" && os.MkdirAll(filepath.Dir(cache), 0o755) == nil {
+		os.WriteFile(cache, b, 0o644) // best effort; a missing cache only costs a download
+	}
+	return b, nil
+}
+
+func sha256Hex(b []byte) string {
+	sum := sha256.Sum256(b)
+	return hex.EncodeToString(sum[:])
 }
 
 // edit records the app's version and integration with each change, so
@@ -399,9 +466,20 @@ func set(format string, src []byte, values map[string]any) ([]byte, error) {
 
 // chooseIntegration picks the first integration whose versions range
 // contains version. With an unknown version, the first integration without
-// a range, or else the first one, is used.
-func chooseIntegration(ins []registry.Integration, version string) *registry.Integration {
+// a range, or else the first one, is used. A port counts only for the
+// themes it has a flavor for.
+func chooseIntegration(ins []registry.Integration, version, themeID string) *registry.Integration {
+	var usable []int
 	for i, in := range ins {
+		if in.Method == registry.Port {
+			if _, ok := in.Flavors[themeID]; !ok {
+				continue
+			}
+		}
+		usable = append(usable, i)
+	}
+	for _, i := range usable {
+		in := ins[i]
 		r, _ := registry.ParseRange(in.Versions)
 		if version == "" {
 			if in.Versions == "" {
@@ -413,8 +491,8 @@ func chooseIntegration(ins []registry.Integration, version string) *registry.Int
 			return &ins[i]
 		}
 	}
-	if version == "" && len(ins) > 0 {
-		return &ins[0]
+	if version == "" && len(usable) > 0 {
+		return &ins[usable[0]]
 	}
 	return nil
 }

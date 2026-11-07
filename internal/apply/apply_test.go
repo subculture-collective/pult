@@ -1,6 +1,8 @@
 package apply
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -668,5 +670,102 @@ func TestTerminalApp(t *testing.T) {
 	}
 	if _, err := os.Stat(file); !os.IsNotExist(err) {
 		t.Error("uninstall left the profile")
+	}
+}
+
+// TestPort: a port flavor is downloaded from its pinned revision, checked
+// against its hash, cached and installed; a bad hash or another theme falls
+// back to the generated template.
+func TestPort(t *testing.T) {
+	w := newWorld(t, nil)
+	port := []byte("theme[main_bg]=\"#000000\"\n")
+	sum := sha256.Sum256(port)
+	userDir := filepath.Join(w.home, "registry.d")
+	w.write("registry.d/btop.yaml", `schema: 1
+id: btop
+integrations:
+  - method: port
+    url: https://github.com/catppuccin/btop
+    revision: f437574b600f1c6d932627050b15ff5153b58fa3
+    flavors:
+      catppuccin-mocha: { path: themes/catppuccin_mocha.theme, sha256: `+hex.EncodeToString(sum[:])+` }
+    target: themes/theme-tender.theme
+    select:
+      format: ini
+      set: { color_theme: theme-tender }
+  - method: owned
+    template: btop/theme-tender.theme.mustache
+    target: themes/theme-tender.theme
+    select:
+      format: ini
+      set: { color_theme: theme-tender }
+`)
+	reg, err := registry.Load(os.DirFS("../../registry"), userDir)
+	if err != nil || len(reg.Problems) > 0 {
+		t.Fatal(err, reg.Problems)
+	}
+	w.opts.Registry = reg
+	w.opts.CacheDir = filepath.Join(w.home, ".cache/theme-tender")
+	var got []string
+	serve := port
+	// Only btop's downloads are recorded; helix has a port of its own.
+	record := func(u string) {
+		if strings.Contains(u, "/catppuccin/btop/") {
+			got = append(got, u)
+		}
+	}
+	w.opts.Get = func(u string) ([]byte, error) { record(u); return serve, nil }
+	btop := func(th Theme) AppPlan {
+		t.Helper()
+		plan, err := Prepare(w.opts, th)
+		if err != nil {
+			t.Fatal(err)
+		}
+		i := slices.IndexFunc(plan.Apps, func(a AppPlan) bool { return a.ID == "btop" })
+		return plan.Apps[i]
+	}
+
+	// A theme with a flavor uses the port.
+	ap := btop(mocha(t))
+	want := "https://raw.githubusercontent.com/catppuccin/btop/f437574b600f1c6d932627050b15ff5153b58fa3/themes/catppuccin_mocha.theme"
+	if ap.Integration.Method != registry.Port || len(ap.Notes) != 0 || !slices.Equal(got, []string{want}) {
+		t.Fatalf("port plan: %s %v, downloads %v", ap.Integration.Method, ap.Notes, got)
+	}
+	plan, _ := Prepare(w.opts, mocha(t))
+	if _, err := Execute(w.opts, plan); err != nil {
+		t.Fatal(err)
+	}
+	if w.read(".config/btop/themes/theme-tender.theme") != string(port) || !strings.Contains(w.read(".config/btop/btop.conf"), `color_theme = "theme-tender"`) {
+		t.Error("port not installed and selected")
+	}
+	// The next plan uses the cache, without downloading.
+	got = nil
+	w.opts.Get = func(u string) ([]byte, error) { record(u); return nil, errors.New("offline") }
+	if ap := btop(mocha(t)); ap.Integration.Method != registry.Port || len(got) != 0 {
+		t.Errorf("cached port: %s, downloads %v", ap.Integration.Method, got)
+	}
+
+	// A download that does not match the pinned hash is not used.
+	os.RemoveAll(w.opts.CacheDir)
+	serve = []byte("tampered\n")
+	w.opts.Get = func(u string) ([]byte, error) { return serve, nil }
+	ap = btop(mocha(t))
+	if ap.Integration.Method != registry.Owned || len(ap.Notes) != 1 || !strings.Contains(ap.Notes[0], "does not match its pinned SHA-256") {
+		t.Errorf("tampered port: %s %v", ap.Integration.Method, ap.Notes)
+	}
+	// A theme without a flavor uses the template and downloads nothing.
+	got = nil
+	w.opts.Get = func(u string) ([]byte, error) { record(u); return port, nil }
+	other := mocha(t)
+	other.Slug = "dracula"
+	if ap := btop(other); ap.Integration.Method != registry.Owned || len(ap.Notes) != 0 || len(got) != 0 {
+		t.Errorf("other theme: %s %v %v", ap.Integration.Method, ap.Notes, got)
+	}
+	// Uninstall removes the port file like any other.
+	if _, _, err := Uninstall(w.opts, false); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(w.home, ".config/btop/themes/theme-tender.theme")); !os.IsNotExist(err) {
+		t.Error("uninstall left the port file")
 	}
 }

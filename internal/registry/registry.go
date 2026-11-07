@@ -98,6 +98,16 @@ type Integration struct {
 	Paths     []string       `json:"paths"`
 	Set       map[string]any `json:"set"`
 	URL       string         `json:"url"`
+	// Revision and Flavors are for port: the pinned commit, and per catalog
+	// theme ID the file in the port repository and its SHA-256.
+	Revision string                `json:"revision"`
+	Flavors  map[string]PortFlavor `json:"flavors"`
+}
+
+// PortFlavor is one theme's file in an upstream port.
+type PortFlavor struct {
+	Path   string `json:"path"`
+	SHA256 string `json:"sha256"`
 }
 
 // Edit sets keys in a config file.

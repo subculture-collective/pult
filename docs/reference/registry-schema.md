@@ -85,12 +85,14 @@ When an app loads several config files and later ones win (Ghostty, tmux), list 
 | `owned` | A whole file in a theme directory the app reads (btop themes, yazi flavors, helix themes), plus a setting that selects it if needed | `template`, `target` (relative to the config file's directory), optional `select` |
 | `keys` | Specific keys in the user's config, keeping comments and formatting | `format` (`yaml`, `toml`, `json`, `jsonc`, `ini`), `template` (renders the key values), `paths` (key paths it may change) |
 | `ansi` | Settings that make the app use the terminal's 16 colors | `format`, `set` |
-| `port` | A clone of an upstream port into the app's plugin or theme directory | `url`, `target`, optional `select` |
+| `port` | One file of an upstream port, downloaded for the themes it has a flavor for, as an owned file | `url` (a GitHub repository), `revision` (pinned commit), `flavors` (catalog theme ID → `path` in the repository and `sha256`), `target`, optional `select` |
 | `manual` | Nothing. Shows instructions and a link | `url` |
 
 Every method also takes an optional `versions`.
 
 `owned_file` is a file name written next to the config file, or a path from `$HOME/` or `$XDG_CONFIG_HOME/`. `select` and `set` are maps from dotted key paths to strings, numbers or booleans: `select: { format: toml, set: { flavor.dark: theme-tender } }`.
+
+A `port` integration is skipped for themes missing from its `flavors`, so it is listed before the integration that generates colors: Catppuccin flavors get Catppuccin's own theme and every other theme the generated one. Theme Tender downloads `https://raw.githubusercontent.com/<owner>/<repo>/<revision>/<path>`, refuses it unless its SHA-256 matches, keeps it in `$XDG_CACHE_HOME/theme-tender/ports/<sha256>`, and installs it at `target` through the change record, so undo and uninstall treat it like a generated file. A failed download or hash mismatch falls back to the next integration and is shown as a note. Port files are downloaded on the user's machine, not shipped in the bundle. Registry format 3 (the bundle's `registry_schema`) added `revision` and `flavors`.
 
 `ansi` is listed first for apps where it looks acceptable, because the app then follows any terminal theme change with nothing to regenerate.
 
