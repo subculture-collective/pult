@@ -1,0 +1,454 @@
+// Package apply is Theme Tender's apply pipeline: it finds the installed
+// apps, chooses each one's integration, renders templates, plans the edits
+// with a diff preview, applies them through the change record, validates
+// and reloads, and uninstalls.
+package apply
+
+import (
+	"errors"
+	"fmt"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"regexp"
+	"slices"
+	"strings"
+
+	"git.subcult.tv/subculture-collective/theme-tender/internal/changes"
+	"git.subcult.tv/subculture-collective/theme-tender/internal/color"
+	"git.subcult.tv/subculture-collective/theme-tender/internal/configedit"
+	"git.subcult.tv/subculture-collective/theme-tender/internal/omarchy"
+	"git.subcult.tv/subculture-collective/theme-tender/internal/owner"
+	"git.subcult.tv/subculture-collective/theme-tender/internal/registry"
+	"git.subcult.tv/subculture-collective/theme-tender/internal/render"
+)
+
+// System runs commands. Tests replace it.
+type System interface {
+	LookPath(name string) (string, error)
+	// Run runs argv and returns its combined output.
+	Run(argv []string) ([]byte, error)
+	// Running reports whether a process with this exact name runs.
+	Running(name string) bool
+}
+
+// Options are the pipeline's inputs.
+type Options struct {
+	Home      string
+	Platform  registry.Platform
+	Getenv    func(string) string
+	Registry  *registry.Registry
+	Templates fs.FS
+	Store     *changes.Store
+	Owners    *owner.Detector
+	Sys       System
+	// Confirm is asked before writing a file someone else owns (stow,
+	// chezmoi, a generator, a framework). nil means no.
+	Confirm func(app string, o owner.Owner) bool
+	Meta    changes.Meta
+}
+
+// Theme is a catalog theme with its full palette.
+type Theme struct {
+	render.Theme
+	Palette color.Palette
+}
+
+// AppPlan is what apply would do to one app.
+type AppPlan struct {
+	ID          string
+	Entry       registry.Entry
+	Version     string
+	Config      string
+	ThemeFile   string
+	Owner       owner.Owner
+	Integration *registry.Integration
+	Edits       []changes.Edit
+	Diffs       []string
+	Skip        string // why the app is left alone
+}
+
+// Plan is a whole apply.
+type Plan struct {
+	Theme Theme
+	Apps  []AppPlan
+	// Omarchy is the Omarchy theme directory, when Omarchy is installed.
+	Omarchy       []changes.Edit
+	OmarchySwitch []string
+}
+
+// Prepare plans an apply without changing any file.
+func Prepare(o Options, th Theme) (*Plan, error) {
+	if m := th.Palette.Missing(); len(m) > 0 {
+		return nil, fmt.Errorf("apply: theme palette is missing %v", m)
+	}
+	p := &Plan{Theme: th}
+	for _, e := range o.Registry.Entries() {
+		ap, err := o.planApp(e, th)
+		if err != nil {
+			return nil, fmt.Errorf("apply: %s: %w", e.ID, err)
+		}
+		p.Apps = append(p.Apps, ap)
+	}
+	if sys := o.Owners.System(); sys.Omarchy {
+		edits, err := omarchy.Edits(o.Home, th.Theme, th.Palette)
+		if err != nil {
+			return nil, err
+		}
+		if prev := sys.OmarchyTheme; prev != "" && !strings.HasPrefix(prev, omarchy.Prefix) {
+			edits[0].Detail = map[string]any{"previous_theme": prev}
+		}
+		p.Omarchy = edits
+		p.OmarchySwitch = omarchy.SwitchCommand(omarchy.Name(th.Slug))
+	}
+	return p, nil
+}
+
+func (o Options) planApp(e registry.Entry, th Theme) (AppPlan, error) {
+	ap := AppPlan{ID: e.ID, Entry: e}
+	if !slices.Contains(e.Platforms, o.Platform) {
+		ap.Skip = "not available on " + string(o.Platform)
+		return ap, nil
+	}
+	if !o.installed(e) {
+		ap.Skip = "not installed"
+		return ap, nil
+	}
+	ap.Version = o.version(e)
+	ap.Config = o.configPath(e)
+	own, err := o.Owners.File(ap.Config)
+	if err != nil {
+		return ap, err
+	}
+	ap.Owner = own
+	switch own.Action() {
+	case owner.HandOff:
+		ap.Skip = "Omarchy themes it: " + own.Detail
+		return ap, nil
+	case owner.Ask:
+		if o.Confirm == nil || !o.Confirm(e.ID, own) {
+			ap.Skip = fmt.Sprintf("owned by %s (%s); not confirmed", own.Record(), own.Detail)
+			return ap, nil
+		}
+	}
+	in := chooseIntegration(e.Integrations, ap.Version)
+	if in == nil {
+		ap.Skip = "no integration for version " + ap.Version
+		return ap, nil
+	}
+	ap.Integration = in
+	switch in.Method {
+	case registry.Port, registry.Manual:
+		ap.Skip = "manual setup: " + in.URL
+		return ap, nil
+	}
+	return ap, o.planEdits(&ap, th)
+}
+
+func (o Options) planEdits(ap *AppPlan, th Theme) error {
+	in := ap.Integration
+	cfg, err := readFile(ap.Config)
+	if err != nil {
+		return err
+	}
+	var rendered []byte
+	if in.Template != "" {
+		out, err := render.File(o.Templates, in.Template, th.Theme, th.Palette)
+		if err != nil {
+			return err
+		}
+		rendered = []byte(out)
+	}
+	switch in.Method {
+	case registry.Include:
+		ap.ThemeFile = o.ownedFile(ap.Config, in.OwnedFile)
+	case registry.Owned:
+		ap.ThemeFile = filepath.Join(filepath.Dir(ap.Config), filepath.FromSlash(in.Target))
+	}
+	var newCfg []byte
+	switch in.Method {
+	case registry.Include:
+		if in.Line != "" {
+			line := strings.ReplaceAll(in.Line, "{theme_file}", ap.ThemeFile)
+			newCfg = configedit.IncludeLine(cfg, line, in.Position == "start")
+		} else if in.Format == "toml" {
+			newCfg, err = configedit.TOMLAppend(cfg, in.Key, ap.ThemeFile)
+		} else {
+			err = fmt.Errorf("include by key in %s files is not supported", in.Format)
+		}
+	case registry.Owned:
+		newCfg = cfg
+		if in.Select != nil {
+			newCfg, err = set(in.Select.Format, cfg, in.Select.Set)
+		}
+	case registry.Keys:
+		switch in.Format {
+		case "toml":
+			newCfg, err = configedit.TOMLKeys(cfg, rendered, in.Paths)
+		case "yaml":
+			newCfg, err = configedit.YAMLKeys(cfg, rendered, in.Paths)
+		default:
+			err = fmt.Errorf("keys in %s files are not supported", in.Format)
+		}
+	case registry.ANSI:
+		newCfg, err = set(in.Format, cfg, in.Set)
+	}
+	if err != nil {
+		return err
+	}
+	if ap.ThemeFile != "" {
+		before, err := readFile(ap.ThemeFile)
+		if err != nil {
+			return err
+		}
+		ap.add(o.edit(ap, ap.ThemeFile, rendered), before)
+	}
+	ap.add(o.edit(ap, ap.Config, newCfg), cfg)
+	return nil
+}
+
+func (ap *AppPlan) add(e changes.Edit, before []byte) {
+	if d := Diff(e.Path, before, e.Content); d != "" {
+		ap.Edits = append(ap.Edits, e)
+		ap.Diffs = append(ap.Diffs, d)
+	}
+}
+
+func (o Options) edit(ap *AppPlan, path string, content []byte) changes.Edit {
+	return changes.Edit{App: ap.ID, Path: path, Owner: ap.Owner.Record(), Method: string(ap.Integration.Method), Content: content}
+}
+
+func set(format string, src []byte, values map[string]any) ([]byte, error) {
+	switch format {
+	case "toml":
+		return configedit.TOMLSet(src, values)
+	case "ini":
+		return configedit.INISet(src, values)
+	}
+	return nil, fmt.Errorf("setting keys in %s files is not supported", format)
+}
+
+// chooseIntegration picks the first integration whose versions range
+// contains version. With an unknown version, the first integration without
+// a range, or else the first one, is used.
+func chooseIntegration(ins []registry.Integration, version string) *registry.Integration {
+	for i, in := range ins {
+		r, _ := registry.ParseRange(in.Versions)
+		if version == "" {
+			if in.Versions == "" {
+				return &ins[i]
+			}
+			continue
+		}
+		if ok, err := r.Contains(version); err == nil && ok {
+			return &ins[i]
+		}
+	}
+	if version == "" && len(ins) > 0 {
+		return &ins[0]
+	}
+	return nil
+}
+
+func (o Options) installed(e registry.Entry) bool {
+	for _, b := range e.Detect.Binaries {
+		if _, err := o.Sys.LookPath(b); err == nil {
+			return true
+		}
+	}
+	if o.Platform == registry.MacOS {
+		for _, app := range e.Detect.MacOSApps {
+			for _, dir := range []string{"/Applications", filepath.Join(o.Home, "Applications")} {
+				if fi, err := os.Stat(filepath.Join(dir, app)); err == nil && fi.IsDir() {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+func (o Options) version(e registry.Entry) string {
+	v := e.Detect.Version
+	if v == nil {
+		return ""
+	}
+	out, err := o.Sys.Run(v.Argv)
+	if err != nil {
+		return ""
+	}
+	if m := regexp.MustCompile(v.Regex).FindSubmatch(out); m != nil {
+		return string(m[1])
+	}
+	return ""
+}
+
+// configPath is the config file the app reads: from its environment
+// variable if set, else the first existing candidate, else the first.
+func (o Options) configPath(e registry.Entry) string {
+	paths := e.Config.Paths[o.Platform]
+	for _, ev := range e.Config.Env {
+		v := o.Getenv(ev.Name)
+		if v == "" {
+			continue
+		}
+		if ev.Kind == "file" {
+			return strings.Split(v, ",")[len(strings.Split(v, ","))-1]
+		}
+		return filepath.Join(v, filepath.Base(o.expand(paths[0])))
+	}
+	for _, p := range paths {
+		if _, err := os.Stat(o.expand(p)); err == nil {
+			return o.expand(p)
+		}
+	}
+	return o.expand(paths[0])
+}
+
+func (o Options) ownedFile(config, owned string) string {
+	if strings.HasPrefix(owned, "$") {
+		return o.expand(owned)
+	}
+	return filepath.Join(filepath.Dir(config), owned)
+}
+
+func (o Options) expand(p string) string {
+	cfg := o.Getenv("XDG_CONFIG_HOME")
+	if !filepath.IsAbs(cfg) {
+		cfg = filepath.Join(o.Home, ".config")
+	}
+	p = strings.Replace(p, "$XDG_CONFIG_HOME", cfg, 1)
+	return strings.Replace(p, "$HOME", o.Home, 1)
+}
+
+func readFile(p string) ([]byte, error) {
+	b, err := os.ReadFile(p)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, nil
+	}
+	return b, err
+}
+
+// Result is what Execute did.
+type Result struct {
+	Tx       *changes.Transaction
+	Commands []CommandResult // reloads and the Omarchy switch
+}
+
+// CommandResult is one command Theme Tender ran after writing.
+type CommandResult struct {
+	App    string
+	Argv   []string
+	Output string
+	Err    error
+}
+
+// Execute applies a plan: every edit goes through the change record, each
+// app's validate command runs before the transaction completes, and then
+// reload commands and the Omarchy switch run for apps that kept their
+// changes.
+func Execute(o Options, p *Plan) (*Result, error) {
+	var edits []changes.Edit
+	apps := map[string]AppPlan{}
+	for _, ap := range p.Apps {
+		if ap.Skip == "" {
+			edits = append(edits, ap.Edits...)
+			apps[ap.ID] = ap
+		}
+	}
+	edits = append(edits, p.Omarchy...)
+	validate := func(app string, _ []string) error {
+		ap, ok := apps[app]
+		if !ok || ap.Entry.Validate == nil {
+			return nil
+		}
+		argv := substitute(ap.Entry.Validate.Argv, ap)
+		if out, err := o.Sys.Run(argv); err != nil {
+			return fmt.Errorf("%s: %s: %w: %s", app, strings.Join(argv, " "), err, strings.TrimSpace(string(out)))
+		}
+		return nil
+	}
+	tx, err := o.Store.Apply(o.Meta, edits, validate)
+	if err != nil {
+		return nil, err
+	}
+	res := &Result{Tx: tx}
+	ok := map[string]bool{} // apps whose changes were kept
+	for _, c := range tx.Changes {
+		ok[c.App] = c.Status != "failed"
+	}
+	for _, ap := range p.Apps {
+		if ap.Skip == "" && ok[ap.ID] {
+			res.Commands = append(res.Commands, o.reload(ap)...)
+		}
+	}
+	if len(p.OmarchySwitch) > 0 && ok["omarchy"] {
+		out, err := o.Sys.Run(p.OmarchySwitch)
+		res.Commands = append(res.Commands, CommandResult{App: "omarchy", Argv: p.OmarchySwitch, Output: string(out), Err: err})
+	}
+	return res, nil
+}
+
+func (o Options) reload(ap AppPlan) []CommandResult {
+	var out []CommandResult
+	for _, r := range ap.Entry.Reload {
+		if len(r.Platforms) > 0 && !slices.Contains(r.Platforms, o.Platform) {
+			continue
+		}
+		if r.When == "running" && (len(ap.Entry.Detect.Binaries) == 0 || !o.Sys.Running(ap.Entry.Detect.Binaries[0])) {
+			continue
+		}
+		argv := substitute(r.Argv, ap)
+		b, err := o.Sys.Run(argv)
+		out = append(out, CommandResult{App: ap.ID, Argv: argv, Output: string(b), Err: err})
+	}
+	return out
+}
+
+func substitute(argv []string, ap AppPlan) []string {
+	out := slices.Clone(argv)
+	for i := range out {
+		out[i] = strings.NewReplacer("{config}", ap.Config, "{theme_file}", ap.ThemeFile).Replace(out[i])
+	}
+	return out
+}
+
+// Uninstall restores every file Theme Tender changed, switches Omarchy
+// back to the theme that was active before Theme Tender's first apply
+// (if a Theme Tender theme is still active), and reloads the apps.
+func Uninstall(o Options, force bool) (*Result, []changes.Conflict, error) {
+	txs, err := o.Store.Transactions()
+	if err != nil {
+		return nil, nil, err
+	}
+	previous := ""
+	for _, tx := range txs {
+		for _, c := range tx.Changes {
+			if prev, ok := c.Detail["previous_theme"].(string); ok && c.App == "omarchy" && previous == "" && tx.Kind == "apply" {
+				previous = prev
+			}
+		}
+	}
+	tx, conflicts, err := o.Store.Uninstall(force)
+	if err != nil {
+		return nil, nil, err
+	}
+	res := &Result{Tx: tx}
+	if cur := o.Owners.System().OmarchyTheme; previous != "" && strings.HasPrefix(cur, omarchy.Prefix) {
+		argv := omarchy.SwitchCommand(previous)
+		out, err := o.Sys.Run(argv)
+		res.Commands = append(res.Commands, CommandResult{App: "omarchy", Argv: argv, Output: string(out), Err: err})
+	}
+	done := map[string]bool{}
+	for _, c := range tx.Changes {
+		if e, ok := o.Registry.Get(c.App); ok && !done[c.App] {
+			done[c.App] = true
+			// The theme file is gone, so reloads that read it are skipped.
+			e.Reload = slices.DeleteFunc(slices.Clone(e.Reload), func(r registry.Reload) bool {
+				return slices.ContainsFunc(r.Argv, func(a string) bool { return strings.Contains(a, "{theme_file}") })
+			})
+			res.Commands = append(res.Commands, o.reload(AppPlan{ID: c.App, Entry: e, Config: o.configPath(e)})...)
+		}
+	}
+	return res, conflicts, nil
+}
