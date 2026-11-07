@@ -2,7 +2,7 @@ SHELL := /usr/bin/env bash
 .DEFAULT_GOAL := help
 .NOTPARALLEL: verify
 
-.PHONY: help verify fmt lint test compose-config open-pilot-check catalog
+.PHONY: help verify fmt lint test compose-config open-pilot-check catalog dist
 
 help: ## Show available commands
 	@awk 'BEGIN {FS = ":.*##"; printf "Commands:\n"} /^[a-zA-Z0-9_-]+:.*##/ {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -21,6 +21,10 @@ test: ## Run Go tests
 catalog: ## Fetch the pinned theme sources and build .cache/catalog.db.zst
 	@mkdir -p .cache
 	go run ./cmd/catalog-build -fetch
+
+dist: ## Build release tarballs into dist/ (VERSION=x.y.z; needs builtin/catalog.db.zst)
+	@test -n "$(VERSION)" || { echo "usage: make dist VERSION=x.y.z" >&2; exit 1; }
+	scripts/dist.sh $(VERSION)
 
 compose-config: ## Validate Docker Compose if present
 	@if [ -f docker-compose.yml ]; then docker compose config --quiet; else echo 'skip compose config'; fi

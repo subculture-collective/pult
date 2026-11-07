@@ -247,14 +247,23 @@ func TestSignedBundle(t *testing.T) {
 		t.Errorf("doctor:\n%s", out)
 	}
 
-	// Altered after signing: rejected, and the built-in bundle (no catalog
-	// in a source build) is used instead.
+	// Altered after signing: rejected, and the built-in bundle is used
+	// instead. It has a catalog only when one was embedded (release and
+	// package builds); otherwise search has nothing to read.
 	data := bytes.Clone(buf.Bytes())
 	data[len(data)/2] ^= 0xff
 	os.WriteFile(filepath.Join(dir, "bundle.tar.zst"), data, 0o644)
+	builtin, err := themetender.Builtin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantCode := 1
+	if builtin.Catalog != nil {
+		wantCode = 0
+	}
 	out, code = f.run("", "search", "solar")
-	if code != 1 || !strings.Contains(out, "warning: ignoring") || !strings.Contains(out, "using the built-in bundle") {
-		t.Errorf("tampered bundle (%d):\n%s", code, out)
+	if code != wantCode || !strings.Contains(out, "warning: ignoring") || !strings.Contains(out, "using the built-in bundle") {
+		t.Errorf("tampered bundle (%d, want %d):\n%s", code, wantCode, out)
 	}
 	// Without a trusted key every bundle is rejected.
 	f.keys = nil

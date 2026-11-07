@@ -1,0 +1,35 @@
+# Template: scripts/render-packaging.sh fills the @...@ fields from a release.
+pkgname=theme-tender
+pkgver=@VERSION@
+pkgrel=1
+pkgdesc='Apply one palette across your terminal apps, and undo every change'
+arch=('x86_64' 'aarch64')
+url='https://git.subcult.tv/subculture-collective/theme-tender'
+license=('GPL-3.0-only' 'MIT')
+makedepends=('go')
+source=("@BASE@theme-tender-@VERSION@-src.tar.gz"
+        "@BASE@theme-tender-@VERSION@-catalog.db.zst")
+noextract=("theme-tender-@VERSION@-catalog.db.zst")
+sha256sums=('@SHA_SRC@'
+            '@SHA_CATALOG@')
+
+build() {
+  cd "theme-tender-$pkgver"
+  cp "$srcdir/theme-tender-$pkgver-catalog.db.zst" builtin/catalog.db.zst
+  export CGO_ENABLED=0
+  export GOFLAGS='-buildmode=pie -trimpath -mod=readonly -modcacherw'
+  go build -ldflags "-s -w -X main.version=$pkgver" -o tender ./cmd/tender
+}
+
+check() {
+  cd "theme-tender-$pkgver"
+  CGO_ENABLED=0 go test ./...
+}
+
+package() {
+  cd "theme-tender-$pkgver"
+  install -Dm755 tender "$pkgdir/usr/bin/tender"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 LICENSES/MIT.txt "$pkgdir/usr/share/licenses/$pkgname/MIT.txt"
+  install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+}

@@ -1,0 +1,51 @@
+name: release
+
+# Builds the release files when a tag like v0.1.0 is pushed: tarballs for
+# Linux and macOS with the catalog built in, the source tarball, the
+# catalog, checksums, and the filled AUR and Homebrew files. See
+# docs/runbooks/release.md.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    timeout-minutes: 45
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Verify
+        run: make verify
+      - name: Build the catalog from the pinned sources
+        run: |
+          make catalog
+          cp .cache/catalog.db.zst builtin/catalog.db.zst
+      - name: Build the release files
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          scripts/dist.sh "${version}" "${GITHUB_REF_NAME}"
+          scripts/render-packaging.sh "${version}" "${{ github.server_url }}/${{ github.repository }}/releases/download/${GITHUB_REF_NAME}"
+          cp dist/packaging/aur/theme-tender/PKGBUILD "dist/PKGBUILD.theme-tender"
+          cp dist/packaging/aur/theme-tender-bin/PKGBUILD "dist/PKGBUILD.theme-tender-bin"
+          cp dist/packaging/homebrew/theme-tender.rb dist/theme-tender.rb
+      - name: Publish the release
+        env:
+          TOKEN: ${{ github.token }}
+          API: ${{ github.server_url }}/api/v1/repos/${{ github.repository }}
+        run: |
+          set -euo pipefail
+          id=$(curl -fsS -X POST -H "Authorization: token ${TOKEN}" -H "Content-Type: application/json" \
+            -d "{\"tag_name\": \"${GITHUB_REF_NAME}\", \"name\": \"Theme Tender ${GITHUB_REF_NAME#v}\"}" \
+            "${API}/releases" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')
+          for f in dist/theme-tender-* dist/PKGBUILD.* dist/theme-tender.rb; do
+            curl -fsS -X POST -H "Authorization: token ${TOKEN}" -F "attachment=@${f}" \
+              "${API}/releases/${id}/assets?name=$(basename "${f}")" > /dev/null
+          done
