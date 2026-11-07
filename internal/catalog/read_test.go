@@ -121,7 +121,27 @@ func TestDownload(t *testing.T) {
 	tampered := func(string) ([]byte, error) {
 		return []byte(strings.ReplaceAll(string(file), "#aa3333", "#ab3333")), nil
 	}
-	if _, err := db.Download(i, t.TempDir(), tampered); err == nil || !strings.Contains(err.Error(), "does not match") {
+	// A tampered download is refused and not cached, so the next good
+	// download works; a bad cached copy is replaced by a fresh download.
+	fresh := t.TempDir()
+	if _, err := db.Download(i, fresh, tampered); err == nil || !strings.Contains(err.Error(), "does not match") {
 		t.Errorf("tampered download: %v", err)
+	}
+	urls = nil
+	if _, err := db.Download(i, fresh, get); err != nil || len(urls) != 1 {
+		t.Errorf("after a tampered download: %v, %d downloads", err, len(urls))
+	}
+	cached := filepath.Join(fresh, "mbadolato", "eeee", "ghostty", "Unknown One")
+	os.WriteFile(cached, []byte("garbage"), 0o644)
+	urls = nil
+	if _, err := db.Download(i, fresh, get); err != nil || len(urls) != 1 {
+		t.Errorf("bad cached copy: %v, %d downloads", err, len(urls))
+	}
+	// A source path that leaves the cache is refused before downloading.
+	evil := i
+	evil.SourcePath = "../../../../escaped.txt"
+	urls = nil
+	if _, err := db.Download(evil, fresh, get); err == nil || !strings.Contains(err.Error(), "leaves the cache") || len(urls) != 0 {
+		t.Errorf("escaping path: %v, %d downloads", err, len(urls))
 	}
 }
