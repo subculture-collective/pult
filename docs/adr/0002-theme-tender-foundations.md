@@ -12,7 +12,7 @@ Theme Tender applies one palette across many apps without touching their other s
 
 | Area | Decision |
 |---|---|
-| Product | Standalone tool, compatible with Omarchy. The Subcarchy installer will call `tender apply` with a profile |
+| Product | Standalone tool, compatible with Omarchy. The Subarchy installer will call `tender apply` with a profile |
 | Platforms | Linux and macOS. No Windows |
 | Language | Go with Bubble Tea. Pure-Go SQLite driver, no cgo |
 | Hosting | Gitea `subculture-collective/theme-tender` is primary. A push mirror publishes to GitHub `subculture-collective/theme-tender` once the repository is public |
