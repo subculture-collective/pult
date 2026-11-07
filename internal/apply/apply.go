@@ -22,6 +22,7 @@ import (
 	"git.subcult.tv/subculture-collective/theme-tender/internal/changes"
 	"git.subcult.tv/subculture-collective/theme-tender/internal/color"
 	"git.subcult.tv/subculture-collective/theme-tender/internal/configedit"
+	"git.subcult.tv/subculture-collective/theme-tender/internal/framework"
 	"git.subcult.tv/subculture-collective/theme-tender/internal/omarchy"
 	"git.subcult.tv/subculture-collective/theme-tender/internal/owner"
 	"git.subcult.tv/subculture-collective/theme-tender/internal/registry"
@@ -61,6 +62,14 @@ type Options struct {
 	// Wants, when set, limits applying to the apps it accepts (a
 	// profile's apps and skip lists).
 	Wants func(app string) bool
+
+	// handedOff names frameworks whose backend themes this apply; their
+	// apps' files are left to them.
+	handedOff map[string]bool
+}
+
+func (o Options) frameworkEnv() framework.Env {
+	return framework.Env{Home: o.Home, StateDir: o.Store.Dir(), Getenv: o.Getenv, LookPath: o.Sys.LookPath, Run: o.Sys.Run}
 }
 
 // Theme is a catalog theme with its full palette.
@@ -94,6 +103,9 @@ type Plan struct {
 	// Omarchy is the Omarchy theme directory, when Omarchy is installed.
 	Omarchy       []changes.Edit
 	OmarchySwitch []string
+	// Frameworks are the Hyprland framework backends for the frameworks
+	// found, including ones left alone (with a note).
+	Frameworks []framework.Plan
 }
 
 // Prepare plans an apply without changing any file.
@@ -102,6 +114,21 @@ func Prepare(o Options, th Theme) (*Plan, error) {
 		return nil, fmt.Errorf("apply: theme palette is missing %v", m)
 	}
 	p := &Plan{Theme: th}
+	o.handedOff = map[string]bool{}
+	for _, name := range o.Owners.System().Frameworks {
+		b, ok := framework.Backends[name]
+		if !ok {
+			continue
+		}
+		fp, err := framework.PlanFor(b, o.frameworkEnv(), th.Theme, th.Palette)
+		if err != nil {
+			return nil, fmt.Errorf("apply: %s: %w", name, err)
+		}
+		p.Frameworks = append(p.Frameworks, *fp)
+		if len(fp.Switch) > 0 {
+			o.handedOff[name] = true
+		}
+	}
 	for _, e := range o.Registry.Entries() {
 		ap, err := o.planApp(e, &th)
 		if err != nil {
@@ -176,6 +203,10 @@ func (o Options) planApp(e registry.Entry, th *Theme) (AppPlan, error) {
 		}
 		return ap, nil
 	case owner.Ask:
+		if own.Kind == owner.Framework && o.handedOff[own.Name] {
+			ap.Skip = own.Name + " themes it: " + own.Detail
+			return ap, nil
+		}
 		if o.Confirm == nil || !o.Confirm(e.ID, own) {
 			ap.Skip = fmt.Sprintf("owned by %s (%s); not confirmed", own.Record(), own.Detail)
 			return ap, nil
@@ -682,6 +713,9 @@ func Execute(o Options, p *Plan) (*Result, error) {
 		}
 	}
 	edits = append(edits, p.Omarchy...)
+	for _, fp := range p.Frameworks {
+		edits = append(edits, fp.Edits...)
+	}
 	validate := func(app string, _ []string) error {
 		ap, ok := apps[app]
 		if !ok || ap.Entry.Validate == nil {
@@ -710,6 +744,18 @@ func Execute(o Options, p *Plan) (*Result, error) {
 	if len(p.OmarchySwitch) > 0 && ok["omarchy"] {
 		out, err := o.Sys.Run(p.OmarchySwitch)
 		res.Commands = append(res.Commands, CommandResult{App: "omarchy", Argv: p.OmarchySwitch, Output: string(out), Err: err})
+	}
+	for _, fp := range p.Frameworks {
+		if len(fp.Switch) == 0 || (len(fp.Edits) > 0 && !ok[fp.Name]) {
+			continue
+		}
+		for _, argv := range fp.Switch {
+			out, err := o.Sys.Run(argv)
+			res.Commands = append(res.Commands, CommandResult{App: fp.Name, Argv: argv, Output: string(out), Err: err})
+			if err != nil {
+				break
+			}
+		}
 	}
 	return res, nil
 }
@@ -754,11 +800,28 @@ func Uninstall(o Options, force bool) (*Result, []changes.Conflict, error) {
 			}
 		}
 	}
+	// Frameworks switch back first, while Theme Tender's theme files still
+	// exist, so a shell watching them never sees them vanish.
+	env := o.frameworkEnv()
+	var switched []CommandResult
+	for _, name := range framework.Names() {
+		rec, err := framework.ReadRecord(env.StateDir, name)
+		if err != nil {
+			continue
+		}
+		for _, argv := range framework.Restore(framework.Backends[name], env, rec) {
+			out, err := o.Sys.Run(argv)
+			switched = append(switched, CommandResult{App: name, Argv: argv, Output: string(out), Err: err})
+			if err != nil {
+				break
+			}
+		}
+	}
 	tx, conflicts, err := o.Store.Uninstall(force)
 	if err != nil {
 		return nil, nil, err
 	}
-	res := &Result{Tx: tx}
+	res := &Result{Tx: tx, Commands: switched}
 	if cur := o.Owners.System().OmarchyTheme; previous != "" && strings.HasPrefix(cur, omarchy.Prefix) {
 		argv := omarchy.SwitchCommand(previous)
 		out, err := o.Sys.Run(argv)
