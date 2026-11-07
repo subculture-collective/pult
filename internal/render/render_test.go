@@ -1,13 +1,18 @@
 package render
 
 import (
+	"encoding/base64"
 	"encoding/json"
+	"encoding/xml"
 	"flag"
+	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -240,5 +245,59 @@ func TestVars(t *testing.T) {
 	}
 	if _, err := Vars(th.Theme, color.Palette{}); err == nil {
 		t.Error("Vars accepted an incomplete palette")
+	}
+}
+
+// TestTerminalAppColors decodes the Terminal.app profile's archived colors
+// and checks them against the palette.
+func TestTerminalAppColors(t *testing.T) {
+	th := goldenThemes(t)[0]
+	out, err := File(os.DirFS(templatesDir), "terminal-app/theme-tender.terminal.mustache", th.Theme, th.palette)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wellFormed := func(name, doc string) {
+		t.Helper()
+		d := xml.NewDecoder(strings.NewReader(doc))
+		for {
+			if _, err := d.Token(); err == io.EOF {
+				return
+			} else if err != nil {
+				t.Fatalf("%s is not well-formed XML: %v", name, err)
+			}
+		}
+	}
+	wellFormed("profile", out)
+	entry := regexp.MustCompile(`<key>(\w+)</key>\s*<data>([A-Za-z0-9+/=]+)</data>`)
+	nsrgb := regexp.MustCompile(`<key>NSRGB</key>\s*<data>([A-Za-z0-9+/=]+)</data>`)
+	want := map[string]color.Role{"TextColor": color.Foreground, "BackgroundColor": color.Background, "ANSIRedColor": color.ANSIRoles[1], "ANSIBrightWhiteColor": color.ANSIRoles[15], "SelectionColor": color.SelectionBG}
+	found := 0
+	for _, m := range entry.FindAllStringSubmatch(out, -1) {
+		archive, err := base64.StdEncoding.DecodeString(m[2])
+		if err != nil {
+			t.Fatalf("%s: %v", m[1], err)
+		}
+		wellFormed(m[1], string(archive))
+		c := nsrgb.FindStringSubmatch(string(archive))
+		if c == nil || !strings.Contains(string(archive), "<string>NSColor</string>") {
+			t.Fatalf("%s: no NSColor with NSRGB:\n%s", m[1], archive)
+		}
+		raw, _ := base64.StdEncoding.DecodeString(c[1])
+		var r, g, b float64
+		if n, err := fmt.Sscanf(strings.TrimSuffix(string(raw), "\x00"), "%g %g %g", &r, &g, &b); n != 3 || err != nil || !strings.HasSuffix(string(raw), "\x00") {
+			t.Fatalf("%s: NSRGB %q", m[1], raw)
+		}
+		found++
+		role, ok := want[m[1]]
+		if !ok {
+			continue
+		}
+		hex := fmt.Sprintf("#%02x%02x%02x", int(r*255+0.5), int(g*255+0.5), int(b*255+0.5))
+		if hex != th.palette[role].Hex() {
+			t.Errorf("%s = %s, want %s (%s)", m[1], hex, th.palette[role].Hex(), role)
+		}
+	}
+	if found != 21 {
+		t.Errorf("%d colors, want 21", found)
 	}
 }

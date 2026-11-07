@@ -1,6 +1,7 @@
 package render
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io/fs"
 	"strings"
@@ -84,7 +85,47 @@ func colorFields(c color.RGB) colorVar {
 		"dec_r":    fmt.Sprintf("%.8f", float64(r)/255),
 		"dec_g":    fmt.Sprintf("%.8f", float64(g)/255),
 		"dec_b":    fmt.Sprintf("%.8f", float64(b)/255),
+		"nscolor":  nsColor(r, g, b),
 	}
+}
+
+// nsColor is a color as Terminal.app profiles store it: an NSKeyedArchiver
+// archive of an NSColor in the calibrated RGB color space (NSColorSpace 1,
+// components as text in NSRGB), as an XML property list, base64-encoded.
+func nsColor(r, g, b int) string {
+	rgb := fmt.Sprintf("%.10g %.10g %.10g\x00", float64(r)/255, float64(g)/255, float64(b)/255)
+	archive := `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>$archiver</key>
+	<string>NSKeyedArchiver</string>
+	<key>$objects</key>
+	<array>
+		<string>$null</string>
+		<dict>
+			<key>$class</key>
+			<dict><key>CF$UID</key><integer>2</integer></dict>
+			<key>NSColorSpace</key>
+			<integer>1</integer>
+			<key>NSRGB</key>
+			<data>` + base64.StdEncoding.EncodeToString([]byte(rgb)) + `</data>
+		</dict>
+		<dict>
+			<key>$classes</key>
+			<array><string>NSColor</string><string>NSObject</string></array>
+			<key>$classname</key>
+			<string>NSColor</string>
+		</dict>
+	</array>
+	<key>$top</key>
+	<dict><key>root</key><dict><key>CF$UID</key><integer>1</integer></dict></dict>
+	<key>$version</key>
+	<integer>100000</integer>
+</dict>
+</plist>
+`
+	return base64.StdEncoding.EncodeToString([]byte(archive))
 }
 
 // File renders the template at name (for example "kitty/theme-tender.conf.mustache")

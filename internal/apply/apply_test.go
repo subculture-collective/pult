@@ -602,3 +602,34 @@ func TestITerm2(t *testing.T) {
 		}
 	}
 }
+
+// TestTerminalApp: the profile file is written where the entry's comment
+// tells the user to import it from, and uninstall removes it.
+func TestTerminalApp(t *testing.T) {
+	w := newWorld(t, nil)
+	w.opts.Platform = registry.MacOS
+	if err := os.MkdirAll(filepath.Join(w.home, "Applications/Terminal.app"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	plan, err := Prepare(w.opts, mocha(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	file := filepath.Join(w.home, "Library/Application Support/theme-tender/terminal-app/theme-tender.terminal")
+	i := slices.IndexFunc(plan.Apps, func(a AppPlan) bool { return a.ID == "terminal-app" })
+	if ap := plan.Apps[i]; ap.Skip != "" || len(ap.Edits) != 1 || ap.Edits[0].Path != file {
+		t.Fatalf("terminal-app plan = skip %q, edits %v", ap.Skip, ap.Edits)
+	}
+	if _, err := Execute(w.opts, plan); err != nil {
+		t.Fatal(err)
+	}
+	if got := w.read("Library/Application Support/theme-tender/terminal-app/theme-tender.terminal"); !strings.Contains(got, "<string>Theme Tender</string>") {
+		t.Errorf("profile:\n%s", got)
+	}
+	if _, _, err := Uninstall(w.opts, false); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(file); !os.IsNotExist(err) {
+		t.Error("uninstall left the profile")
+	}
+}
