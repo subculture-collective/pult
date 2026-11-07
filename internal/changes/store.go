@@ -65,6 +65,8 @@ type Store struct {
 	// crash, when set, is called after each protocol step; a non-nil error
 	// stops the run there, as if Theme Tender had been killed. Tests use it.
 	crash func(point string) error
+	// keep overrides keepTransactions in tests.
+	keep int
 }
 
 // ErrLocked means another Theme Tender run holds the lock.
@@ -186,15 +188,21 @@ func (s *Store) State() (*State, error) {
 			}
 			f.App, f.Method, f.Hash = c.App, c.Method, c.After
 		}
+		// A file back to its pristine contents has no change outstanding.
+		// Forget it, so the next change records the contents it finds then
+		// as pristine, including edits the user made in between.
+		for k, f := range files {
+			if f.Hash == f.Pristine {
+				delete(files, k)
+			}
+		}
 	}
 	st := &State{}
 	if len(themes) > 0 {
 		st.Theme = themes[len(themes)-1].theme
 	}
 	for _, k := range slices.Sorted(mapKeys(files)) {
-		if f := files[k]; f.Hash != f.Pristine {
-			st.Files = append(st.Files, *f)
-		}
+		st.Files = append(st.Files, *files[k])
 	}
 	return st, nil
 }
