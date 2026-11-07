@@ -159,3 +159,29 @@ func TestSymlinkLoop(t *testing.T) {
 		t.Errorf("loop: %v", err)
 	}
 }
+
+// TestUninstallRestoresDeletedFileMode: a file Theme Tender deleted comes
+// back with its own mode.
+func TestUninstallRestoresDeletedFileMode(t *testing.T) {
+	f := newFixture(t) // kitty.conf is 0600
+	if _, err := f.store.Apply(Meta{}, []Edit{{App: "kitty", Path: f.kitty, Delete: true}}, nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, c, err := f.store.Uninstall(false); err != nil || len(c) != 0 {
+		t.Fatal(c, err)
+	}
+	if m := mode(t, f.kitty); m != 0o600 {
+		t.Errorf("mode %o, want 600", m)
+	}
+}
+
+func TestTwoEditsToOneFileRefused(t *testing.T) {
+	f := newFixture(t)
+	edits := []Edit{{App: "a", Path: f.kitty, Content: []byte("1\n")}, {App: "b", Path: f.kitty, Content: []byte("2\n")}}
+	if _, err := f.store.Apply(Meta{}, edits, nil); err == nil || !strings.Contains(err.Error(), "both edit") {
+		t.Errorf("duplicate edits: %v", err)
+	}
+	if txs, _ := f.store.Transactions(); len(txs) != 0 {
+		t.Error("a transaction was recorded")
+	}
+}

@@ -168,6 +168,12 @@ func TestTOMLAppend(t *testing.T) {
 			want: "[general]\nimport = [\n  \"~/a.toml\", \"" + file + "\",\n]\n",
 		},
 		{
+			name: "already present under another spelling",
+			src:  "import = [\"/home/u/.config/alacritty/theme-tender.toml\"]\n",
+			key:  "import",
+			want: "import = [\"/home/u/.config/alacritty/theme-tender.toml\"]\n",
+		},
+		{
 			name: "empty array",
 			src:  "import = []\n",
 			key:  "import",
@@ -194,7 +200,7 @@ func TestTOMLAppend(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := TOMLAppend([]byte(tt.src), tt.key, file)
+			got, err := TOMLAppend([]byte(tt.src), tt.key, file, "/home/u/.config/alacritty/theme-tender.toml")
 			check(t, got, err, tt.want, tt.wantErr)
 		})
 	}
@@ -236,5 +242,22 @@ func check(t *testing.T, got []byte, err error, want, wantErr string) {
 	}
 	if string(got) != want {
 		t.Fatalf("got\n%s\nwant\n%s", got, want)
+	}
+}
+
+func TestTOMLReviewCases(t *testing.T) {
+	if _, err := TOMLKeys([]byte("x = 1\n"), []byte("[colors.primary]\nbg = \"#000000\"\n"), []string{"colors"}); err == nil || !strings.Contains(err.Error(), "subtable") {
+		t.Errorf("fragment with only a subtable: %v", err)
+	}
+	if _, err := TOMLKeys([]byte(""), []byte("[palettes.tt]\nred = \"#ff0000\"\n[palettes.tt.sub]\nx = 1\n"), []string{"palettes.tt"}); err == nil || !strings.Contains(err.Error(), "subtable") {
+		t.Errorf("subtable under an allowed table: %v", err)
+	}
+	got, err := TOMLSet([]byte("# colors\n[colors]\nbg = 1\n"), map[string]any{"a": "v"})
+	if want := "a = \"v\"\n\n# colors\n[colors]\nbg = 1\n"; err != nil || string(got) != want {
+		t.Errorf("top-level key above a commented header: %q %v, want %q", got, err, want)
+	}
+	got, _ = TOMLSet([]byte("# file header\n\n[colors]\n"), map[string]any{"a": "v"})
+	if want := "# file header\n\na = \"v\"\n\n[colors]\n"; string(got) != want {
+		t.Errorf("file header comment kept above: %q, want %q", got, want)
 	}
 }

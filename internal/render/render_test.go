@@ -6,6 +6,7 @@ import (
 	"encoding/xml"
 	"flag"
 	"fmt"
+	"github.com/pelletier/go-toml/v2"
 	"io"
 	"io/fs"
 	"os"
@@ -303,5 +304,33 @@ func TestTerminalAppColors(t *testing.T) {
 	}
 	if found != 21 {
 		t.Errorf("%d colors, want 21", found)
+	}
+}
+
+// TestHostileThemeName: quotes, backslashes and line breaks in a theme's
+// name or author cannot break the JSON, TOML or comment lines they land in.
+func TestHostileThemeName(t *testing.T) {
+	th := goldenThemes(t)[0]
+	th.Theme.Name = "A \"b\" \\ c\nd --> e"
+	th.Theme.Author = "x\"\ny"
+	out, err := File(os.DirFS(templatesDir), "iterm2/theme-tender.json.mustache", th.Theme, th.palette)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc struct{ Profiles []struct{ Tags []string } }
+	if err := json.Unmarshal([]byte(out), &doc); err != nil || doc.Profiles[0].Tags[0] != "Theme Tender: A \"b\" \\ c d --> e" {
+		t.Errorf("iTerm2 JSON: %v %+v", err, doc)
+	}
+	out, err = File(os.DirFS(templatesDir), "wezterm/theme-tender.toml.mustache", th.Theme, th.palette)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var w struct{ Metadata struct{ Author string } }
+	if err := toml.Unmarshal([]byte(out), &w); err != nil || w.Metadata.Author != "x\" y" {
+		t.Errorf("WezTerm TOML: %v %+v", err, w)
+	}
+	out, err = File(os.DirFS(templatesDir), "kitty/theme-tender.conf.mustache", th.Theme, th.palette)
+	if err != nil || strings.Count(strings.Split(out, "\n")[0], "#") != 1 || strings.HasPrefix(strings.Split(out, "\n")[1], "d -->") {
+		t.Errorf("comment line broken:\n%s", out)
 	}
 }

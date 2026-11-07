@@ -177,6 +177,13 @@ func TOMLKeys(src, fragment []byte, paths []string) ([]byte, error) {
 			return nil, fmt.Errorf("configedit: fragment key %q is not in the integration's paths", strings.Join(kv.path, "."))
 		}
 	}
+	for _, t := range f.tables {
+		for _, a := range allowed {
+			if hasPrefix(t.path, a) && len(t.path) > len(a) {
+				return nil, fmt.Errorf("configedit: fragment table [%s] is a subtable of %s, which is not supported; list it in paths or use an inline table", strings.Join(t.path, "."), strings.Join(a, "."))
+			}
+		}
+	}
 	for _, a := range allowed {
 		if ti := slices.IndexFunc(f.tables, func(t tomlTable) bool { return slices.Equal(t.path, a) }); ti >= 0 {
 			ft := f.tables[ti]
@@ -194,9 +201,10 @@ func TOMLKeys(src, fragment []byte, paths []string) ([]byte, error) {
 	return checkTOML(src)
 }
 
-// TOMLAppend adds value as a string to the array at key, unless it is
+// TOMLAppend adds value as a string to the array at key, unless it or one
+// of its aliases (other spellings of the same path, such as "~/...") is
 // already there. A missing key is created as a one-element array.
-func TOMLAppend(src []byte, key, value string) ([]byte, error) {
+func TOMLAppend(src []byte, key, value string, aliases ...string) ([]byte, error) {
 	path := strings.Split(key, ".")
 	d, err := parseTOML(src)
 	if err != nil {
@@ -217,7 +225,7 @@ func TOMLAppend(src []byte, key, value string) ([]byte, error) {
 	}
 	at := -1
 	for _, el := range kv.elems {
-		if el.isString && el.str == value {
+		if el.isString && (el.str == value || slices.Contains(aliases, el.str)) {
 			return src, nil
 		}
 		if el.end == 0 {
@@ -313,13 +321,28 @@ func setRaw(src []byte, path []string, raw string) ([]byte, error) {
 		case d.topEnd > 0:
 			return splice(src, d.topEnd, d.topEnd, withNewlineBefore(src, d.topEnd, d.nl)+line), nil
 		case d.firstTable >= 0:
-			return splice(src, d.firstTable, d.firstTable, line+d.nl), nil
+			at := commentBlockStart(src, d.firstTable)
+			return splice(src, at, at, line+d.nl), nil
 		default:
 			return appendBlock(src, d.nl, line), nil
 		}
 	}
 	block := "[" + tomlKey(parent) + "]" + d.nl + tomlKey([]string{leaf}) + " = " + raw + d.nl
 	return appendBlock(src, d.nl, block), nil
+}
+
+// commentBlockStart moves at, the start of a line, up over the comment
+// lines directly above it, so text inserted there does not separate a
+// header from its comment.
+func commentBlockStart(src []byte, at int) int {
+	for at > 0 {
+		prev := lineStart(src, at-1)
+		if !bytes.HasPrefix(bytes.TrimLeft(src[prev:at], " \t"), []byte("#")) {
+			break
+		}
+		at = prev
+	}
+	return at
 }
 
 // checkTOML makes sure an edit left valid TOML.
