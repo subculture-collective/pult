@@ -6,9 +6,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"git.subcult.tv/subculture-collective/theme-tender/internal/tui"
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -403,7 +405,8 @@ func TestTUIBackend(t *testing.T) {
 	}
 	defer b.db.Close()
 	rows, err := b.Apps()
-	if err != nil || len(rows) != 8 || rows[3].ID != "kitty" || rows[3].Owner != "none" {
+	i := slices.IndexFunc(rows, func(r tui.AppRow) bool { return r.ID == "kitty" })
+	if err != nil || len(rows) < 8 || i < 0 || rows[i].Owner != "none" {
 		t.Fatalf("apps = %+v, %v", rows, err)
 	}
 	plan, err := b.Plan("catppuccin-mocha")

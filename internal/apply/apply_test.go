@@ -1,6 +1,7 @@
 package apply
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -183,6 +184,9 @@ func TestApplyAndUninstallAllApps(t *testing.T) {
 		t.Fatal("Prepare changed files")
 	}
 	for _, ap := range plan.Apps {
+		if !slices.Contains(ap.Entry.Platforms, registry.Linux) {
+			continue // macOS-only apps have their own tests
+		}
 		if ap.Skip != "" || len(ap.Edits) == 0 || len(ap.Diffs) != len(ap.Edits) {
 			t.Errorf("%s: skip %q, %d edits, %d diffs", ap.ID, ap.Skip, len(ap.Edits), len(ap.Diffs))
 		}
@@ -547,5 +551,54 @@ func TestUpgrades(t *testing.T) {
 	}
 	if ups, _ := Upgrades(w.opts); len(ups) != 0 {
 		t.Errorf("after uninstall: %+v", ups)
+	}
+}
+
+// TestITerm2 applies on macOS: the Dynamic Profile is written as a whole
+// file Theme Tender owns, parses as JSON, and uninstall removes it.
+func TestITerm2(t *testing.T) {
+	w := newWorld(t, nil)
+	w.opts.Platform = registry.MacOS
+	if err := os.MkdirAll(filepath.Join(w.home, "Applications/iTerm.app"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	before := w.snapshot()
+	plan, err := Prepare(w.opts, mocha(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var ap AppPlan
+	for _, a := range plan.Apps {
+		if a.ID == "iterm2" {
+			ap = a
+		}
+	}
+	profile := filepath.Join(w.home, "Library/Application Support/iTerm2/DynamicProfiles/theme-tender.json")
+	if ap.Skip != "" || len(ap.Edits) != 1 || ap.Edits[0].Path != profile {
+		t.Fatalf("iterm2 plan = skip %q, %d edits %v", ap.Skip, len(ap.Edits), ap.Edits)
+	}
+	if _, err := Execute(w.opts, plan); err != nil {
+		t.Fatal(err)
+	}
+	var doc struct {
+		Profiles []map[string]any
+	}
+	if err := json.Unmarshal([]byte(w.read("Library/Application Support/iTerm2/DynamicProfiles/theme-tender.json")), &doc); err != nil {
+		t.Fatal(err)
+	}
+	if len(doc.Profiles) != 1 || doc.Profiles[0]["Name"] != "Theme Tender" || doc.Profiles[0]["Background Color"] == nil {
+		t.Errorf("profile = %v", doc.Profiles)
+	}
+	if _, _, err := Uninstall(w.opts, false); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(profile); !os.IsNotExist(err) {
+		t.Error("uninstall left the profile")
+	}
+	after := w.snapshot()
+	for k := range union(before, after) {
+		if before[k] != after[k] {
+			t.Errorf("%s changed: %q -> %q", k, before[k], after[k])
+		}
 	}
 }

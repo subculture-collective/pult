@@ -110,7 +110,7 @@ Templates are Mustache files under `templates/<id>/` (MIT), rendered by `interna
 
 Variables available to every template:
 
-- Every role in `color.AllRoles`: the 26 Catppuccin roles, `ansi0` … `ansi15`, `background`, `foreground`, `cursor`, `selection_bg`, `selection_fg`. Each has `.hex` (`#cdd6f4`), `.hex_bare` (`cdd6f4`), `.rgb` (`205, 214, 244`), `.r`, `.g` and `.b` (decimal). On its own, `{{mauve}}` is the same as `{{mauve.hex}}`.
+- Every role in `color.AllRoles`: the 26 Catppuccin roles, `ansi0` … `ansi15`, `background`, `foreground`, `cursor`, `selection_bg`, `selection_fg`. Each has `.hex` (`#cdd6f4`), `.hex_bare` (`cdd6f4`), `.rgb` (`205, 214, 244`), `.r`, `.g` and `.b` (decimal), and `.dec_r`, `.dec_g` and `.dec_b` (0 to 1, eight decimals, as iTerm2 and Terminal.app store colors). On its own, `{{mauve}}` is the same as `{{mauve.hex}}`.
 - `{{theme.name}}`, `{{theme.slug}}`, `{{theme.author}}`, `{{theme.appearance}}` (`dark` or `light`).
 - Base16/Base24 aliases `base00` … `base17`, with the same fields as roles. Slots map to roles as Tinted Theming's own Catppuccin Base24 schemes assign them (`base00` base, `base0E` mauve, `base11` crust, `base17` pink, …).
 - Base16 builder specification names, so Tinted Theming templates can be reused: `{{base00-hex}}` (no `#`), `-hex-r`/`-g`/`-b`, `-rgb-r`/`-g`/`-b`, `-dec-r`/`-g`/`-b`, `-hex-bgr`, plus `scheme-name`, `scheme-author`, `scheme-slug`, `scheme-slug-underscored`, `scheme-system` (`base24`), `scheme-variant`, `scheme-is-dark-variant` and `scheme-is-light-variant`.

@@ -81,6 +81,9 @@ func colorFields(c color.RGB) colorVar {
 		"r":        fmt.Sprint(r),
 		"g":        fmt.Sprint(g),
 		"b":        fmt.Sprint(b),
+		"dec_r":    fmt.Sprintf("%.8f", float64(r)/255),
+		"dec_g":    fmt.Sprintf("%.8f", float64(g)/255),
+		"dec_b":    fmt.Sprintf("%.8f", float64(b)/255),
 	}
 }
 

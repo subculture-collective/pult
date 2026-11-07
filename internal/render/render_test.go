@@ -183,6 +183,9 @@ func TestRenderedFilesParse(t *testing.T) {
 				t.Errorf("%s: unrendered tag in %q", name, line)
 			}
 		}
+		if strings.HasSuffix(name, ".json.mustache") && !json.Valid([]byte(out)) {
+			t.Errorf("%s: not valid JSON:\n%s", name, out)
+		}
 		if strings.HasSuffix(name, ".yml.mustache") {
 			var v any
 			if err := yaml.Unmarshal([]byte(out), &v); err != nil {
