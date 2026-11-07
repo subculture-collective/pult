@@ -16,7 +16,7 @@ const (
 	catppuccinPalettePath   = "testdata/catppuccin/palette.json"
 	catppuccinPaletteSHA256 = "4bc114bb6b3c9a9c9e156564aa84625aef32c5da514d9dd431cf1fcad433a05f"
 
-	// Proposed acceptance thresholds for M1 criterion 6, in OKLab ΔE (0–1
+	// Acceptance thresholds for M1 criterion 6, in OKLab ΔE (0–1
 	// scale). They apply to leave-one-out results: each flavour is derived
 	// with constants fitted on the other three, so no flavour is graded on
 	// its own data. First measurement (palette 1.8.0): mean 0.0155, max

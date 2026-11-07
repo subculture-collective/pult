@@ -128,4 +128,4 @@ First measurement, palette 1.8.0 (`07d02aa`):
 
 Latte is the only light flavour, so its leave-one-out constants come from dark flavours alone; it has the largest errors. The step-5 floor changes no Catppuccin role.
 
-Proposed acceptance threshold for M1 criterion 6, checked by `TestCatppuccinDerivation`: leave-one-out mean ΔE ≤ 0.020 and max ΔE ≤ 0.110.
+Acceptance threshold for M1 criterion 6, approved by the owner on 2026-11-06 and checked by `TestCatppuccinDerivation`: leave-one-out mean ΔE ≤ 0.020 and max ΔE ≤ 0.110.
