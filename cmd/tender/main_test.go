@@ -295,3 +295,39 @@ func testKey(t *testing.T) (pub, keyFile string) {
 	os.WriteFile(keyFile, []byte("untrusted comment: test\n"+base64.StdEncoding.EncodeToString(raw)+"\n"), 0o600)
 	return base64.StdEncoding.EncodeToString(append(append([]byte("Ed"), id...), pk...)), keyFile
 }
+
+// TestTUIBackend drives the TUI's backend against the fixture: plan,
+// apply, then undo restores the configs.
+func TestTUIBackend(t *testing.T) {
+	f := newFixture(t)
+	vars := map[string]string{"HOME": f.home, "TENDER_CATALOG": f.catalog}
+	getenv := func(k string) string { return vars[k] }
+	c := &cli{env: env{home: f.home, getenv: getenv, sys: f.sys,
+		owners: owner.Env{Root: f.home, Home: f.home, Getenv: getenv,
+			LookPath: func(string) (string, error) { return "", errors.New("no") },
+			Run:      func([]string) ([]byte, error) { return nil, errors.New("no") }}}, out: &bytes.Buffer{}}
+	b, err := c.tuiBackend()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer b.db.Close()
+	rows, err := b.Apps()
+	if err != nil || len(rows) != 8 || rows[3].ID != "kitty" || rows[3].Owner != "none" {
+		t.Fatalf("apps = %+v, %v", rows, err)
+	}
+	plan, err := b.Plan("catppuccin-mocha")
+	if err != nil || !strings.Contains(strings.Join(plan, "\n"), "kitty      2 file(s) via include") {
+		t.Fatalf("plan = %v, %v", plan, err)
+	}
+	msg, err := b.Apply("catppuccin-mocha")
+	if err != nil || !strings.Contains(msg, "(complete)") || !strings.Contains(f.read(".config/kitty/kitty.conf"), "include theme-tender.conf") {
+		t.Fatalf("apply: %q %v", msg, err)
+	}
+	msg, err = b.Undo()
+	if err != nil || !strings.HasPrefix(msg, "Rolled back catppuccin-mocha") || f.read(".config/kitty/kitty.conf") != "font_size 12\n" {
+		t.Fatalf("undo: %q %v", msg, err)
+	}
+	if msg, _ = b.Undo(); msg != "Nothing to undo." {
+		t.Errorf("second undo: %q", msg)
+	}
+}
