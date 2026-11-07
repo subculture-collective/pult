@@ -103,12 +103,29 @@ Similarity search computes distances over `vectors` in Go. A few thousand themes
 
 ## 26-role derivation
 
-Used only when no official palette, port or Base24 scheme supplies a role.
+Used only when no official palette, port or Base24 scheme supplies a role. Implemented in `internal/color` (`Derive`). Input: ANSI 0–15, background and foreground. Roles the input already has are kept.
 
-1. Convert the ANSI 16 colors, background and foreground to OKLCH.
-2. Surfaces and text (`crust` … `text`): step lightness from background to foreground, using the step ratios measured from Catppuccin's four flavours. Chroma and hue are interpolated between background and foreground.
-3. Accents with an ANSI source (`red`, `green`, `yellow`, `blue`, `teal` from cyan, `mauve` from magenta) come from the normal or bright ANSI color, whichever contrasts better with `base`.
-4. Remaining accents (`rosewater`, `flamingo`, `pink`, `maroon`, `peach`, `sky`, `sapphire`, `lavender`) interpolate hue between their nearest ANSI neighbors and use the palette's median accent lightness and chroma.
-5. Raise lightness where needed to reach the minimum contrast against `base`.
+1. Convert the ANSI 16 colors, background and foreground to OKLCH. `base` defaults to background and `text` to foreground.
+2. Surfaces and text (`crust` … `text`): place each role on the lightness axis at a fixed fraction of the distance from `base` to `text`. `mantle` and `crust` are darker than `base` in light and dark palettes alike, so they use a fraction of that distance below `base`. Chroma and hue are interpolated between `base` and `text`; `mantle` and `crust` keep `base`'s chroma and hue.
+3. Accents with an ANSI source (`red`, `green`, `yellow`, `blue`, `teal` from cyan, `pink` from magenta) take the normal or bright ANSI color, whichever contrasts better with `base`. The bright color counts only if it is within 30° of the normal hue and has at least half its chroma; Solarized, for one, puts grays in the bright slots. Catppuccin's own ANSI mapping sends magenta to `pink`, not `mauve`.
+4. Remaining accents (`rosewater`, `flamingo`, `maroon`, `peach` between red and yellow; `sky`, `sapphire` between teal and blue; `lavender`, `mauve` between blue and pink) take a hue at a fixed fraction of the shorter arc between their two neighbors. Lightness and chroma are the median of the six ANSI-sourced accents, times a per-role factor.
+5. Move a step-4 accent away from `base` in lightness until its WCAG contrast with `base` reaches a floor: the weakest ANSI-sourced accent's contrast, capped at 3:1.
+6. Terminal specials: `cursor` and `selection_fg` default to foreground, `selection_bg` to `surface2`.
 
-Test oracle: feed each Catppuccin flavour's ANSI colors through the derivation and compare the result with the official roles (mean and maximum ΔE in OKLab). M1 records the first measurement and sets the acceptance threshold from it.
+The fractions and factors in steps 2 and 4 are averages measured from Catppuccin's four flavours. A test recomputes them from the vendored palette, so the constants can't drift from their source.
+
+### Test oracle and threshold
+
+Feed each Catppuccin flavour's ANSI colors, `base` and `text` through the derivation and compare the 26 roles with the official values. ΔE is the Euclidean distance in OKLab on a 0–1 scale; about 0.02 is a just-noticeable difference. To keep a flavour from being graded on its own data, each flavour is derived with constants fitted on the other three (leave-one-out).
+
+First measurement, palette 1.8.0 (`07d02aa`):
+
+| Derivation | Mean ΔE | Max ΔE |
+|---|---|---|
+| As implemented, leave-one-out | 0.0155 | 0.1057 (Latte `peach`) |
+| As implemented, fitted on all four | 0.0118 | 0.0800 (Latte) |
+| First draft of this section (magenta to `mauve`, midpoint hues, median lightness and chroma), fitted surface steps | 0.0276 | 0.2384 (Latte) |
+
+Latte is the only light flavour, so its leave-one-out constants come from dark flavours alone; it has the largest errors. The step-5 floor changes no Catppuccin role.
+
+Proposed acceptance threshold for M1 criterion 6, checked by `TestCatppuccinDerivation`: leave-one-out mean ΔE ≤ 0.020 and max ΔE ≤ 0.110.
