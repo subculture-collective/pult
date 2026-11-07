@@ -183,3 +183,12 @@ func TestApplyConfirmAndUndo(t *testing.T) {
 		t.Fatalf("undo: %d\n%s", f.undone, out)
 	}
 }
+
+// TestEmptyListKeys: moving, applying and asking for neighbours with no
+// themes listed does nothing instead of crashing.
+func TestEmptyListKeys(t *testing.T) {
+	out, f := run(t, key("/"), key("z"), key("z"), key("z"), enter, down, key("j"), key("k"), key("s"), enter)
+	if !strings.Contains(out, "no themes found") || len(f.applied) != 0 {
+		t.Fatalf("empty list:\n%s", out)
+	}
+}
