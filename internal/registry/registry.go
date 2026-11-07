@@ -316,9 +316,14 @@ func (e Entry) check() error {
 			errs = append(errs, fmt.Errorf("config.paths has no %s paths", p))
 		}
 	}
-	for p := range e.Config.Paths {
+	for p, paths := range e.Config.Paths {
 		if !slices.Contains(e.Platforms, p) {
 			errs = append(errs, fmt.Errorf("config.paths has %s paths but platforms does not list %s", p, p))
+		}
+		for _, path := range paths {
+			if p != MacOS && strings.HasPrefix(path, "$MAC_CONFIG_HOME/") {
+				errs = append(errs, fmt.Errorf("config.paths.%s: $MAC_CONFIG_HOME is for macos paths only", p))
+			}
 		}
 	}
 	if v := e.Detect.Version; v != nil {

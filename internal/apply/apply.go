@@ -183,12 +183,7 @@ func (o Options) planEdits(ap *AppPlan, th Theme) error {
 		}
 		rendered = []byte(out)
 	}
-	switch in.Method {
-	case registry.Include:
-		ap.ThemeFile = o.ownedFile(ap.Config, in.OwnedFile)
-	case registry.Owned:
-		ap.ThemeFile = filepath.Join(filepath.Dir(ap.Config), filepath.FromSlash(in.Target))
-	}
+	ap.ThemeFile = o.themeFile(ap)
 	var newCfg []byte
 	switch in.Method {
 	case registry.Include:
@@ -241,8 +236,102 @@ func (ap *AppPlan) add(e changes.Edit, before []byte) {
 	}
 }
 
+// themeFile is the file Theme Tender owns for the app's integration, or ""
+// for methods that only edit the config.
+func (o Options) themeFile(ap *AppPlan) string {
+	switch in := ap.Integration; in.Method {
+	case registry.Include:
+		return o.ownedFile(ap.Config, in.OwnedFile)
+	case registry.Owned:
+		return filepath.Join(filepath.Dir(ap.Config), filepath.FromSlash(in.Target))
+	}
+	return ""
+}
+
+// edit records the app's version and integration with each change, so
+// doctor can tell when the app was upgraded since.
 func (o Options) edit(ap *AppPlan, path string, content []byte) changes.Edit {
-	return changes.Edit{App: ap.ID, Path: path, Owner: ap.Owner.Record(), Method: string(ap.Integration.Method), Content: content}
+	detail := map[string]any{"integration": describe(ap.Integration)}
+	if ap.Version != "" {
+		detail["app_version"] = ap.Version
+	}
+	return changes.Edit{App: ap.ID, Path: path, Owner: ap.Owner.Record(), Method: string(ap.Integration.Method), Content: content, Detail: detail}
+}
+
+// describe names an integration: its method and version range.
+func describe(in *registry.Integration) string {
+	if in.Versions == "" {
+		return string(in.Method)
+	}
+	return string(in.Method) + " (" + in.Versions + ")"
+}
+
+// Upgrade is an app whose version differs from the one recorded when
+// Theme Tender last changed its files.
+type Upgrade struct {
+	App, Was, Now string
+	// WasIntegration is what the last apply used; NowIntegration is what
+	// an apply would choose now, or why the app would be skipped.
+	WasIntegration, NowIntegration string
+	// Validate is the validator's result against the current files, when
+	// the integration is unchanged and the app has a validator.
+	Validated   bool
+	ValidateErr error
+}
+
+// Upgrades lists apps Theme Tender still has changes to whose version is
+// now different. Changes recorded before versions were recorded are
+// skipped.
+func Upgrades(o Options) ([]Upgrade, error) {
+	st, err := o.Store.State()
+	if err != nil {
+		return nil, err
+	}
+	themed := map[string]bool{}
+	for _, f := range st.Files {
+		themed[f.App] = true
+	}
+	txs, err := o.Store.Transactions()
+	if err != nil {
+		return nil, err
+	}
+	last := map[string]map[string]any{}
+	for _, tx := range txs {
+		if tx.Kind != "apply" || (tx.Status != "complete" && tx.Status != "failed") {
+			continue
+		}
+		for _, c := range tx.Changes {
+			if c.Status != "failed" && c.Detail != nil {
+				last[c.App] = c.Detail
+			}
+		}
+	}
+	apps, err := Survey(o)
+	if err != nil {
+		return nil, err
+	}
+	var out []Upgrade
+	for _, ap := range apps {
+		was, _ := last[ap.ID]["app_version"].(string)
+		if !themed[ap.ID] || was == "" || ap.Version == "" || was == ap.Version {
+			continue
+		}
+		u := Upgrade{App: ap.ID, Was: was, Now: ap.Version, NowIntegration: "none: " + ap.Skip}
+		u.WasIntegration, _ = last[ap.ID]["integration"].(string)
+		if ap.Integration != nil {
+			u.NowIntegration = describe(ap.Integration)
+		}
+		if u.NowIntegration == u.WasIntegration && ap.Entry.Validate != nil {
+			ap.ThemeFile = o.themeFile(&ap)
+			argv := substitute(ap.Entry.Validate.Argv, ap)
+			u.Validated = true
+			if b, err := o.Sys.Run(argv); err != nil {
+				u.ValidateErr = fmt.Errorf("%s: %w: %s", strings.Join(argv, " "), err, strings.TrimSpace(string(b)))
+			}
+		}
+		out = append(out, u)
+	}
+	return out, nil
 }
 
 // includesFile reports whether a config already loads file on a line that
@@ -371,6 +460,13 @@ func (o Options) expand(p string) string {
 	cfg := o.Getenv("XDG_CONFIG_HOME")
 	if !filepath.IsAbs(cfg) {
 		cfg = filepath.Join(o.Home, ".config")
+	}
+	if rest, ok := strings.CutPrefix(p, "$MAC_CONFIG_HOME/"); ok {
+		mac := o.Getenv("XDG_CONFIG_HOME")
+		if !filepath.IsAbs(mac) {
+			mac = filepath.Join(o.Home, "Library", "Application Support")
+		}
+		return filepath.Join(mac, rest)
 	}
 	p = strings.Replace(p, "$XDG_CONFIG_HOME", cfg, 1)
 	return strings.Replace(p, "$HOME", o.Home, 1)

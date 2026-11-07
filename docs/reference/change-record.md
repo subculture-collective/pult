@@ -43,8 +43,10 @@ after = "sha256:41aa..."
 mode = "0644"
 backup = "blobs/sha256/9f/2c....zst"              # omitted when before = "absent"
 # status = "failed"                               # validation failed and the file was restored
-detail = { line = "include theme-tender.conf", line_no = 88 }
+detail = { app_version = "0.49.2", integration = "include" }
 ```
+
+`detail` records, for app changes, the app version detected at apply (`app_version`, omitted when unknown) and the integration used (`integration`: the method, plus its version range in parentheses if it has one). `tender doctor` compares them with what it detects now: an app whose version changed is reported, along with whether an apply would now choose a different integration, or, if not, whether the app's validator still accepts the current files. Omarchy changes record `previous_theme` instead.
 
 ## Write protocol
 

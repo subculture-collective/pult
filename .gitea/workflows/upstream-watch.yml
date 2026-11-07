@@ -1,0 +1,29 @@
+name: upstream-watch
+
+# Weekly report of what moved upstream: catalog sources past their pinned
+# revision, and apps with releases newer than the version their registry
+# entry was checked against. Keeps one open issue, "Upstream watcher
+# report", up to date. Never changes the repository.
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  watch:
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Report and update the tracking issue
+        env:
+          GITEA_TOKEN: ${{ github.token }}
+        run: go run ./cmd/upstream-check -issue

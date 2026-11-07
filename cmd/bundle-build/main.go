@@ -54,7 +54,7 @@ func run(catPath, sourcesPath, version, out, key string) error {
 	if err != nil {
 		return err
 	}
-	m := bundle.Manifest{BundleVersion: version, CatalogSchema: 1, RegistrySchema: 1}
+	m := bundle.Manifest{BundleVersion: version, CatalogSchema: bundle.CatalogSchema, RegistrySchema: bundle.RegistrySchema}
 	for _, s := range src.Sources {
 		m.Sources = append(m.Sources, bundle.Source{ID: s.ID, Revision: s.Revision})
 	}
