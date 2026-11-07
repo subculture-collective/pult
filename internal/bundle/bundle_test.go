@@ -228,3 +228,42 @@ func buildWith(w *bytes.Buffer, m Manifest, catalogDB []byte, data fs.FS) error 
 	}
 	return writeTar(w, m, files)
 }
+
+func TestSecretKeyFormats(t *testing.T) {
+	key := newKey(t, 1)
+	file, _ := os.ReadFile(key.secret)
+	line := strings.Split(string(file), "\n")[1]
+	data := build(t)
+	for name, content := range map[string]string{
+		"key file":             string(file),
+		"base64 line only":     line + "\n",
+		"line without newline": line,
+		"CRLF and blank lines": "\r\nuntrusted comment: x\r\n\r\n" + line + "\r\n\r\n",
+	} {
+		p := filepath.Join(t.TempDir(), "k")
+		os.WriteFile(p, []byte(content), 0o600)
+		sig, err := Sign(data, p, "", "ok")
+		if err != nil {
+			t.Errorf("%s: %v", name, err)
+			continue
+		}
+		if err := Verify(data, sig, []string{key.public}); err != nil {
+			t.Errorf("%s: signature does not verify: %v", name, err)
+		}
+	}
+	for name, tt := range map[string]struct{ content, want string }{
+		"public key":    {key.public, "this is a public key"},
+		"empty":         {"\n", "found 0"},
+		"two key lines": {line + "\n" + line, "found 2"},
+		"not base64":    {"untrusted comment: x\nnot*base64", "not valid base64"},
+		"wrong length":  {base64.StdEncoding.EncodeToString(make([]byte, 100)), "decodes to 100 bytes"},
+	} {
+		p := filepath.Join(t.TempDir(), "k")
+		os.WriteFile(p, []byte(tt.content), 0o600)
+		if _, err := Sign(data, p, "", "ok"); err == nil || !strings.Contains(err.Error(), tt.want) {
+			t.Errorf("%s: err = %v, want %q", name, err, tt.want)
+		} else if strings.Contains(err.Error(), line[:10]) {
+			t.Errorf("%s: error leaks key material", name)
+		}
+	}
+}
