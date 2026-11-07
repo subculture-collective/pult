@@ -72,6 +72,11 @@ type Store struct {
 // ErrLocked means another Theme Tender run holds the lock.
 var ErrLocked = errors.New("changes: another Theme Tender run holds the lock")
 
+// ErrPending means an earlier run stopped part-way and has not been
+// recovered. A new run would record its half-written files as their
+// original contents, so it is refused until Recover runs.
+var ErrPending = errors.New("changes: an interrupted run needs recovering first (tender doctor -recover)")
+
 const absent = "absent"
 
 // DefaultDir is $XDG_STATE_HOME/theme-tender, with $XDG_STATE_HOME
@@ -147,6 +152,9 @@ type FileState struct {
 	Hash     string `toml:"hash"`     // what the file should contain now
 	Pristine string `toml:"pristine"` // what it contained before Theme Tender first touched it
 	Backup   string `toml:"backup,omitempty"`
+	// Edited means the file changed outside Theme Tender between two of
+	// its changes, so restoring Pristine would undo those edits too.
+	Edited bool `toml:"edited,omitempty"`
 }
 
 // State is current.toml: the active theme and the files Theme Tender has
@@ -178,13 +186,15 @@ func (s *Store) State() (*State, error) {
 			themes = nil
 		}
 		for _, c := range tx.Changes {
-			if c.Status == "failed" {
+			if c.Status == "failed" || c.Status == "undone" {
 				continue
 			}
 			f, ok := files[c.Resolved]
 			if !ok {
 				f = &FileState{Path: c.Path, Resolved: c.Resolved, Pristine: c.Before, Backup: c.Backup}
 				files[c.Resolved] = f
+			} else if c.Before != f.Hash {
+				f.Edited = true
 			}
 			f.App, f.Method, f.Hash = c.App, c.Method, c.After
 		}

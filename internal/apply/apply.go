@@ -120,6 +120,12 @@ func Prepare(o Options, th Theme) (*Plan, error) {
 // owner and integration, without a theme and without asking.
 func Survey(o Options) ([]AppPlan, error) {
 	o.Confirm = func(string, owner.Owner) bool { return true }
+	// Ports apply to one theme: report what the active theme uses.
+	if o.Meta.Theme == "" && o.Store != nil {
+		if st, err := o.Store.State(); err == nil {
+			o.Meta.Theme = st.Theme
+		}
+	}
 	var out []AppPlan
 	for _, e := range o.Registry.Entries() {
 		ap, err := o.planApp(e, nil)
@@ -176,16 +182,24 @@ func (o Options) planApp(e registry.Entry, th *Theme) (AppPlan, error) {
 			ap.Skip = "no integration for version " + ap.Version
 			return ap, nil
 		}
-		if in.Method != registry.Port || th == nil {
+		if in.Method != registry.Port {
 			break
 		}
-		data, err := o.fetchPort(in, themeID)
+		// Without a theme (Survey) nothing is downloaded: the port counts
+		// only if a checked copy is cached, as after an apply that used it.
+		fetch := o
+		if th == nil {
+			fetch.Get = nil
+		}
+		data, err := fetch.fetchPort(in, themeID)
 		if err == nil {
 			ap.port = data
 			break
 		}
 		// Fall back to the integrations after the port.
-		ap.Notes = append(ap.Notes, "upstream port not used: "+err.Error())
+		if th != nil {
+			ap.Notes = append(ap.Notes, "upstream port not used: "+err.Error())
+		}
 		for i := range ins {
 			if &ins[i] == in {
 				ins = ins[i+1:]
@@ -551,11 +565,17 @@ func (o Options) configPath(e registry.Entry) string {
 	paths := e.Config.Paths[o.Platform]
 	for _, ev := range e.Config.Env {
 		v := o.Getenv(ev.Name)
-		if v == "" {
+		if ev.Kind == "file" {
+			parts := strings.Split(v, ",")
+			v = parts[len(parts)-1]
+		}
+		// A relative value depends on the directory Theme Tender runs in,
+		// which need not be the app's; it is ignored, as for XDG_*.
+		if !filepath.IsAbs(v) {
 			continue
 		}
 		if ev.Kind == "file" {
-			return strings.Split(v, ",")[len(strings.Split(v, ","))-1]
+			return v
 		}
 		return filepath.Join(v, filepath.Base(o.expand(paths[0])))
 	}

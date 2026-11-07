@@ -43,6 +43,7 @@ after = "sha256:41aa..."
 mode = "0644"
 backup = "blobs/sha256/9f/2c....zst"              # omitted when before = "absent"
 # status = "failed"                               # validation failed and the file was restored
+# status = "undone"                               # put back after a failed write or by recovery
 detail = { app_version = "0.49.2", integration = "include" }
 ```
 
@@ -57,7 +58,9 @@ detail = { app_version = "0.49.2", integration = "include" }
 5. Run the app's `validate` command. On failure, restore that app's files, mark those changes `status = "failed"` and the transaction `failed`; other apps keep their changes.
 6. Set `status = "complete"` (or `failed`), update `current.toml`, release `lock`.
 
-If Theme Tender stops part-way, the next run and `tender doctor` find the pending transaction. Recovery rolls it back: each file that holds its `after` contents gets its `before` contents again, a file that still holds `before` is left alone, and anything else is reported as edited. The transaction is then `rolled-back`. Finishing an interrupted apply means running the apply again, because new contents are not stored. Tests stop the protocol after every step (lock, pending record, each backup, each write, validation, completion, `current.toml`) and check that recovery restores every file byte for byte.
+A write or backup that fails (a full disk, a directory Theme Tender may not write, an owner it cannot keep) puts back the files the run already wrote, marks every change `undone` and the transaction `failed`, with the error, and nothing else.
+
+If Theme Tender stops part-way, the transaction stays `pending`. Apply, rollback and uninstall refuse to run while one is pending ("an interrupted run needs recovering first"), because they would otherwise record half-written files as originals; `tender doctor -recover` recovers it. Recovery rolls it back: each file that holds its `after` contents gets its `before` contents again and its change is marked `undone`, a file that still holds `before` is left alone (also `undone`), and a file edited since is reported and left as it is. The transaction is then `rolled-back`, or `failed` if a file was left edited: those changes stay recorded, so a later uninstall can still offer the original contents. Finishing an interrupted apply means running the apply again, because new contents are not stored. Tests stop the protocol after every step (lock, pending record, each backup, each write, validation, completion, `current.toml`) and check that recovery restores every file byte for byte.
 
 `current.toml` is rebuilt from the transactions on every read; the file on disk is a copy for people and other tools.
 
@@ -69,7 +72,7 @@ For each change, newest first:
 - Current file hash differs from `after`: the user has edited the file since. Show a diff against `before` and change nothing without confirmation.
 - File missing: report it and skip it.
 
-Rollback applies these rules to one transaction. `tender uninstall` applies them per file, comparing the current contents with the last recorded `after` and restoring the pristine `before`, which returns every file to its state before Theme Tender first touched it. Rollback and uninstall are transactions themselves (`kind = "rollback"`, `"uninstall"`). Directories Theme Tender created are left in place.
+Rollback applies these rules to one transaction. `tender uninstall` applies them per file, comparing the current contents with the last recorded `after` and restoring the pristine `before`, which returns every file to its state before Theme Tender first touched it. A file that changed outside Theme Tender between two of its changes (a change's `before` differs from the previous `after`) is marked `edited` in `current.toml`: restoring the pristine contents would undo those edits too, so uninstall reports it with a diff and leaves it alone unless forced, as for edits since the last apply. Rollback and uninstall are transactions themselves (`kind = "rollback"`, `"uninstall"`). Directories Theme Tender created are left in place.
 
 ## Retention
 

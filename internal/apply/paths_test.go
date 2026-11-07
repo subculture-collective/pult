@@ -40,6 +40,18 @@ func TestConfigPaths(t *testing.T) {
 		{"tmux ~/.tmux.conf only", "tmux", registry.MacOS, "", []string{".tmux.conf"}, ".tmux.conf"},
 		{"yazi macOS with XDG set", "yazi", registry.MacOS, "xdg", nil, "xdg/yazi/theme.toml"},
 	}
+	// A relative override is ignored, as XDG_CONFIG_HOME is.
+	e, _ := reg.Get("kitty")
+	home := t.TempDir()
+	o := Options{Home: home, Platform: registry.Linux, Getenv: func(k string) string {
+		if k == "KITTY_CONFIG_DIRECTORY" {
+			return "relative/dir"
+		}
+		return ""
+	}}
+	if got := o.configPath(e); got != filepath.Join(home, ".config/kitty/kitty.conf") {
+		t.Errorf("relative KITTY_CONFIG_DIRECTORY: %s", got)
+	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			home := t.TempDir()
