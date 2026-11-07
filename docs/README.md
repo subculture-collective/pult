@@ -10,6 +10,7 @@ This directory is the current project knowledge base.
 - `reference/catalog-schema.md` — catalog contract, v1, built by `cmd/catalog-build`
 - `reference/change-record.md` — change record contract, v1, implemented by `internal/changes`
 - `reference/ownership.md` — config ownership detection, v1, implemented by `internal/owner`
+- `reference/palette-export.md` — `tender palette` and `tender render` output, v1
 - `reference/omarchy-backend.md` — Omarchy theme directory and switch, v1, implemented by `internal/omarchy`
 
 ## Sections
