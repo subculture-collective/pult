@@ -17,13 +17,19 @@ detect:
     regex: 'Ghostty ([0-9.]+)'
 
 config:
+  # Ghostty loads every file that exists, in the order config, config.ghostty
+  # under $XDG_CONFIG_HOME/ghostty, then the same two under Application
+  # Support on macOS; later files win (src/config/Config.zig
+  # loadDefaultFiles, ghostty 8265e74, 2026-11-07). The candidates are in
+  # reverse load order so the include lands in the file read last. With no
+  # file, macOS Ghostty creates Application Support/.../config.ghostty.
   paths:
     linux: ["$XDG_CONFIG_HOME/ghostty/config.ghostty", "$XDG_CONFIG_HOME/ghostty/config"]
     macos:
-      - "$XDG_CONFIG_HOME/ghostty/config.ghostty"
-      - "$XDG_CONFIG_HOME/ghostty/config"
       - "$HOME/Library/Application Support/com.mitchellh.ghostty/config.ghostty"
       - "$HOME/Library/Application Support/com.mitchellh.ghostty/config"
+      - "$XDG_CONFIG_HOME/ghostty/config.ghostty"
+      - "$XDG_CONFIG_HOME/ghostty/config"
 
 integrations:
   # "?" makes the file optional, so Ghostty still starts if it is removed.

@@ -17,7 +17,11 @@ detect:
 
 config:
   paths:
-    linux: &paths ["$HOME/.tmux.conf", "$XDG_CONFIG_HOME/tmux/tmux.conf", "$HOME/.config/tmux/tmux.conf"]
+    # tmux loads every file in TMUX_CONF that exists: ~/.tmux.conf, then
+    # $XDG_CONFIG_HOME/tmux/tmux.conf, then ~/.config/tmux/tmux.conf, later
+    # ones winning (Makefile.am, tmux.c expand_paths; tmux a73616d,
+    # 2026-11-07). Reverse order, so the include lands in the file read last.
+    linux: &paths ["$HOME/.config/tmux/tmux.conf", "$XDG_CONFIG_HOME/tmux/tmux.conf", "$HOME/.tmux.conf"]
     macos: *paths
 
 integrations:

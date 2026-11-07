@@ -1,6 +1,10 @@
 # Checked on Arch, lazygit 0.66.2, 2026-11-06: version regex. Lazygit has
 # no reload or validate command. LG_CONFIG_FILE may hold a comma-separated
-# list of files.
+# list of files. Lookup order from pkg/config/app_config.go findConfigFile
+# (lazygit bbca3df, 2026-11-07): config home, ~/Library/Preferences, then
+# ~/.config; on macOS the config home is $XDG_CONFIG_HOME if set, else
+# Application Support ($MAC_CONFIG_HOME). The legacy
+# jesseduffield/lazygit directory is not handled.
 schema: 1
 id: lazygit
 name: lazygit
@@ -20,7 +24,10 @@ config:
     - { name: CONFIG_DIR, kind: dir }
   paths:
     linux: ["$XDG_CONFIG_HOME/lazygit/config.yml"]
-    macos: ["$HOME/Library/Application Support/lazygit/config.yml"]
+    macos:
+      - "$MAC_CONFIG_HOME/lazygit/config.yml"
+      - "$HOME/Library/Preferences/lazygit/config.yml"
+      - "$HOME/.config/lazygit/config.yml"
 
 integrations:
   - method: keys

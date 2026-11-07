@@ -122,6 +122,15 @@ func TestReadRejectsBadArchives(t *testing.T) {
 	if _, err := Read([]byte("not zstd")); err == nil {
 		t.Error("garbage accepted")
 	}
+	for _, m := range []Manifest{{RegistrySchema: RegistrySchema + 1}, {CatalogSchema: CatalogSchema + 1}} {
+		var buf bytes.Buffer
+		if err := Build(&buf, m, sampleCatalog, dataDir(t, sampleFiles)); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := Read(buf.Bytes()); err == nil || !strings.Contains(err.Error(), "needs a newer Theme Tender") {
+			t.Errorf("newer format %+v: %v", m, err)
+		}
+	}
 	if _, err := Read(tampered(t)); err == nil || !strings.Contains(err.Error(), "does not match the manifest") {
 		t.Errorf("tampered file: %v", err)
 	}

@@ -22,7 +22,9 @@ config:
     - { name: YAZI_CONFIG_HOME, kind: dir }
   paths:
     linux: ["$XDG_CONFIG_HOME/yazi/theme.toml"]
-    macos: ["$HOME/.config/yazi/theme.toml"]
+    # yazi-fs/src/xdg.rs (yazi 6882e1a, 2026-11-07): $XDG_CONFIG_HOME/yazi,
+    # else ~/.config/yazi, on macOS too.
+    macos: ["$XDG_CONFIG_HOME/yazi/theme.toml"]
 
 integrations:
   # 25.5.28 renamed the [manager] section to [mgr]; the flavor uses [mgr].

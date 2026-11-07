@@ -123,6 +123,12 @@ func TestBuiltinEntryErrors(t *testing.T) {
 		{name: "config path outside home", edit: func(m map[string]any) {
 			m["config"].(map[string]any)["paths"].(map[string]any)["linux"] = []any{"/etc/demo.conf"}
 		}, errHas: "paths"},
+		{name: "MAC_CONFIG_HOME in linux paths", edit: func(m map[string]any) {
+			m["config"].(map[string]any)["paths"].(map[string]any)["linux"] = []any{"$MAC_CONFIG_HOME/demo/demo.conf"}
+		}, errHas: "macos paths only"},
+		{name: "MAC_CONFIG_HOME in macos paths", edit: func(m map[string]any) {
+			m["config"].(map[string]any)["paths"].(map[string]any)["macos"] = []any{"$MAC_CONFIG_HOME/demo/demo.conf"}
+		}},
 		{name: "owned target escapes", edit: func(m map[string]any) {
 			m["integrations"] = []any{map[string]any{"method": "owned", "template": "demo/t.mustache", "target": "../x"}}
 		}, errHas: "integrations"},

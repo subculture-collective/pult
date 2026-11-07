@@ -35,7 +35,7 @@ bundle-2026.11.06.1.tar.zst.minisig    # minisign signature (BLAKE2b-prehashed E
   templates/
 ```
 
-`manifest.toml` holds `schema = 1`, `bundle_version`, `catalog_schema`, `registry_schema`, the `[[source]]` revisions the catalog was built from, and `[files]`, the SHA-256 of every other file. `internal/bundle` builds, signs, verifies and reads bundles. A bundle is used only if its signature verifies against a key built into the binary and every file matches the manifest; otherwise Theme Tender warns and uses the data built into the binary. Release builds embed the catalog there too (`builtin/`). Publishing is in [the bundle signing runbook](../runbooks/bundle-signing.md).
+`manifest.toml` holds `schema = 1`, `bundle_version`, `catalog_schema`, `registry_schema`, the `[[source]]` revisions the catalog was built from, and `[files]`, the SHA-256 of every other file. `internal/bundle` builds, signs, verifies and reads bundles. A bundle is used only if its signature verifies against a key built into the binary, every file matches the manifest, and its `catalog_schema` and `registry_schema` are no newer than the binary reads (`bundle.CatalogSchema`, `bundle.RegistrySchema`; registry format 2 added `$MAC_CONFIG_HOME`); otherwise Theme Tender warns and uses the data built into the binary. Release builds embed the catalog there too (`builtin/`). Publishing is in [the bundle signing runbook](../runbooks/bundle-signing.md).
 
 ## Tables
 
