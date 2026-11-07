@@ -18,6 +18,7 @@ import (
 	"maps"
 	"os"
 	"path"
+	"regexp"
 	"slices"
 	"strings"
 	"testing/fstest"
@@ -285,7 +286,8 @@ func Verify(data, sig []byte, keys []string) error {
 // Load reads the bundle at path and its path.minisig signature. If either
 // is missing, the signature does not verify against keys, or the contents
 // do not match the manifest, it returns builtin and a warning saying why.
-// A missing bundle file is not a warning.
+// A missing bundle file is not a warning. A valid bundle older than the
+// built-in data (a newer binary) is not used either.
 func Load(path string, keys []string, builtin *Bundle) (*Bundle, string) {
 	data, err := os.ReadFile(path)
 	if errors.Is(err, fs.ErrNotExist) {
@@ -308,9 +310,18 @@ func Load(path string, keys []string, builtin *Bundle) (*Bundle, string) {
 	if err != nil {
 		return reject(err)
 	}
+	if Newer(builtin.Manifest.BundleVersion, b.Manifest.BundleVersion) {
+		return builtin, ""
+	}
 	b.Origin = path
 	return b, ""
 }
+
+// ValidVersion reports whether v is a bundle version as releases are
+// tagged: YYYY.MM.DD.N.
+func ValidVersion(v string) bool { return versionRE.MatchString(v) }
+
+var versionRE = regexp.MustCompile(`^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+$`)
 
 func hashOf(b []byte) string {
 	sum := sha256.Sum256(b)

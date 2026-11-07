@@ -21,6 +21,13 @@ import (
 //go:embed registry/schema.json registry/apps/*.yaml templates builtin
 var Data embed.FS
 
+// BuiltinVersion is the bundle version of the built-in data, set by
+// release builds (-ldflags -X) to the tagged commit's date as YYYY.MM.DD.0,
+// so an installed bundle older than the binary does not replace its data.
+// Source builds leave it empty and report "built-in", older than any
+// bundle.
+var BuiltinVersion string
+
 // Builtin is the built-in bundle. Its Catalog is nil in source builds.
 func Builtin() (*bundle.Bundle, error) {
 	reg, err := fs.Sub(Data, "registry")
@@ -31,7 +38,11 @@ func Builtin() (*bundle.Bundle, error) {
 	if err != nil {
 		return nil, err
 	}
-	b := &bundle.Bundle{Registry: reg, Templates: tmpl, Origin: "built-in", Manifest: bundle.Manifest{BundleVersion: "built-in"}}
+	version := BuiltinVersion
+	if version == "" {
+		version = "built-in"
+	}
+	b := &bundle.Bundle{Registry: reg, Templates: tmpl, Origin: "built-in", Manifest: bundle.Manifest{BundleVersion: version}}
 	raw, err := Data.ReadFile("builtin/catalog.db.zst")
 	if errors.Is(err, fs.ErrNotExist) {
 		return b, nil

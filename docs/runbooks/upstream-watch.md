@@ -1,6 +1,6 @@
 # Upstream watcher
 
-`.gitea/workflows/upstream-watch.yml` runs `cmd/upstream-check` every Monday at 06:17 UTC and on manual dispatch. It keeps one open issue, **Upstream watcher report**, whose body it replaces on every run. It never changes the repository.
+`.gitea/workflows/upstream-watch.yml` runs `cmd/upstream-check` every Monday at 06:17 UTC and on manual dispatch. It keeps one open issue, **Upstream watcher report**, opened by `gitea-actions`, whose body it replaces on every run; an issue with that title opened by anyone else is ignored. It never changes the repository.
 
 ## What it reports
 

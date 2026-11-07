@@ -30,8 +30,8 @@ func main() {
 }
 
 func run(catPath, sourcesPath, version, out, key string) error {
-	if version == "" {
-		return fmt.Errorf("-version is required")
+	if !bundle.ValidVersion(version) {
+		return fmt.Errorf("-version %q: want YYYY.MM.DD.N, such as 2026.11.07.1", version)
 	}
 	if out == "" {
 		out = "dist/bundle-" + version + ".tar.zst"

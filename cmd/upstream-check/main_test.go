@@ -100,26 +100,29 @@ func TestUpdateIssue(t *testing.T) {
 		case r.Method == "GET":
 			json.NewEncoder(w).Encode(issues)
 		case r.Method == "POST":
-			in["number"] = 7
+			in["number"] = 7 + len(issues)
+			in["user"] = map[string]any{"login": IssueAuthor}
 			issues = append(issues, in)
 			w.WriteHeader(http.StatusCreated)
 			json.NewEncoder(w).Encode(in)
-		case r.Method == "PATCH" && r.URL.Path == "/repo/issues/7":
-			issues[0]["body"] = in["body"]
-			json.NewEncoder(w).Encode(issues[0])
+		case r.Method == "PATCH" && r.URL.Path == "/repo/issues/8":
+			issues[1]["body"] = in["body"]
+			json.NewEncoder(w).Encode(issues[1])
 		default:
 			http.Error(w, "unexpected", http.StatusBadRequest)
 		}
 	}))
 	defer srv.Close()
 	api := srv.URL + "/repo"
-	if n, err := updateIssue(srv.Client(), api, "secret", "first"); err != nil || n != 7 {
+	// An issue with the same title by someone else is not used.
+	issues = append(issues, map[string]any{"number": 3, "title": IssueTitle, "body": "planted", "user": map[string]any{"login": "mallory"}})
+	if n, err := updateIssue(srv.Client(), api, "secret", "first"); err != nil || n != 8 {
 		t.Fatalf("create: %d %v", n, err)
 	}
-	if n, err := updateIssue(srv.Client(), api, "secret", "second"); err != nil || n != 7 {
+	if n, err := updateIssue(srv.Client(), api, "secret", "second"); err != nil || n != 8 {
 		t.Fatalf("update: %d %v", n, err)
 	}
-	if len(issues) != 1 || issues[0]["body"] != "second" || issues[0]["title"] != IssueTitle {
+	if len(issues) != 2 || issues[1]["body"] != "second" || issues[0]["body"] != "planted" {
 		t.Errorf("issues = %v (calls %v)", issues, calls)
 	}
 	if _, err := updateIssue(srv.Client(), api, "", "x"); err == nil {

@@ -17,7 +17,7 @@ class ThemeTender < Formula
   def install
     resource("catalog").stage { cp Dir["*"].first, buildpath/"builtin/catalog.db.zst" }
     ENV["CGO_ENABLED"] = "0"
-    system "go", "build", *std_go_args(ldflags: "-s -w -X main.version=#{version}", output: bin/"tender"), "./cmd/tender"
+    system "go", "build", *std_go_args(ldflags: "-s -w -X main.version=#{version} -X git.subcult.tv/subculture-collective/theme-tender.BuiltinVersion=@DATAVERSION@", output: bin/"tender"), "./cmd/tender"
   end
 
   test do
