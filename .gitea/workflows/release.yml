@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   release:
@@ -59,3 +60,24 @@ jobs:
             curl -fsS -X POST -H "Authorization: token ${TOKEN}" -F "attachment=@${f}" \
               "${API}/releases/${id}/assets?name=$(basename "${f}")" > /dev/null
           done
+
+  # The theme-tender pacman package, built from the release's PKGBUILD and
+  # uploaded to the Gitea pacman repository "subcult".
+  arch:
+    needs: release
+    timeout-minutes: 45
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      # The Arch image has no Node for actions/checkout; fetch the script
+      # at this commit instead.
+      - name: Fetch the publish script
+        run: curl -fsSL "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/raw/commit/${GITHUB_SHA}/scripts/publish-arch.sh" -o /tmp/publish-arch.sh
+      - name: Build and upload the package
+        env:
+          GITEA_TOKEN: ${{ github.token }}
+        run: bash /tmp/publish-arch.sh "${GITHUB_REF_NAME#v}"
