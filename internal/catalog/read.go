@@ -282,8 +282,40 @@ func (d *DB) Download(i Info, cacheDir string, get Getter) (color.Palette, error
 	if err := d.db.QueryRow("SELECT url, revision FROM sources WHERE id = ?", i.SourceID).Scan(&repo, &rev); err != nil {
 		return nil, fmt.Errorf("catalog: source %s: %w", i.SourceID, err)
 	}
-	cache := filepath.Join(cacheDir, i.SourceID, rev, filepath.FromSlash(i.SourcePath))
+	// The catalog given with -catalog is not signed, so its fields must not
+	// lead the cache path outside cacheDir.
+	rel := filepath.Join(i.SourceID, rev, filepath.FromSlash(i.SourcePath))
+	if !filepath.IsLocal(rel) {
+		return nil, fmt.Errorf("catalog: %s: source path %q leaves the cache", i.ID, rel)
+	}
+	cache := filepath.Join(cacheDir, rel)
+	parse := func(data []byte) (color.Palette, error) {
+		fsys := fstest.MapFS{i.SourcePath: {Data: data}}
+		var p color.Palette
+		var err error
+		switch i.SourceID {
+		case "mbadolato":
+			p, err = parseGhostty(fsys, i.SourcePath)
+		case "gogh":
+			p, _, _, err = parseGogh(fsys, i.SourcePath)
+		default:
+			err = fmt.Errorf("catalog: cannot download themes from %s", i.SourceID)
+		}
+		if err != nil {
+			return nil, err
+		}
+		if contentHash(p) != d.hash(i.ID) {
+			return nil, fmt.Errorf("catalog: downloaded %s does not match the catalog's colors", i.ID)
+		}
+		return p, nil
+	}
+	// A cached copy is used only if it still checks out; a bad one is
+	// downloaded again, and only a download that checks out is cached.
 	data, err := os.ReadFile(cache)
+	var p color.Palette
+	if err == nil {
+		p, err = parse(data)
+	}
 	if err != nil {
 		raw, err := rawURL(repo, rev, i.SourcePath)
 		if err != nil {
@@ -292,25 +324,12 @@ func (d *DB) Download(i Info, cacheDir string, get Getter) (color.Palette, error
 		if data, err = get(raw); err != nil {
 			return nil, fmt.Errorf("catalog: download %s: %w", i.ID, err)
 		}
+		if p, err = parse(data); err != nil {
+			return nil, err
+		}
 		if err := os.MkdirAll(filepath.Dir(cache), 0o755); err == nil {
 			os.WriteFile(cache, data, 0o644)
 		}
-	}
-	fsys := fstest.MapFS{i.SourcePath: {Data: data}}
-	var p color.Palette
-	switch i.SourceID {
-	case "mbadolato":
-		p, err = parseGhostty(fsys, i.SourcePath)
-	case "gogh":
-		p, _, _, err = parseGogh(fsys, i.SourcePath)
-	default:
-		err = fmt.Errorf("catalog: cannot download themes from %s", i.SourceID)
-	}
-	if err != nil {
-		return nil, err
-	}
-	if contentHash(p) != d.hash(i.ID) {
-		return nil, fmt.Errorf("catalog: downloaded %s does not match the catalog's colors", i.ID)
 	}
 	full, _, err := color.Derive(p)
 	return full, err

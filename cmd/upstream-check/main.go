@@ -27,6 +27,11 @@ import (
 // IssueTitle is the title of the tracking issue the report is kept in.
 const IssueTitle = "Upstream watcher report"
 
+// IssueAuthor is the account Gitea Actions' token posts as. Only an issue
+// it opened is edited, so nobody can plant an issue with the same title
+// and have the bot's report written into it.
+const IssueAuthor = "gitea-actions"
+
 // appRepos maps registry ids to the repository whose tags are the app's
 // releases, for apps whose homepage is not that repository.
 var appRepos = map[string]string{
@@ -264,12 +269,15 @@ func updateIssue(c *http.Client, api, token, body string) (int, error) {
 	var open []struct {
 		Number int    `json:"number"`
 		Title  string `json:"title"`
+		User   struct {
+			Login string `json:"login"`
+		} `json:"user"`
 	}
 	if err := call("GET", "/issues?state=open&type=issues&limit=50&q="+strings.ReplaceAll(IssueTitle, " ", "+"), nil, &open); err != nil {
 		return 0, err
 	}
 	for _, i := range open {
-		if i.Title == IssueTitle {
+		if i.Title == IssueTitle && i.User.Login == IssueAuthor {
 			return i.Number, call("PATCH", fmt.Sprintf("/issues/%d", i.Number), map[string]string{"body": body}, nil)
 		}
 	}

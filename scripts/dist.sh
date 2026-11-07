@@ -16,6 +16,10 @@ if [[ ! -f $catalog ]]; then
   exit 1
 fi
 
+# The built-in data's bundle version: the tagged commit's date, so a signed
+# bundle older than this binary does not replace its data.
+dataversion=$(TZ=UTC git log -1 --format=%cd --date=format-local:%Y.%m.%d.0 "$rev")
+
 rm -rf dist/theme-tender-"$version"-*
 mkdir -p dist
 for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64; do
@@ -24,7 +28,7 @@ for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64; do
   stage="dist/$name"
   mkdir -p "$stage"
   CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -trimpath -buildvcs=false \
-    -ldflags "-s -w -X main.version=$version" -o "$stage/tender" ./cmd/tender
+    -ldflags "-s -w -X main.version=$version -X git.subcult.tv/subculture-collective/theme-tender.BuiltinVersion=$dataversion" -o "$stage/tender" ./cmd/tender
   cp README.md LICENSE "$stage/"
   cp -r LICENSES "$stage/"
   tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -C dist -cf - "$name" | gzip -n9 > "dist/$name.tar.gz"

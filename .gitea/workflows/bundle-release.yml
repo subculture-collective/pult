@@ -16,6 +16,35 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check the tag is on main
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "${GITHUB_SHA}" FETCH_HEAD; then
+            echo "${GITHUB_REF_NAME} points at a commit that is not on main" >&2
+            exit 1
+          fi
+      - name: Check the version is well-formed and newer than every release
+        env:
+          TOKEN: ${{ github.token }}
+          API: ${{ github.server_url }}/api/v1/repos/${{ github.repository }}
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Authorization: token ${TOKEN}" "${API}/releases?limit=50" > "${RUNNER_TEMP}/releases.json"
+          python3 - "${GITHUB_REF_NAME#bundle-}" "${RUNNER_TEMP}/releases.json" <<'PY'
+          import json, re, sys
+          version, listing = sys.argv[1], sys.argv[2]
+          pattern = re.compile(r"^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+$")
+          if not pattern.match(version):
+              sys.exit(f"bundle version {version!r} is not YYYY.MM.DD.N")
+          key = lambda v: tuple(int(p) for p in v.split("."))
+          published = [r["tag_name"][len("bundle-"):] for r in json.load(open(listing))
+                       if r["tag_name"].startswith("bundle-") and pattern.match(r["tag_name"][len("bundle-"):])]
+          if published and key(version) <= max(map(key, published)):
+              sys.exit(f"bundle version {version} is not newer than {max(published, key=key)}")
+          PY
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
@@ -47,9 +76,9 @@ jobs:
           API: ${{ github.server_url }}/api/v1/repos/${{ github.repository }}
         run: |
           set -euo pipefail
+          body=$(python3 -c 'import json, os; t = os.environ["GITHUB_REF_NAME"]; print(json.dumps({"tag_name": t, "name": "Data bundle " + t[len("bundle-"):]}))')
           id=$(curl -fsS -X POST -H "Authorization: token ${TOKEN}" -H "Content-Type: application/json" \
-            -d "{\"tag_name\": \"${GITHUB_REF_NAME}\", \"name\": \"Data bundle ${GITHUB_REF_NAME#bundle-}\"}" \
-            "${API}/releases" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')
+            -d "${body}" "${API}/releases" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')
           for f in dist/*; do
             curl -fsS -X POST -H "Authorization: token ${TOKEN}" -F "attachment=@${f}" \
               "${API}/releases/${id}/assets?name=$(basename "${f}")" > /dev/null

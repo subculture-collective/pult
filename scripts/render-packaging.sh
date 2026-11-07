@@ -19,6 +19,8 @@ for v in src cat amd arm; do
 done
 prefix=""
 [[ -n $base ]] && prefix="${base%/}/"
+# Same built-in data version as scripts/dist.sh: the checked-out commit's date.
+dataversion=$(TZ=UTC git log -1 --format=%cd --date=format-local:%Y.%m.%d.0 HEAD)
 
 out=dist/packaging
 rm -rf "$out"
@@ -26,7 +28,7 @@ for tmpl in packaging/aur/theme-tender/PKGBUILD packaging/aur/theme-tender-bin/P
   mkdir -p "$out/$(dirname "${tmpl#packaging/}")"
   sed -e "s|@VERSION@|$version|g" -e "s|@BASE@|$prefix|g" \
     -e "s|@SHA_SRC@|$src|g" -e "s|@SHA_CATALOG@|$cat|g" \
-    -e "s|@SHA_LINUX_AMD64@|$amd|g" -e "s|@SHA_LINUX_ARM64@|$arm|g" \
+    -e "s|@SHA_LINUX_AMD64@|$amd|g" -e "s|@SHA_LINUX_ARM64@|$arm|g" -e "s|@DATAVERSION@|$dataversion|g" \
     "$tmpl" > "$out/${tmpl#packaging/}"
   if grep -n '@[A-Z_]*@' "$out/${tmpl#packaging/}"; then
     echo "render-packaging: unfilled placeholder in $tmpl" >&2
