@@ -1,20 +1,28 @@
-# Catalog schema (draft v1)
+# Catalog schema (v1)
 
 The catalog is a SQLite database built in CI from upstream theme sources. It ships zstd-compressed inside the signed data bundle together with the registry and templates.
 
 ## Sources
 
-| Source | What it provides | Machine-readable input |
-|---|---|---|
-| [mbadolato/iTerm2-Color-Schemes](https://github.com/mbadolato/iTerm2-Color-Schemes) | ~900 terminal schemes | `yaml/`, licences in `licenses.yml` |
-| [tinted-theming/schemes](https://github.com/tinted-theming/schemes) | 362 Base16, 243 Base24 | `base16/`, `base24/` YAML |
-| [catppuccin](https://github.com/catppuccin/catppuccin) | Full 26-color palettes, 457 ports | `catppuccin/palette` JSON, `resources/ports.porcelain.json` |
-| [Dracula](https://github.com/dracula) | Palette and ~500 port repositories | Palette spec, organization repo list |
-| [Gogh](https://github.com/Gogh-Co/Gogh) | 1,000+ terminal themes | `themes/` |
+`cmd/catalog-build` reads the sources pinned in [`catalog/sources.json`](../../catalog/sources.json): repository URL, commit, commit date, and the paths it needs.
 
-Counts were taken on 2026-11-06. The 2021 `PatrickFanella/Terminal-Color-Schemes` fork is not used.
+| Source ID | Repository | Input | Licence recorded |
+|---|---|---|---|
+| `catppuccin` | [catppuccin/palette](https://github.com/catppuccin/palette) | `palette.json`: 4 flavours, 26 roles, ANSI 0–15 | MIT |
+| `catppuccin-ports` | [catppuccin/catppuccin](https://github.com/catppuccin/catppuccin) | `resources/ports.porcelain.json`: 457 ports | (ports only) |
+| `dracula` | [dracula/draculatheme.com](https://github.com/dracula/draculatheme.com) | `content/spec.mdx`: Dracula and Alucard palettes and ANSI tables | MIT, the licence of Dracula's theme repositories |
+| `tinted` | [tinted-theming/schemes](https://github.com/tinted-theming/schemes) | `base16/`, `base24/` YAML: 362 and 243 schemes; a scheme in both is read from `base24/` | MIT, the repository licence |
+| `mbadolato` | [mbadolato/iTerm2-Color-Schemes](https://github.com/mbadolato/iTerm2-Color-Schemes) | `ghostty/`, generated for 907 of the 912 schemes; `licenses.yml` per scheme | per scheme; no entry means `unknown` |
+| `gogh` | [Gogh-Co/Gogh](https://github.com/Gogh-Co/Gogh) | `themes/*.yml`: 1,251 themes | MIT OR Apache-2.0, the repository licence |
 
-Licence handling: a theme whose licence is a known redistributable SPDX ID is bundled. `unknown` themes are listed with their colors left out and downloaded from upstream on first use. `nonfree` themes are left out entirely.
+Counts were taken on 2026-11-06. The 2021 `PatrickFanella/Terminal-Color-Schemes` fork is not used. Dracula's ~500 port repositories are not imported yet: listing them needs the GitHub API, and M1 only needs the ports in the registry entries.
+
+### Licences
+
+- A theme is bundled with its colors when its licence is a redistributable SPDX ID (the allowlist in `internal/catalog/license.go`). An `OR` expression qualifies if any part does, an `AND` expression only if every part does.
+- `unknown`, and any SPDX ID not on the allowlist, is listed without colors and downloaded from upstream on first use.
+- `nonfree` is left out entirely.
+- Copies: themes with identical terminal colors (`content_hash`) are compared. If any of them is `nonfree`, all are left out. An `unknown` theme makes copies of it in later sources (the table order above) `unknown` too, so Gogh's repository licence does not cover a scheme Gogh copied from mbadolato without a known licence. An earlier source keeps its own licence: the official Dracula stays MIT although mbadolato's copy is `unknown`.
 
 ## Bundle layout
 
@@ -31,13 +39,13 @@ bundle-2026.11.06.1.tar.zst.minisig
 
 ```sql
 CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
--- schema_version, built_at, bundle_version
+-- schema_version, built_at (latest source commit date, UTC)
 
 CREATE TABLE sources (
-  id TEXT PRIMARY KEY,          -- 'mbadolato', 'tinted', 'catppuccin', 'dracula', 'gogh'
+  id TEXT PRIMARY KEY,          -- 'catppuccin', 'catppuccin-ports', 'dracula', 'tinted', 'mbadolato', 'gogh'
   url TEXT NOT NULL,
   revision TEXT NOT NULL,       -- upstream commit
-  fetched_at TEXT NOT NULL
+  fetched_at TEXT NOT NULL      -- commit date of revision, so builds are reproducible
 );
 
 CREATE TABLE themes (
@@ -58,13 +66,13 @@ CREATE TABLE colors (
   theme_id TEXT NOT NULL REFERENCES themes(id),
   role TEXT NOT NULL,           -- 26 roles, ansi0..ansi15, background, foreground, cursor, selection_bg, selection_fg
   hex TEXT NOT NULL,
-  provenance TEXT NOT NULL,     -- 'official' | 'port' | 'base24' | 'derived'
+  provenance TEXT NOT NULL,     -- 'official' (as the source gives it) | 'port' | 'base24' (mapped from Base16/Base24 slots) | 'derived'
   PRIMARY KEY (theme_id, role)
 );
 
 CREATE TABLE attributes (       -- computed in OKLCH by the builder
   theme_id TEXT NOT NULL REFERENCES themes(id),
-  key TEXT NOT NULL,            -- bg_lightness, min_contrast, mean_chroma, warmth, dominant_hue
+  key TEXT NOT NULL,            -- see Attributes below
   value REAL NOT NULL,
   PRIMARY KEY (theme_id, key)
 );
@@ -83,7 +91,7 @@ CREATE TABLE relations (
   PRIMARY KEY (theme_id, other_id, kind)
 );
 
-CREATE TABLE vectors (          -- OKLab values of the role colors in fixed order, float32, for similarity
+CREATE TABLE vectors (          -- OKLab L, a, b of background, foreground, ansi0..ansi15, little-endian float32 (216 bytes)
   theme_id TEXT PRIMARY KEY REFERENCES themes(id),
   oklab BLOB NOT NULL
 );
@@ -100,6 +108,44 @@ CREATE VIRTUAL TABLE themes_fts USING fts5(name, family, author, tags, content='
 ```
 
 Similarity search computes distances over `vectors` in Go. A few thousand themes is small enough to scan without an index.
+
+## Build rules
+
+- **IDs.** The slug of the theme name (`+` becomes `plus`); Catppuccin flavours are `catppuccin-<flavour>`. If an earlier source already took the ID, the source ID is appended (`gruvbox-dark-gogh`), then a number.
+- **Colors.** Bundled themes get all 47 roles: what the source gives, then the 26-role derivation below for the rest. Base16 schemes map to ANSI as base16-shell does (brights repeat the normal colors); Base24 schemes use the Base24 styling guide. Catppuccin's official cursor is rosewater.
+- **Appearance.** `light` if the background's OKLab lightness is at least 0.5, else `dark`.
+- **Relations.** `duplicate` points a copy at the first theme with the same `content_hash`. Within one source, themes whose names differ only by the words "dark" and "light" form a family (`solarized` from "Solarized Dark"); every pair in a family is a `variant`, and pairs of different appearance are also `light-dark`. Catppuccin and Dracula are one family each.
+- **Unknown-licence themes** have a `themes` row, appearance tag and FTS row, but no colors, attributes or vector.
+- **Reproducibility.** Rows are inserted in sorted order, the database is vacuumed, and zstd runs single-threaded at a fixed level. Attributes are rounded to six decimals. Two builds from the same source revisions produce the same file on the same architecture; on 2026-11-06 the pinned sources gave sha256 `c05372aa5f627d8875d6be499babe73abe30afa909b3557f9d520b356e1c4cc3` (2,671 themes: 1,810 bundled, 861 listed, 28 nonfree left out).
+
+Run `make catalog` to fetch the pinned sources into `.cache/catalog-src` and build `.cache/catalog.db.zst`.
+
+### Attributes
+
+Computed in OKLCH on the full palette. "Accents" are ANSI 1–6 and 9–14.
+
+| Key | Meaning |
+|---|---|
+| `bg_lightness` | OKLab lightness of the background |
+| `text_contrast` | WCAG contrast of foreground on background |
+| `min_contrast` | Lowest WCAG contrast of the foreground or any accent on the background |
+| `mean_chroma` | Mean chroma of the accents |
+| `mean_accent_lightness` | Mean lightness of the accents |
+| `warmth` | Mean of C·cos(h − 60°) over background, foreground and ANSI 0, 7, 8, 15: positive leans orange, negative blue |
+| `dominant_hue` | Hue of the summed OKLab a/b of the 18 terminal colors |
+
+### Computed tags
+
+First thresholds, to be tuned against the TUI:
+
+| Tag | Rule |
+|---|---|
+| `dark`, `light` | Appearance |
+| `high-contrast` / `low-contrast` | `text_contrast` ≥ 12 / < 7 |
+| `neon` | `mean_chroma` ≥ 0.20 |
+| `muted` | `mean_chroma` < 0.08 |
+| `pastel` | 0.08 ≤ `mean_chroma` < 0.14 and `mean_accent_lightness` ≥ 0.75 |
+| `warm` / `cool` | `warmth` ≥ 0.01 / ≤ −0.01 |
 
 ## 26-role derivation
 

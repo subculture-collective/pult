@@ -1,0 +1,16 @@
+# Test fixture, same layout as upstream licenses.yml.
+Free One:
+  license: MIT
+  source: https://example.org/free-one
+Unknown One:
+  license: unknown
+  source: ''
+Nonfree One:
+  license: nonfree
+  source: https://example.org/nonfree-one
+Gone One:
+  license: MIT
+  source: ''
+Dracula:
+  license: unknown
+  source: ""

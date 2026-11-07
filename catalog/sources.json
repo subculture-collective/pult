@@ -1,0 +1,46 @@
+{
+  "sources": [
+    {
+      "id": "catppuccin",
+      "url": "https://github.com/catppuccin/palette",
+      "revision": "07d02aa110ef9eb7e7427afca5c73ba9cf7f8ebd",
+      "date": "2026-03-21T22:18:08Z",
+      "paths": ["/palette.json"]
+    },
+    {
+      "id": "catppuccin-ports",
+      "url": "https://github.com/catppuccin/catppuccin",
+      "revision": "d09787dd98ca6fba08af5ef2ae94a7e09f17daca",
+      "date": "2026-07-25T11:36:34Z",
+      "paths": ["/resources/ports.porcelain.json"]
+    },
+    {
+      "id": "dracula",
+      "url": "https://github.com/dracula/draculatheme.com",
+      "revision": "fea89dd95cf9ba7d594ba8322f2f083906636e0b",
+      "date": "2026-10-30T03:22:37Z",
+      "paths": ["/content/spec.mdx"]
+    },
+    {
+      "id": "tinted",
+      "url": "https://github.com/tinted-theming/schemes",
+      "revision": "05e6e6f7e53a2745345ba3658b0172831ff54e9b",
+      "date": "2026-11-02T22:54:04+01:00",
+      "paths": ["/base16/", "/base24/"]
+    },
+    {
+      "id": "mbadolato",
+      "url": "https://github.com/mbadolato/iTerm2-Color-Schemes",
+      "revision": "b84cd1e68c9033d967fccd9febbac3072d127b7b",
+      "date": "2026-11-06T11:55:34-07:00",
+      "paths": ["/ghostty/", "/licenses.yml"]
+    },
+    {
+      "id": "gogh",
+      "url": "https://github.com/Gogh-Co/Gogh",
+      "revision": "3277da1a295142cd8664e0657c5a3c2a44cc520a",
+      "date": "2026-10-23T14:29:17Z",
+      "paths": ["/themes/"]
+    }
+  ]
+}
