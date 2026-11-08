@@ -23,11 +23,11 @@ config:
 
 integrations:
   - method: owned
-    template: cava/theme-tender.mustache
-    target: themes/theme-tender
+    template: cava/pult.mustache
+    target: themes/pult
     select:
       format: ini
-      set: { color.theme: theme-tender }
+      set: { color.theme: pult }
 
 reload:
   - argv: [pkill, -USR2, -x, cava]

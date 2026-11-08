@@ -2,7 +2,7 @@ MIT License
 
 Applies to the contents of the `templates/` and `registry/` directories.
 
-Copyright (c) 2026 Theme Tender contributors
+Copyright (c) 2026 Pult contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

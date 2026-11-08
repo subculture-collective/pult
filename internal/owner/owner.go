@@ -1,4 +1,4 @@
-// Package owner finds who else manages a config file, so Theme Tender asks
+// Package owner finds who else manages a config file, so Pult asks
 // or hands off instead of overwriting it silently: Omarchy, a Hyprland
 // framework, a palette generator (matugen, wallust, pywal), chezmoi, stow
 // or another symlink setup.
@@ -33,13 +33,13 @@ const (
 	Subarchy
 )
 
-// Action is what Theme Tender should do with a file.
+// Action is what Pult should do with a file.
 type Action int
 
 const (
 	Write   Action = iota // nobody else owns it
 	Ask                   // writing would change a dotfiles repository or fight a generator
-	HandOff               // the owner has a theme mechanism Theme Tender uses instead
+	HandOff               // the owner has a theme mechanism Pult uses instead
 )
 
 func (a Action) String() string { return [...]string{"write", "ask", "hand off"}[a] }
@@ -73,7 +73,7 @@ func (o Owner) Record() string {
 	return "none"
 }
 
-// Action says whether Theme Tender may write the file.
+// Action says whether Pult may write the file.
 func (o Owner) Action() Action {
 	switch o.Kind {
 	case None:
@@ -143,7 +143,7 @@ type Detector struct {
 	omarchyDirs  []string
 	omarchyHooks map[string][]byte // theme-set hook name -> contents
 	// subarchyDefaults is where Subarchy ships the defaults its user files
-	// layer over; Theme Tender never edits them.
+	// layer over; Pult never edits them.
 	subarchyDefaults string
 	frameworkDirs    map[string][]string
 	generatorFiles   map[string][]string // generator -> output files
@@ -307,7 +307,7 @@ func (d *Detector) File(path string) (Owner, error) {
 	}
 
 	if within(resolved, d.subarchyDefaults) || within(path, d.subarchyDefaults) {
-		return Owner{Kind: Subarchy, Source: resolved, Detail: "Subarchy ships it as a default in " + d.subarchyDefaults + "; Theme Tender never edits it"}, nil
+		return Owner{Kind: Subarchy, Source: resolved, Detail: "Subarchy ships it as a default in " + d.subarchyDefaults + "; Pult never edits it"}, nil
 	}
 	if d.sys.Omarchy {
 		if p, ok := refers(d.omarchyDirs, nil); ok {

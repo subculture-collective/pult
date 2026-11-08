@@ -16,7 +16,7 @@ import (
 
 	"github.com/klauspost/compress/zstd"
 
-	"git.subcult.tv/subculture-collective/theme-tender/internal/color"
+	"git.subcult.tv/subculture-collective/pult/internal/color"
 )
 
 // DB is an open catalog.
@@ -50,7 +50,7 @@ func Open(path string) (*DB, error) {
 			return nil, err
 		}
 		defer dec.Close()
-		f, err := os.CreateTemp("", "theme-tender-catalog-*.db")
+		f, err := os.CreateTemp("", "pult-catalog-*.db")
 		if err != nil {
 			return nil, err
 		}
@@ -78,7 +78,7 @@ func Open(path string) (*DB, error) {
 // OpenBytes opens an uncompressed catalog.db held in memory, such as the
 // one inside a bundle, by writing it to a temporary file.
 func OpenBytes(data []byte) (*DB, error) {
-	f, err := os.CreateTemp("", "theme-tender-catalog-*.db")
+	f, err := os.CreateTemp("", "pult-catalog-*.db")
 	if err != nil {
 		return nil, err
 	}

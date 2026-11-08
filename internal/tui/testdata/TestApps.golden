@@ -1,7 +1,7 @@
-[1mTheme Tender[m  [2mthemes[m  [1;4;4ma[m[1;4;4mp[m[1;4;4mp[m[1;4;4ms[m
+[1mPult[m  [2mthemes[m  [1;4;4ma[m[1;4;4mp[m[1;4;4mp[m[1;4;4ms[m
 [2mtab switch · / search · 1-9 tags · s similar · esc clear · enter apply · u undo · q quit[m
 
 app        tier owner                  state
 btop       1    none                   version 1.4.7, owned
 kitty      1    omarchy                Omarchy themes it
-tmux       1    stow                   owned by stow; asked in tender apply
+tmux       1    stow                   owned by stow; asked in pult apply

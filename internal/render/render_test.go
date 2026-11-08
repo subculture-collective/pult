@@ -20,8 +20,8 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
-	"git.subcult.tv/subculture-collective/theme-tender/internal/color"
-	"git.subcult.tv/subculture-collective/theme-tender/internal/registry"
+	"git.subcult.tv/subculture-collective/pult/internal/color"
+	"git.subcult.tv/subculture-collective/pult/internal/registry"
 )
 
 var update = flag.Bool("update", false, "rewrite golden files")
@@ -207,7 +207,7 @@ func TestRenderedFilesParse(t *testing.T) {
 			if _, err := exec.LookPath(e.Validate.Argv[0]); err != nil {
 				t.Skipf("%s is not installed", e.Validate.Argv[0])
 			}
-			file := filepath.Join(t.TempDir(), "theme-tender-file")
+			file := filepath.Join(t.TempDir(), "pult-file")
 			if err := os.WriteFile(file, []byte(out), 0o644); err != nil {
 				t.Fatal(err)
 			}
@@ -257,7 +257,7 @@ func TestVars(t *testing.T) {
 // and checks them against the palette.
 func TestTerminalAppColors(t *testing.T) {
 	th := goldenThemes(t)[0]
-	out, err := File(os.DirFS(templatesDir), "terminal-app/theme-tender.terminal.mustache", th.Theme, th.palette)
+	out, err := File(os.DirFS(templatesDir), "terminal-app/pult.terminal.mustache", th.Theme, th.palette)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -313,15 +313,15 @@ func TestHostileThemeName(t *testing.T) {
 	th := goldenThemes(t)[0]
 	th.Theme.Name = "A \"b\" \\ c\nd --> e"
 	th.Theme.Author = "x\"\ny"
-	out, err := File(os.DirFS(templatesDir), "iterm2/theme-tender.json.mustache", th.Theme, th.palette)
+	out, err := File(os.DirFS(templatesDir), "iterm2/pult.json.mustache", th.Theme, th.palette)
 	if err != nil {
 		t.Fatal(err)
 	}
 	var doc struct{ Profiles []struct{ Tags []string } }
-	if err := json.Unmarshal([]byte(out), &doc); err != nil || doc.Profiles[0].Tags[0] != "Theme Tender: A \"b\" \\ c d --> e" {
+	if err := json.Unmarshal([]byte(out), &doc); err != nil || doc.Profiles[0].Tags[0] != "Pult: A \"b\" \\ c d --> e" {
 		t.Errorf("iTerm2 JSON: %v %+v", err, doc)
 	}
-	out, err = File(os.DirFS(templatesDir), "wezterm/theme-tender.toml.mustache", th.Theme, th.palette)
+	out, err = File(os.DirFS(templatesDir), "wezterm/pult.toml.mustache", th.Theme, th.palette)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -329,7 +329,7 @@ func TestHostileThemeName(t *testing.T) {
 	if err := toml.Unmarshal([]byte(out), &w); err != nil || w.Metadata.Author != "x\" y" {
 		t.Errorf("WezTerm TOML: %v %+v", err, w)
 	}
-	out, err = File(os.DirFS(templatesDir), "kitty/theme-tender.conf.mustache", th.Theme, th.palette)
+	out, err = File(os.DirFS(templatesDir), "kitty/pult.conf.mustache", th.Theme, th.palette)
 	if err != nil || strings.Count(strings.Split(out, "\n")[0], "#") != 1 || strings.HasPrefix(strings.Split(out, "\n")[1], "d -->") {
 		t.Errorf("comment line broken:\n%s", out)
 	}
@@ -340,12 +340,12 @@ func TestHostileThemeName(t *testing.T) {
 func TestFontSections(t *testing.T) {
 	th := goldenThemes(t)[0]
 	want := map[string][]string{
-		"kitty/theme-tender.conf.mustache":      {"font_family JetBrains Mono\n", "font_size 11.5\n"},
-		"ghostty/theme-tender.ghostty.mustache": {"font-family = \"JetBrains Mono\"\n", "font-size = 11.5\n"},
-		"alacritty/theme-tender.toml.mustache":  {"[font]\nnormal = { family = \"JetBrains Mono\" }\nsize = 11.5\n"},
-		"foot/theme-tender.ini.mustache":        {"[main]\nfont=JetBrains Mono:size=11.5\n"},
-		"foot/theme-tender-1.23.ini.mustache":   {"[main]\nfont=JetBrains Mono:size=11.5\n"},
-		"foot/theme-tender-1.0.ini.mustache":    {"[main]\nfont=JetBrains Mono:size=11.5\n"},
+		"kitty/pult.conf.mustache":      {"font_family JetBrains Mono\n", "font_size 11.5\n"},
+		"ghostty/pult.ghostty.mustache": {"font-family = \"JetBrains Mono\"\n", "font-size = 11.5\n"},
+		"alacritty/pult.toml.mustache":  {"[font]\nnormal = { family = \"JetBrains Mono\" }\nsize = 11.5\n"},
+		"foot/pult.ini.mustache":        {"[main]\nfont=JetBrains Mono:size=11.5\n"},
+		"foot/pult-1.23.ini.mustache":   {"[main]\nfont=JetBrains Mono:size=11.5\n"},
+		"foot/pult-1.0.ini.mustache":    {"[main]\nfont=JetBrains Mono:size=11.5\n"},
 	}
 	for name, parts := range want {
 		plain, err := File(os.DirFS(templatesDir), name, th.Theme, th.palette)

@@ -1,4 +1,4 @@
-// Package changes records every file Theme Tender creates, edits or
+// Package changes records every file Pult creates, edits or
 // deletes before touching it, so that each change can be undone, and
 // recovers from a run that stopped part-way. The contract is
 // docs/reference/change-record.md.
@@ -44,7 +44,7 @@ type Transaction struct {
 	Started       time.Time `toml:"started"`
 	Finished      time.Time `toml:"finished,omitempty"`
 	Theme         string    `toml:"theme"`
-	TenderVersion string    `toml:"tender_version"`
+	PultVersion   string    `toml:"pult_version"`
 	BundleVersion string    `toml:"bundle_version"`
 	RollsBack     string    `toml:"rolls_back,omitempty"` // for kind = "rollback"
 	Error         string    `toml:"error,omitempty"`
@@ -55,7 +55,7 @@ type Transaction struct {
 
 // Meta describes the run that makes a transaction.
 type Meta struct {
-	Theme, TenderVersion, BundleVersion string
+	Theme, PultVersion, BundleVersion string
 }
 
 // Store is a change record directory.
@@ -63,33 +63,33 @@ type Store struct {
 	dir string
 	now func() time.Time
 	// crash, when set, is called after each protocol step; a non-nil error
-	// stops the run there, as if Theme Tender had been killed. Tests use it.
+	// stops the run there, as if Pult had been killed. Tests use it.
 	crash func(point string) error
 	// keep overrides keepTransactions in tests.
 	keep int
 }
 
-// ErrLocked means another Theme Tender run holds the lock.
-var ErrLocked = errors.New("changes: another Theme Tender run holds the lock")
+// ErrLocked means another Pult run holds the lock.
+var ErrLocked = errors.New("changes: another Pult run holds the lock")
 
 // ErrPending means an earlier run stopped part-way and has not been
 // recovered. A new run would record its half-written files as their
 // original contents, so it is refused until Recover runs.
-var ErrPending = errors.New("changes: an interrupted run needs recovering first (tender doctor -recover)")
+var ErrPending = errors.New("changes: an interrupted run needs recovering first (pult doctor -recover)")
 
 const absent = "absent"
 
-// DefaultDir is $XDG_STATE_HOME/theme-tender, with $XDG_STATE_HOME
+// DefaultDir is $XDG_STATE_HOME/pult, with $XDG_STATE_HOME
 // defaulting to $HOME/.local/state.
 func DefaultDir() (string, error) {
 	if d := os.Getenv("XDG_STATE_HOME"); filepath.IsAbs(d) {
-		return filepath.Join(d, "theme-tender"), nil
+		return filepath.Join(d, "pult"), nil
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(home, ".local", "state", "theme-tender"), nil
+	return filepath.Join(home, ".local", "state", "pult"), nil
 }
 
 // Open opens or creates the change record in dir.
@@ -146,22 +146,22 @@ func (s *Store) writeTransaction(tx *Transaction) error {
 	return atomicWrite(tx.file, data, 0o600, nil)
 }
 
-// FileState is a file Theme Tender currently owns a change to.
+// FileState is a file Pult currently owns a change to.
 type FileState struct {
 	Path     string `toml:"path"`
 	Resolved string `toml:"resolved"`
 	App      string `toml:"app"`
 	Method   string `toml:"method"`
 	Hash     string `toml:"hash"`     // what the file should contain now
-	Pristine string `toml:"pristine"` // what it contained before Theme Tender first touched it
+	Pristine string `toml:"pristine"` // what it contained before Pult first touched it
 	Backup   string `toml:"backup,omitempty"`
 	Mode     string `toml:"mode,omitempty"` // of the pristine file
-	// Edited means the file changed outside Theme Tender between two of
+	// Edited means the file changed outside Pult between two of
 	// its changes, so restoring Pristine would undo those edits too.
 	Edited bool `toml:"edited,omitempty"`
 }
 
-// State is current.toml: the active theme and the files Theme Tender has
+// State is current.toml: the active theme and the files Pult has
 // changed from their pristine state.
 type State struct {
 	Theme string      `toml:"theme"`

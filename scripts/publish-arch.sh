@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds the theme-tender pacman package for VERSION from the release's
+# Builds the pult pacman package for VERSION from the release's
 # filled PKGBUILD (tests included) and uploads it to the Gitea Arch package
 # registry, repository "subcult". Gitea signs the package and the database.
 # Runs as root in an archlinux container; needs GITEA_TOKEN with package
@@ -15,15 +15,15 @@ upload="${GITHUB_SERVER_URL}/api/packages/${owner}/arch/${repo}"
 
 pacman -Syu --noconfirm --needed base-devel go >/dev/null
 id builder >/dev/null 2>&1 || useradd -m builder
-dir=/home/builder/theme-tender
+dir=/home/builder/pult
 rm -rf "$dir" && mkdir -p "$dir"
-curl -fsSL "$release/PKGBUILD.theme-tender" -o "$dir/PKGBUILD"
+curl -fsSL "$release/PKGBUILD.pult" -o "$dir/PKGBUILD"
 chown -R builder "$dir"
 su builder -c "cd '$dir' && makepkg --noconfirm"
 
 shopt -s nullglob
 pkgs=()
-for f in "$dir"/theme-tender-"$version"-*.pkg.tar.zst; do
+for f in "$dir"/pult-"$version"-*.pkg.tar.zst; do
   [[ $f == *-debug-* ]] || pkgs+=("$f")
 done
 if ((${#pkgs[@]} == 0)); then

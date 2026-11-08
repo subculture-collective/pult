@@ -9,7 +9,7 @@ import (
 	"strings"
 	"unicode"
 
-	"git.subcult.tv/subculture-collective/theme-tender/internal/color"
+	"git.subcult.tv/subculture-collective/pult/internal/color"
 )
 
 // Theme is what templates know about a theme besides its colors.
@@ -171,7 +171,7 @@ func nsColor(r, g, b int) string {
 	return base64.StdEncoding.EncodeToString([]byte(archive))
 }
 
-// File renders the template at name (for example "kitty/theme-tender.conf.mustache")
+// File renders the template at name (for example "kitty/pult.conf.mustache")
 // from fsys, the bundle's templates/ directory.
 func File(fsys fs.FS, name string, t Theme, p color.Palette) (string, error) {
 	src, err := fs.ReadFile(fsys, name)

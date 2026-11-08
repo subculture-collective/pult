@@ -207,7 +207,7 @@ func TestOwners(t *testing.T) {
 		{
 			name: "Subarchy default",
 			setup: func(h *home) {
-				h.file("usr/share/subcult/default/kitty/kitty.conf", "include theme-tender.conf\n")
+				h.file("usr/share/subcult/default/kitty/kitty.conf", "include pult.conf\n")
 			},
 			path:   "usr/share/subcult/default/kitty/kitty.conf",
 			record: "subarchy", action: HandOff,
@@ -215,7 +215,7 @@ func TestOwners(t *testing.T) {
 		{
 			name: "user file linked to a Subarchy default",
 			setup: func(h *home) {
-				h.file("usr/share/subcult/default/kitty/kitty.conf", "include theme-tender.conf\n")
+				h.file("usr/share/subcult/default/kitty/kitty.conf", "include pult.conf\n")
 				h.link(kitty, h.path("usr/share/subcult/default/kitty/kitty.conf"))
 			},
 			path:   kitty,
@@ -355,10 +355,10 @@ func TestOmarchyThemeFromSymlink(t *testing.T) {
 }
 
 // TestRealChezmoi runs chezmoi against a fixture source directory. It uses
-// $THEME_TENDER_TEST_CHEZMOI, or chezmoi from PATH, and skips when neither
+// $PULT_TEST_CHEZMOI, or chezmoi from PATH, and skips when neither
 // runs.
 func TestRealChezmoi(t *testing.T) {
-	bin := os.Getenv("THEME_TENDER_TEST_CHEZMOI")
+	bin := os.Getenv("PULT_TEST_CHEZMOI")
 	if bin == "" {
 		bin = "chezmoi"
 	}

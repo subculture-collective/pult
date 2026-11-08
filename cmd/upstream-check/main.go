@@ -1,4 +1,4 @@
-// Command upstream-check reports what moved upstream since Theme Tender
+// Command upstream-check reports what moved upstream since Pult
 // last looked: catalog sources whose default branch is past the pinned
 // revision in catalog/sources.json, and apps whose newest release tag is
 // newer than the version their registry entry was checked against. CI runs

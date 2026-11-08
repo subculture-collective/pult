@@ -127,7 +127,7 @@ func TestReadRejectsBadArchives(t *testing.T) {
 		if err := Build(&buf, m, sampleCatalog, dataDir(t, sampleFiles)); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := Read(buf.Bytes()); err == nil || !strings.Contains(err.Error(), "needs a newer Theme Tender") {
+		if _, err := Read(buf.Bytes()); err == nil || !strings.Contains(err.Error(), "needs a newer Pult") {
 			t.Errorf("newer format %+v: %v", m, err)
 		}
 	}
@@ -139,11 +139,11 @@ func TestReadRejectsBadArchives(t *testing.T) {
 func TestSignAndVerify(t *testing.T) {
 	data := build(t)
 	key, other := newKey(t, 1), newKey(t, 9)
-	sig, err := Sign(data, key.secret, "", "theme-tender bundle 2026.11.07.1")
+	sig, err := Sign(data, key.secret, "", "pult bundle 2026.11.07.1")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Contains(sig, []byte("trusted comment: theme-tender bundle 2026.11.07.1")) {
+	if !bytes.Contains(sig, []byte("trusted comment: pult bundle 2026.11.07.1")) {
 		t.Errorf("signature:\n%s", sig)
 	}
 	if err := Verify(data, sig, []string{other.public, key.public}); err != nil {

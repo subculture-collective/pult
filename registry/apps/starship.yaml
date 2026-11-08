@@ -27,7 +27,7 @@ integrations:
   - method: keys
     format: toml
     template: starship/palette.toml.mustache
-    paths: [palette, palettes.theme-tender]
+    paths: [palette, palettes.pult]
 
 ports:
   catppuccin: { url: https://github.com/catppuccin/starship, kind: official }

@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"git.subcult.tv/subculture-collective/theme-tender/internal/registry"
+	"git.subcult.tv/subculture-collective/pult/internal/registry"
 )
 
 // TestConfigPaths checks which config file is chosen per platform, given

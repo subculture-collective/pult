@@ -1,6 +1,6 @@
 name: arch-repo
 
-# Publishes an existing release's theme-tender package to the Gitea pacman
+# Publishes an existing release's pult package to the Gitea pacman
 # repository "subcult", for releases made before release.yml did it, or to
 # retry. Run it from the Actions tab with the version (without "v"). It
 # needs the ARCH_PACKAGE_TOKEN secret (see release.yml).

@@ -36,9 +36,9 @@ config:
     macos: ["$XDG_CONFIG_HOME/demo/demo.conf"]
 integrations:
   - method: include
-    template: demo/theme-tender.conf.mustache
-    owned_file: theme-tender.conf
-    line: "include theme-tender.conf"
+    template: demo/pult.conf.mustache
+    owned_file: pult.conf
+    line: "include pult.conf"
     position: end
 reload:
   - argv: [demo, reload]

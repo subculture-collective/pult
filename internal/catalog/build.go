@@ -22,7 +22,7 @@ import (
 	"github.com/klauspost/compress/zstd"
 	_ "modernc.org/sqlite" // registers the "sqlite" driver
 
-	"git.subcult.tv/subculture-collective/theme-tender/internal/color"
+	"git.subcult.tv/subculture-collective/pult/internal/color"
 )
 
 // Source is one pinned upstream repository. Date is the commit date of

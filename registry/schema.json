@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Theme Tender app registry entry, schema 1",
+  "title": "Pult app registry entry, schema 1",
   "description": "See docs/reference/registry-schema.md. A built-in entry must match #/$defs/entry; a user override must match #/$defs/override, and the merged result must match #/$defs/entry.",
   "$ref": "#/$defs/entry",
   "$defs": {

@@ -5,8 +5,8 @@
 # reload command is needed. A profile needs only Guid and Name; keys it
 # leaves out come from the default profile, so fonts and other settings
 # stay the user's. One malformed file there stops all reloads. The user
-# selects the "Theme Tender" profile once, or makes it the default.
-# Theme Tender owns the whole profile file, so config path and target are
+# selects the "Pult" profile once, or makes it the default.
+# Pult owns the whole profile file, so config path and target are
 # the same file and nothing else is edited.
 schema: 1
 id: iterm2
@@ -20,12 +20,12 @@ detect:
 
 config:
   paths:
-    macos: ["$HOME/Library/Application Support/iTerm2/DynamicProfiles/theme-tender.json"]
+    macos: ["$HOME/Library/Application Support/iTerm2/DynamicProfiles/pult.json"]
 
 integrations:
   - method: owned
-    template: iterm2/theme-tender.json.mustache
-    target: theme-tender.json
+    template: iterm2/pult.json.mustache
+    target: pult.json
 
 ports:
   catppuccin: { url: https://github.com/catppuccin/iterm, kind: official }

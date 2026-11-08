@@ -31,10 +31,10 @@ integrations:
   - method: owned
     versions: ">=25.5.28"
     template: yazi/flavor.toml.mustache
-    target: flavors/theme-tender.yazi/flavor.toml
+    target: flavors/pult.yazi/flavor.toml
     select:
       format: toml
-      set: { flavor.dark: theme-tender, flavor.light: theme-tender }
+      set: { flavor.dark: pult, flavor.light: pult }
   - method: manual
     url: https://yazi-rs.github.io/docs/flavors/overview
 

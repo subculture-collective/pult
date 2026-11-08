@@ -10,7 +10,7 @@ import (
 	"io"
 	"os"
 
-	"git.subcult.tv/subculture-collective/theme-tender/internal/catalog"
+	"git.subcult.tv/subculture-collective/pult/internal/catalog"
 )
 
 func main() {

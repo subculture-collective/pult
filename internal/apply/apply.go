@@ -1,4 +1,4 @@
-// Package apply is Theme Tender's apply pipeline: it finds the installed
+// Package apply is Pult's apply pipeline: it finds the installed
 // apps, chooses each one's integration, renders templates, plans the edits
 // with a diff preview, applies them through the change record, validates
 // and reloads, and uninstalls.
@@ -19,14 +19,14 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
-	"git.subcult.tv/subculture-collective/theme-tender/internal/changes"
-	"git.subcult.tv/subculture-collective/theme-tender/internal/color"
-	"git.subcult.tv/subculture-collective/theme-tender/internal/configedit"
-	"git.subcult.tv/subculture-collective/theme-tender/internal/framework"
-	"git.subcult.tv/subculture-collective/theme-tender/internal/omarchy"
-	"git.subcult.tv/subculture-collective/theme-tender/internal/owner"
-	"git.subcult.tv/subculture-collective/theme-tender/internal/registry"
-	"git.subcult.tv/subculture-collective/theme-tender/internal/render"
+	"git.subcult.tv/subculture-collective/pult/internal/changes"
+	"git.subcult.tv/subculture-collective/pult/internal/color"
+	"git.subcult.tv/subculture-collective/pult/internal/configedit"
+	"git.subcult.tv/subculture-collective/pult/internal/framework"
+	"git.subcult.tv/subculture-collective/pult/internal/omarchy"
+	"git.subcult.tv/subculture-collective/pult/internal/owner"
+	"git.subcult.tv/subculture-collective/pult/internal/registry"
+	"git.subcult.tv/subculture-collective/pult/internal/render"
 )
 
 // System runs commands. Tests replace it.
@@ -338,7 +338,7 @@ func (ap *AppPlan) add(e changes.Edit, before []byte) {
 	}
 }
 
-// themeFile is the file Theme Tender owns for the app's integration, or ""
+// themeFile is the file Pult owns for the app's integration, or ""
 // for methods that only edit the config.
 func (o Options) themeFile(ap *AppPlan) string {
 	switch in := ap.Integration; in.Method {
@@ -403,7 +403,7 @@ func describe(in *registry.Integration) string {
 }
 
 // Upgrade is an app whose version differs from the one recorded when
-// Theme Tender last changed its files.
+// Pult last changed its files.
 type Upgrade struct {
 	App, Was, Now string
 	// WasIntegration is what the last apply used; NowIntegration is what
@@ -415,7 +415,7 @@ type Upgrade struct {
 	ValidateErr error
 }
 
-// Upgrades lists apps Theme Tender still has changes to whose version is
+// Upgrades lists apps Pult still has changes to whose version is
 // now different. Changes recorded before versions were recorded are
 // skipped.
 func Upgrades(o Options) ([]Upgrade, error) {
@@ -636,7 +636,7 @@ func (o Options) configPath(e registry.Entry) string {
 			parts := strings.Split(v, ",")
 			v = parts[len(parts)-1]
 		}
-		// A relative value depends on the directory Theme Tender runs in,
+		// A relative value depends on the directory Pult runs in,
 		// which need not be the app's; it is ignored, as for XDG_*.
 		if !filepath.IsAbs(v) {
 			continue
@@ -691,7 +691,7 @@ type Result struct {
 	Commands []CommandResult // reloads and the Omarchy switch
 }
 
-// CommandResult is one command Theme Tender ran after writing.
+// CommandResult is one command Pult ran after writing.
 type CommandResult struct {
 	App    string
 	Argv   []string
@@ -784,9 +784,9 @@ func substitute(argv []string, ap AppPlan) []string {
 	return out
 }
 
-// Uninstall restores every file Theme Tender changed, switches Omarchy
-// back to the theme that was active before Theme Tender's first apply
-// (if a Theme Tender theme is still active), and reloads the apps.
+// Uninstall restores every file Pult changed, switches Omarchy
+// back to the theme that was active before Pult's first apply
+// (if a Pult theme is still active), and reloads the apps.
 func Uninstall(o Options, force bool) (*Result, []changes.Conflict, error) {
 	txs, err := o.Store.Transactions()
 	if err != nil {
@@ -800,7 +800,7 @@ func Uninstall(o Options, force bool) (*Result, []changes.Conflict, error) {
 			}
 		}
 	}
-	// Frameworks switch back first, while Theme Tender's theme files still
+	// Frameworks switch back first, while Pult's theme files still
 	// exist, so a shell watching them never sees them vanish.
 	env := o.frameworkEnv()
 	var switched []CommandResult

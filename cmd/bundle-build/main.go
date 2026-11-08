@@ -12,8 +12,8 @@ import (
 
 	"github.com/klauspost/compress/zstd"
 
-	"git.subcult.tv/subculture-collective/theme-tender/internal/bundle"
-	"git.subcult.tv/subculture-collective/theme-tender/internal/catalog"
+	"git.subcult.tv/subculture-collective/pult/internal/bundle"
+	"git.subcult.tv/subculture-collective/pult/internal/catalog"
 )
 
 func main() {
@@ -21,7 +21,7 @@ func main() {
 	sources := flag.String("manifest", "catalog/sources.json", "sources manifest the catalog was built from")
 	version := flag.String("version", "", "bundle version, for example 2026.11.07.1 (required)")
 	out := flag.String("out", "", "output file (default dist/bundle-<version>.tar.zst)")
-	key := flag.String("sign", "", "minisign secret key file; its password is read from $TENDER_SIGNING_PASSWORD")
+	key := flag.String("sign", "", "minisign secret key file; its password is read from $PULT_SIGNING_PASSWORD")
 	flag.Parse()
 	if err := run(*cat, *sources, *version, *out, *key); err != nil {
 		fmt.Fprintln(os.Stderr, "bundle-build:", err)
@@ -72,7 +72,7 @@ func run(catPath, sourcesPath, version, out, key string) error {
 	if key == "" {
 		return nil
 	}
-	sig, err := bundle.Sign(buf.Bytes(), key, os.Getenv("TENDER_SIGNING_PASSWORD"), "theme-tender bundle "+version)
+	sig, err := bundle.Sign(buf.Bytes(), key, os.Getenv("PULT_SIGNING_PASSWORD"), "pult bundle "+version)
 	if err != nil {
 		return err
 	}

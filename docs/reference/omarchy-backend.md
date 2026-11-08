@@ -1,17 +1,17 @@
 # Omarchy backend (v1)
 
-On Omarchy, Theme Tender doesn't write app configs. It writes an Omarchy theme and switches to it, and Omarchy renders kitty, ghostty, alacritty, btop, Hyprland and the rest from its own templates. Files Omarchy owns are never edited (ADR 0002). `internal/omarchy` implements this; the ownership detector hands such files off (see [ownership.md](ownership.md)).
+On Omarchy, Pult doesn't write app configs. It writes an Omarchy theme and switches to it, and Omarchy renders kitty, ghostty, alacritty, btop, Hyprland and the rest from its own templates. Files Omarchy owns are never edited (ADR 0002). `internal/omarchy` implements this; the ownership detector hands such files off (see [ownership.md](ownership.md)).
 
 ## Theme directory
 
-`$HOME/.config/omarchy/themes/tender-<slug>/`, with:
+`$HOME/.config/omarchy/themes/pult-<slug>/`, with:
 
 - `colors.toml`, the palette in Omarchy's keys;
 - `README.md`, saying where the theme came from.
 
-Omarchy hard-codes that path, so `$XDG_CONFIG_HOME` isn't used. The `tender-` prefix matters: a user theme named like a built-in one (`catppuccin`) is overlaid on the built-in theme, which would mix in its backgrounds and editor themes. No backgrounds are shipped.
+Omarchy hard-codes that path, so `$XDG_CONFIG_HOME` isn't used. The `pult-` prefix matters: a user theme named like a built-in one (`catppuccin`) is overlaid on the built-in theme, which would mix in its backgrounds and editor themes. No backgrounds are shipped.
 
-Both files go through the change record like any other edit, so `tender uninstall` removes them.
+Both files go through the change record like any other edit, so `pult uninstall` removes them.
 
 ## colors.toml
 
@@ -33,4 +33,4 @@ Because Omarchy sets ANSI 0 to the background, a scheme whose ANSI 0 differs fro
 
 ## Switching
 
-After the files are written, Theme Tender runs `omarchy-theme-set tender-<slug>`. Before the first switch it records the active theme (`$XDG_STATE_HOME/omarchy/current/theme.name`), so that uninstall can switch back to it. That last step belongs to the apply pipeline.
+After the files are written, Pult runs `omarchy-theme-set pult-<slug>`. Before the first switch it records the active theme (`$XDG_STATE_HOME/omarchy/current/theme.name`), so that uninstall can switch back to it. That last step belongs to the apply pipeline.

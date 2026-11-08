@@ -29,11 +29,11 @@ config:
 
 integrations:
   - method: owned
-    template: zellij/theme-tender.kdl.mustache
-    target: themes/theme-tender.kdl
+    template: zellij/pult.kdl.mustache
+    target: themes/pult.kdl
     select:
       format: kdl
-      set: { theme: theme-tender }
+      set: { theme: pult }
 
 validate:
   argv: [zellij, --config, "{theme_file}", setup, --check]

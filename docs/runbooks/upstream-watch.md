@@ -17,7 +17,7 @@ To refresh the issue now, dispatch the workflow from the Actions tab, or:
 
 ```bash
 tea api --login subcult-agent -X POST \
-  /repos/subculture-collective/theme-tender/actions/workflows/upstream-watch.yml/dispatches -f ref=main
+  /repos/subculture-collective/pult/actions/workflows/upstream-watch.yml/dispatches -f ref=main
 ```
 
 To stop it, close the issue and disable the workflow in the repository's Actions settings; the next run would otherwise open a new issue.

@@ -178,7 +178,7 @@ func Read(data []byte) (*Bundle, error) {
 		return nil, fmt.Errorf("bundle: missing or unsupported manifest.toml")
 	}
 	if m.CatalogSchema > CatalogSchema || m.RegistrySchema > RegistrySchema {
-		return nil, fmt.Errorf("bundle: needs a newer Theme Tender (catalog format %d, registry format %d; this one reads up to %d and %d)", m.CatalogSchema, m.RegistrySchema, CatalogSchema, RegistrySchema)
+		return nil, fmt.Errorf("bundle: needs a newer Pult (catalog format %d, registry format %d; this one reads up to %d and %d)", m.CatalogSchema, m.RegistrySchema, CatalogSchema, RegistrySchema)
 	}
 	delete(files, manifestName)
 	for p, want := range m.Files {

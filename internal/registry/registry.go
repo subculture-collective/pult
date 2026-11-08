@@ -161,7 +161,7 @@ func (r *Registry) Entries() []Entry {
 
 // Load reads schema.json and apps/<id>.yaml from builtin, then applies the
 // <id>.yaml overrides in userDir (normally
-// ~/.config/theme-tender/registry.d). An override replaces fields of the
+// ~/.config/pult/registry.d). An override replaces fields of the
 // built-in entry with the same id: mappings merge key by key, and any other
 // value, lists included, is replaced. "disabled: true" removes the entry.
 // A file for a new id must be a complete entry.
@@ -215,7 +215,7 @@ func Load(builtin fs.FS, userDir string) (*Registry, error) {
 }
 
 // schemaURL names schema.json in validation errors.
-const schemaURL = "theme-tender:registry/schema.json"
+const schemaURL = "pult:registry/schema.json"
 
 type validator struct {
 	entrySchema, overrideSchema *jsonschema.Schema

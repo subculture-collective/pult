@@ -26,9 +26,9 @@ config:
 
 integrations:
   - method: include
-    template: kitty/theme-tender.conf.mustache
-    owned_file: theme-tender.conf
-    line: "include theme-tender.conf"
+    template: kitty/pult.conf.mustache
+    owned_file: pult.conf
+    line: "include pult.conf"
     position: end
 
 reload:

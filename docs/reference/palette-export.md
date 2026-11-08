@@ -1,11 +1,11 @@
 # Palette export (v1)
 
-`tender palette` and `tender render` give other tools a theme's colors without applying anything. Nothing is written to the change record. Subarchy uses them for root-owned targets (SDDM, Plymouth, Limine) that it applies through polkit.
+`pult palette` and `pult render` give other tools a theme's colors without applying anything. Nothing is written to the change record. Subarchy uses them for root-owned targets (SDDM, Plymouth, Limine) that it applies through polkit.
 
-## tender palette
+## pult palette
 
 ```bash
-tender palette [-format json|toml] <theme-id>
+pult palette [-format json|toml] <theme-id>
 ```
 
 Prints every role in `color.AllRoles` order: the 26 Catppuccin roles, `ansi0` â€¦ `ansi15`, then `background`, `foreground`, `cursor`, `selection_bg`, `selection_fg`. Roles the theme doesn't define are filled in by the 26-role derivation, as for `apply`. Colors are lowercase `#rrggbb`. An unbundled theme is downloaded first, as for `apply`.
@@ -24,10 +24,10 @@ Prints every role in `color.AllRoles` order: the 26 Catppuccin roles, `ansi0` â€
 
 TOML has the same content: `schema = 1`, a `[theme]` table and a `[colors]` table. `schema` changes only if fields are removed or change meaning.
 
-## tender render
+## pult render
 
 ```bash
-tender render [-o file] <theme-id> <template>
+pult render [-o file] <theme-id> <template>
 ```
 
-Renders one Mustache template with the variables described in [registry-schema.md](registry-schema.md#templates). `<template>` is a file path, or else the name of a bundled template such as `kitty/theme-tender.conf.mustache`. Output goes to stdout, or to `-o`, which is overwritten without a backup.
+Renders one Mustache template with the variables described in [registry-schema.md](registry-schema.md#templates). `<template>` is a file path, or else the name of a bundled template such as `kitty/pult.conf.mustache`. Output goes to stdout, or to `-o`, which is overwritten without a backup.

@@ -8,9 +8,9 @@ import (
 	"regexp"
 	"strings"
 
-	"git.subcult.tv/subculture-collective/theme-tender/internal/changes"
-	"git.subcult.tv/subculture-collective/theme-tender/internal/color"
-	"git.subcult.tv/subculture-collective/theme-tender/internal/render"
+	"git.subcult.tv/subculture-collective/pult/internal/changes"
+	"git.subcult.tv/subculture-collective/pult/internal/color"
+	"git.subcult.tv/subculture-collective/pult/internal/render"
 )
 
 func init() {
@@ -20,9 +20,9 @@ func init() {
 
 var nonName = regexp.MustCompile(`[^a-z0-9-]+`)
 
-// themeName is Theme Tender's name for a theme inside a framework.
+// themeName is Pult's name for a theme inside a framework.
 func themeName(slug string) string {
-	return "tender-" + strings.Trim(nonName.ReplaceAllString(strings.ToLower(slug), "-"), "-")
+	return "pult-" + strings.Trim(nonName.ReplaceAllString(strings.ToLower(slug), "-"), "-")
 }
 
 func configDir(env Env) string {
@@ -154,7 +154,7 @@ func (dms) Prepare(env Env, t render.Theme, p color.Palette) ([]changes.Edit, st
 	if err != nil {
 		return nil, "", "", err
 	}
-	path := filepath.Join(configDir(env), "dms", "theme-tender", themeName(t.Slug)+".json")
+	path := filepath.Join(configDir(env), "dms", "pult", themeName(t.Slug)+".json")
 	note := "DankMaterialShell derives terminal ANSI colors from the theme, so terminals it themes do not get this palette's ANSI colors"
 	return []changes.Edit{{Path: path, Content: append(b, '\n')}}, "custom\n" + path, note, nil
 }

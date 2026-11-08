@@ -1,7 +1,7 @@
-// Package themetender holds the data built into the binary: the app
+// Package pult holds the data built into the binary: the app
 // registry, the templates and, in release builds, the catalog. It is the
 // fallback when no valid signed bundle is installed.
-package themetender
+package pult
 
 import (
 	"bytes"
@@ -12,7 +12,7 @@ import (
 
 	"github.com/klauspost/compress/zstd"
 
-	"git.subcult.tv/subculture-collective/theme-tender/internal/bundle"
+	"git.subcult.tv/subculture-collective/pult/internal/bundle"
 )
 
 // Data holds registry/schema.json, registry/apps/*.yaml, templates/ and

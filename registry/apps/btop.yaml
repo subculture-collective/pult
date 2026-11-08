@@ -32,16 +32,16 @@ integrations:
       catppuccin-frappe: { path: themes/catppuccin_frappe.theme, sha256: 1689b67c1c6ce2f4985a0047fad6535acecf7872c21963785fa749868a01a2c9 }
       catppuccin-macchiato: { path: themes/catppuccin_macchiato.theme, sha256: f8b18ccb217bd4ebc184806a91d49a12cb312b9cf37d8ba23322653a78ac8850 }
       catppuccin-mocha: { path: themes/catppuccin_mocha.theme, sha256: 4c7469ab9bda282c1ff606aca37c9c0b84cd0cb66d041e4e7e1fed39791f4644 }
-    target: themes/theme-tender.theme
+    target: themes/pult.theme
     select:
       format: ini
-      set: { color_theme: theme-tender }
+      set: { color_theme: pult }
   - method: owned
-    template: btop/theme-tender.theme.mustache
-    target: themes/theme-tender.theme
+    template: btop/pult.theme.mustache
+    target: themes/pult.theme
     select:
       format: ini
-      set: { color_theme: theme-tender }
+      set: { color_theme: pult }
   # btop's built-in TTY theme uses the terminal's 16 colors.
   - method: ansi
     format: ini
