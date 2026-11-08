@@ -6,16 +6,17 @@ Status: M1 in progress. `pult` works with a catalog you build yourself; the sign
 
 ## Install
 
-Arch Linux, from the `subcult` pacman repository on git.subcult.tv (Gitea signs it with its own key):
+No packages are published yet. Build from source with Go 1.26 or newer:
 
 ```bash
-curl -fsS https://git.subcult.tv/api/packages/subculture-collective/arch/repository.key | sudo pacman-key --add -
-sudo pacman-key --lsign-key CCE8B0F3BCDD601D909773E4466AA6E8241453D2
-printf '\n[subcult]\nSigLevel = Required\nServer = https://git.subcult.tv/api/packages/subculture-collective/arch/$repo/$arch\n' | sudo tee -a /etc/pacman.conf
-sudo pacman -Sy pult
+git clone https://git.subcult.tv/subculture-collective/pult.git
+cd pult
+make catalog
+go build -o ~/.local/bin/pult ./cmd/pult
+export PULT_CATALOG=$PWD/.cache/catalog.db.zst
 ```
 
-Other platforms: release tarballs from [Releases](https://git.subcult.tv/subculture-collective/pult/releases) (`pult` with the catalog built in), or build from source with `go build ./cmd/pult`.
+Skip `pult update` for now: the newest signed bundle predates the rename, so Pult would write files under the old name.
 
 ## Usage
 
@@ -47,6 +48,7 @@ Files that stow, chezmoi, a palette generator or a Hyprland framework manage are
 ## Documentation
 
 - [Docs index](docs/README.md)
+- [Website source](site/README.md): landing page and user docs
 - [ADR 0002: foundations](docs/adr/0002-theme-tender-foundations.md)
 - Contracts: [registry](docs/reference/registry-schema.md), [change record](docs/reference/change-record.md), [catalog](docs/reference/catalog-schema.md)
 

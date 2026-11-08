@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pult: a universal remote for your colors</title>
+<meta name="description" content="Pult is a terminal app that themes your other apps from one palette, changes only their colors, and puts every file back with pult uninstall.">
+<link rel="canonical" href="https://pult.subcult.tv/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Pult: a universal remote for your colors">
+<meta property="og:description" content="A terminal app that themes your other apps from one palette and can put every file back.">
+<meta property="og:url" content="https://pult.subcult.tv/">
+<meta property="og:image" content="https://pult.subcult.tv/assets/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="assets/mark-primary.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+<script>document.documentElement.classList.add("js")</script>
+<script src="app.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="screen">
+  <header class="wrap bar">
+    <a class="brand" href="./"><img src="assets/mark-dark.svg" alt="" width="44" height="44">PULT</a>
+    <nav class="nav" aria-label="Main">
+      <a href="docs/">Docs</a>
+      <a href="#install">Install</a>
+      <a href="https://git.subcult.tv/subculture-collective/pult">Git</a>
+      <a href="https://support.subcult.tv">Patreon</a>
+    </nav>
+  </header>
+
+  <main id="main">
+  <div class="wrap hero">
+    <div class="osd" aria-hidden="true">
+      <b data-channel>CH 16</b>
+      <span><b>PLAY</b><i class="play"></i></span>
+    </div>
+    <h1><span>A universal</span> <span>remote for</span> <span>your colors</span></h1>
+    <div class="hero-foot">
+      <p class="lede">Pult is a terminal app that themes your other apps from one palette. It finds the apps you have, writes only their color settings, shows a dry run first, and <code>pult uninstall</code> puts every file back.</p>
+      <div class="actions">
+        <a class="btn fill" href="docs/">READ THE DOCS</a>
+        <a class="btn" href="#install">INSTALL</a>
+      </div>
+    </div>
+    <div class="osd" aria-hidden="true" style="margin-top:28px">
+      <span>LINUX + MACOS</span>
+      <span data-counter>SP 0:00:16</span>
+    </div>
+  </div>
+
+  <div class="band" aria-hidden="true">
+    <div><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+
+  <section class="wrap demo" aria-labelledby="demo-title">
+    <div class="demo-head">
+      <h2 id="demo-title">Change the<br>channel</h2>
+      <p>A browser mock-up of <code>pult tui</code>, with eight real palettes from the catalog. Click the list, then <code>j</code> and <code>k</code> move, <code>enter</code> applies and <code>u</code> goes back. The real app asks y/N before it writes anything.</p>
+    </div>
+    <div class="set">
+      <div class="tui">
+        <div class="tui-top"><b>Pult</b>  <u>themes</u>  <span class="faint">apps</span></div>
+        <div class="faint tui-help">/ search · 1-9 tags · s similar · enter apply · u undo · q quit</div>
+        <ul class="rows" data-rows role="listbox" tabindex="0" aria-label="Themes">
+          <li id="t1" role="option" data-id="catppuccin-mocha"><span aria-hidden="true">&gt;</span><span>catppuccin-mocha</span><span>Catppuccin Mocha</span><span class="faint">cool,dark,pastel</span></li>
+          <li id="t2" role="option" data-id="dracula"><span></span><span>dracula</span><span>Dracula</span><span class="faint">cool,dark,high-contrast</span></li>
+          <li id="t3" role="option" data-id="nord"><span></span><span>nord</span><span>Nord</span><span class="faint">cool,dark,muted</span></li>
+          <li id="t4" role="option" data-id="gruvbox-dark"><span></span><span>gruvbox-dark</span><span>Gruvbox Dark</span><span class="faint">dark,warm</span></li>
+          <li id="t5" role="option" data-id="kanagawa"><span></span><span>kanagawa</span><span>Kanagawa</span><span class="faint">dark</span></li>
+          <li id="t6" role="option" data-id="everforest-dark"><span></span><span>everforest-dark</span><span>Everforest Dark</span><span class="faint">dark,pastel</span></li>
+          <li id="t7" role="option" data-id="ayu-dark"><span></span><span>ayu-dark</span><span>Ayu Dark</span><span class="faint">dark,high-contrast,pastel</span></li>
+          <li id="t8" role="option" data-id="rose-pine-dawn"><span></span><span>rose-pine-dawn</span><span>Rose Pine Dawn</span><span class="faint">cool,light,low-contrast</span></li>
+        </ul>
+        <div class="swatches" data-swatches aria-hidden="true">
+          <i style="background:var(--a0)"></i><i style="background:var(--a1)"></i><i style="background:var(--a2)"></i><i style="background:var(--a3)"></i><i style="background:var(--a4)"></i><i style="background:var(--a5)"></i><i style="background:var(--a6)"></i><i style="background:var(--a7)"></i>
+          <i style="background:var(--a8)"></i><i style="background:var(--a9)"></i><i style="background:var(--a10)"></i><i style="background:var(--a11)"></i><i style="background:var(--a12)"></i><i style="background:var(--a13)"></i><i style="background:var(--a14)"></i><i style="background:var(--a15)"></i>
+        </div>
+      </div>
+
+      <div class="panes" aria-label="Sample app output in the applied palette">
+        <div class="pane">
+          <h3>shell</h3>
+          <pre><span class="a6">~/src/pult</span> on <span class="a5">main</span>
+<span class="a2">&gt;</span> ls
+<span class="a4">cmd  docs  internal  registry</span>
+README.md  <span class="a3">Makefile</span>  go.mod</pre>
+        </div>
+        <div class="pane">
+          <h3>delta: kitty.conf</h3>
+          <pre> font_size 12
+<span class="a2">+include pult.conf</span></pre>
+        </div>
+        <div class="pane">
+          <h3>btop</h3>
+          <div class="meter"><span>cpu</span><div><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="mid"></i><i class="mid"></i><i class="hot"></i><i></i><i></i><i></i><i></i><i></i></div><span>58%</span></div>
+          <div class="meter"><span>mem</span><div><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="mid"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><span>41%</span></div>
+        </div>
+      </div>
+
+      <div class="remote" aria-label="Remote">
+        <button type="button" data-key="up" aria-label="Move up">CH +</button>
+        <button type="button" data-key="down" aria-label="Move down">CH -</button>
+        <button type="button" data-key="apply" aria-label="Apply theme">ENTER</button>
+        <button type="button" data-key="undo" aria-label="Undo">U</button>
+      </div>
+    </div>
+    <p class="status" data-status role="status"></p>
+  </section>
+  </main>
+</div>
+
+<div class="paper">
+  <div class="strip" aria-hidden="true">
+    <i style="background:var(--a6)"></i><i style="background:var(--a5)"></i><i style="background:var(--a3)"></i><i style="background:var(--a0)"></i><i style="background:var(--a1)"></i><i style="background:var(--a2)"></i><i style="background:var(--a4)"></i><i style="background:var(--a7)"></i><i style="background:var(--a14)"></i><i style="background:var(--a13)"></i><i style="background:var(--a11)"></i><i style="background:var(--a8)"></i><i style="background:var(--a9)"></i><i style="background:var(--a10)"></i><i style="background:var(--a12)"></i><i style="background:var(--a15)"></i>
+  </div>
+
+  <section class="wrap block" aria-labelledby="how">
+    <h2 id="how">Colors, and nothing else</h2>
+    <div class="steps">
+      <ol>
+        <li><h3>Find what you have</h3><code class="cmd">pult list</code><p>Checks which of the 20 supported apps are installed and which tool, if any, owns each config file.</p></li>
+        <li><h3>Read the plan</h3><code class="cmd">pult apply -dry-run catppuccin-mocha</code><p>Prints every file it would touch and a diff for each. Nothing is written.</p></li>
+        <li><h3>Apply</h3><code class="cmd">pult apply catppuccin-mocha</code><p>Uses the app's include or theme mechanism where it has one, so your other settings stay as they are. Each file is recorded before it changes.</p></li>
+        <li><h3>Put it back</h3><code class="cmd">pult uninstall</code><p>Restores every changed file. If you edited a file after Pult wrote it, Pult leaves your edit alone unless you pass <code>-force</code>.</p></li>
+      </ol>
+      <pre class="term" tabindex="0" aria-label="Sample dry run output"><span class="p">$</span> pult apply -dry-run catppuccin-mocha
+alacritty  skip: not installed
+bat        ~/.config/bat/config via ansi, 1 file(s)
+ghostty    ~/.config/ghostty/config via include, 2 file(s)
+kitty      ~/.config/kitty/kitty.conf via include, 2 file(s)
+<span class="dim">...</span>
+
+<span class="dim">--- ~/.config/kitty/kitty.conf
++++ ~/.config/kitty/kitty.conf (Pult)
+@@ -1,1 +1,2 @@</span>
+ font_size 12
+<span class="add">+include pult.conf</span></pre>
+    </div>
+  </section>
+
+  <section class="wrap block" aria-labelledby="covers">
+    <h2 id="covers">What it covers</h2>
+    <div class="columns">
+      <div>
+        <h3>20 apps</h3>
+        <dl class="apps">
+          <dt>Terminals</dt><dd>Alacritty, Ghostty, kitty, foot, iTerm2, WezTerm, Terminal.app</dd>
+          <dt>Shell</dt><dd>fish, Starship, tmux, Zellij</dd>
+          <dt>Tools</dt><dd>bat, btop, cava, delta, eza, Helix, lazygit, lsd, Yazi</dd>
+        </dl>
+        <p class="muted">WezTerm and Terminal.app get manual setup instructions.</p>
+      </div>
+      <div>
+        <h3>About 2,700 themes</h3>
+        <p>From iTerm2 Color Schemes, Tinted Theming, Catppuccin, Dracula and Gogh. About 1,800 ship with their colors. The rest download when you apply them. Search by name or tag, list close matches, or bring your own palette as a JSON or TOML file.</p>
+      </div>
+      <div>
+        <h3>Your other tools</h3>
+        <p>Files managed by stow, chezmoi, matugen, wallust, pywal or a Hyprland framework are written only after you confirm. On Omarchy, Pult writes an Omarchy theme and switches to it instead of editing Omarchy's files.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap block" id="install" aria-labelledby="install-title">
+    <h2 id="install-title">Install</h2>
+    <p class="note"><strong>Pre-release.</strong> There are no packages yet, so for now you build it from source. You need Go 1.26 or newer and Git.</p>
+    <div style="position:relative;margin-top:18px">
+      <pre class="term has-copy" tabindex="0" aria-label="Install commands" id="install-code">git clone https://git.subcult.tv/subculture-collective/pult.git
+cd pult
+make catalog
+go build -o ~/.local/bin/pult ./cmd/pult
+export PULT_CATALOG=$PWD/.cache/catalog.db.zst
+pult tui</pre>
+      <button class="copy" type="button" data-copy="install-code" hidden>COPY</button>
+    </div>
+    <p class="muted" style="margin-top:20px">Add the <code>PULT_CATALOG</code> line to your shell profile to keep it. <a href="docs/#install">More in the docs.</a></p>
+  </section>
+
+  <section class="wrap block support" aria-labelledby="support">
+    <div>
+      <h2 id="support">Batteries not included</h2>
+      <p class="note">SUBCULT builds Pult and pays for the hours and the hosting. Pult stays public, and paying doesn't unlock anything in it. If you want to chip in, the money goes to the studio.</p>
+    </div>
+    <a class="btn ink" href="https://support.subcult.tv">SUPPORT ON PATREON</a>
+  </section>
+</div>
+
+<footer class="screen foot">
+  <div class="wrap">
+    <nav class="links" aria-label="Footer">
+      <a href="docs/">Docs</a>
+      <a href="https://git.subcult.tv/subculture-collective/pult">Gitea</a>
+      <a href="https://github.com/subculture-collective/pult">GitHub mirror</a>
+      <a href="https://support.subcult.tv">Patreon</a>
+      <a href="https://subcult.tv">SUBCULT</a>
+    </nav>
+    <small>Code GPL-3.0-only. Templates and app registry MIT. Themes keep their own licences.</small>
+  </div>
+</footer>
+</body>
+</html>

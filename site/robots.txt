@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://pult.subcult.tv/sitemap.xml
