@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pult docs</title>
+<meta name="description" content="Install Pult, use the TUI and commands, write profiles and palette files, and undo every change.">
+<link rel="canonical" href="https://pult.subcult.tv/docs/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Pult docs">
+<meta property="og:description" content="Install Pult, use the TUI and commands, write profiles and palette files, and undo every change.">
+<meta property="og:url" content="https://pult.subcult.tv/docs/">
+<meta property="og:image" content="https://pult.subcult.tv/assets/og.png">
+<link rel="icon" href="../assets/mark-primary.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="screen docs-bar">
+  <header class="wrap bar">
+    <a class="brand" href="../"><img src="../assets/mark-dark.svg" alt="" width="44" height="44">PULT</a>
+    <nav class="nav" aria-label="Main">
+      <a href="./" aria-current="page">Docs</a>
+      <a href="../#install">Install</a>
+      <a href="https://git.subcult.tv/subculture-collective/pult">Git</a>
+      <a href="https://support.subcult.tv">Patreon</a>
+    </nav>
+  </header>
+</div>
+
+<div class="paper">
+  <div class="strip" aria-hidden="true">
+    <i style="background:var(--a6)"></i><i style="background:var(--a5)"></i><i style="background:var(--a3)"></i><i style="background:var(--a0)"></i><i style="background:var(--a1)"></i><i style="background:var(--a2)"></i><i style="background:var(--a4)"></i><i style="background:var(--a7)"></i><i style="background:var(--a14)"></i><i style="background:var(--a13)"></i><i style="background:var(--a11)"></i><i style="background:var(--a8)"></i><i style="background:var(--a9)"></i><i style="background:var(--a10)"></i><i style="background:var(--a12)"></i><i style="background:var(--a15)"></i>
+  </div>
+
+  <div class="wrap docs">
+    <nav aria-label="On this page">
+      <div>
+        <h2>On this page</h2>
+        <ul>
+          <li><a href="#install">Install</a></li>
+          <li><a href="#start">First run</a></li>
+          <li><a href="#tui">The TUI</a></li>
+          <li><a href="#commands">Commands</a></li>
+          <li><a href="#themes">Finding themes</a></li>
+          <li><a href="#profiles">Profiles</a></li>
+          <li><a href="#palettes">Palette files</a></li>
+          <li><a href="#export">Palette export</a></li>
+          <li><a href="#apps">Supported apps</a></li>
+          <li><a href="#changes">What gets changed</a></li>
+          <li><a href="#owners">Other tools</a></li>
+          <li><a href="#undo">Undo and recovery</a></li>
+          <li><a href="#paths">Paths and flags</a></li>
+          <li><a href="#more">More</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <main id="main" class="doc">
+      <h1>Docs</h1>
+      <p>Pult (<code>pult</code>) is a terminal app that themes your other apps from one palette. It runs on Linux and macOS. It is pre-release software: the first milestone is still in progress and there are no packages yet.</p>
+
+      <section id="install">
+        <h2>Install</h2>
+        <p>Build from source. You need Go 1.26 or newer, Git and network access.</p>
+<pre class="term" tabindex="0">git clone https://git.subcult.tv/subculture-collective/pult.git
+cd pult
+make catalog
+go build -o ~/.local/bin/pult ./cmd/pult
+export PULT_CATALOG=$PWD/.cache/catalog.db.zst</pre>
+        <p><code>make catalog</code> fetches the pinned theme sources and builds <code>.cache/catalog.db.zst</code>. A source build has no catalog of its own, so Pult needs <code>PULT_CATALOG</code> to find this file. Add the export to your shell profile, with the full path to your checkout. Make sure <code>~/.local/bin</code> is on your <code>PATH</code>.</p>
+        <p class="tip"><strong>Skip <code>pult update</code> for now.</strong> The newest signed data bundle predates the rename to Pult, so after installing it Pult writes files with the old name, such as <code>theme-tender.conf</code>. It will be safe once a bundle under the new name is published.</p>
+      </section>
+
+      <section id="start">
+        <h2>First run</h2>
+<pre class="term" tabindex="0"><span class="p">$</span> pult list                             <span class="dim"># which apps Pult found</span>
+<span class="p">$</span> pult search -tag pastel rose          <span class="dim"># find a theme</span>
+<span class="p">$</span> pult apply -dry-run catppuccin-mocha  <span class="dim"># see the plan and diffs</span>
+<span class="p">$</span> pult apply catppuccin-mocha           <span class="dim"># asks, then applies</span>
+<span class="p">$</span> pult uninstall                        <span class="dim"># put every changed file back</span></pre>
+        <p>Or run <code>pult tui</code> and do all of that from one screen.</p>
+      </section>
+
+      <section id="tui">
+        <h2>The TUI</h2>
+        <p><code>pult tui</code> has two screens, themes and apps. Moving through the list shows each theme's colors as swatches. A <code>↓</code> beside a theme means its colors aren't bundled and are downloaded when you apply it.</p>
+        <div class="table"><table>
+          <thead><tr><th>Key</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td><code>j</code> <code>k</code> or arrows</td><td>Move through the list</td></tr>
+            <tr><td><code>/</code></td><td>Search by name, family or author</td></tr>
+            <tr><td><code>1</code>–<code>9</code></td><td>Toggle a tag: dark, light, pastel, neon, muted, warm, cool, high-contrast, low-contrast</td></tr>
+            <tr><td><code>s</code></td><td>List the themes closest to the selected one</td></tr>
+            <tr><td><code>esc</code></td><td>Clear the similar list, or leave the search box</td></tr>
+            <tr><td><code>enter</code></td><td>Show the plan for the selected theme and ask y/N</td></tr>
+            <tr><td><code>u</code></td><td>Roll back the last apply, after y/N</td></tr>
+            <tr><td><code>tab</code></td><td>Switch between themes and apps</td></tr>
+            <tr><td><code>q</code></td><td>Quit</td></tr>
+          </tbody>
+        </table></div>
+        <p>The TUI leaves files other tools own alone. Use <code>pult apply</code> when you want to be asked about those.</p>
+      </section>
+
+      <section id="commands">
+        <h2>Commands</h2>
+        <div class="table"><table>
+          <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+          <tbody>
+            <tr><td><code>search [words]</code></td><td>Find themes. <code>-tag t</code> (repeatable) requires a tag, <code>-similar id</code> lists the closest themes, <code>-n 20</code> caps the results.</td></tr>
+            <tr><td><code>apply [theme]</code></td><td>Theme every supported app. The theme is a catalog ID or a palette file. <code>-dry-run</code> prints the plan and diffs and changes nothing. <code>-yes</code> skips the final confirmation, though files other tools own are still asked about. <code>-profile p</code> uses a <a href="#profiles">profile</a>.</td></tr>
+            <tr><td><code>uninstall</code></td><td>Put every changed file back. <code>-yes</code> skips the confirmation. <code>-force</code> also restores files edited since Pult wrote them.</td></tr>
+            <tr><td><code>tui</code></td><td>Browse, preview, apply and undo in the terminal.</td></tr>
+            <tr><td><code>list</code></td><td>Show supported apps and their state.</td></tr>
+            <tr><td><code>doctor</code></td><td>Check for interrupted runs, app upgrades, Omarchy and frameworks. <code>-recover</code> rolls back interrupted runs.</td></tr>
+            <tr><td><code>palette &lt;theme&gt;</code></td><td>Print the resolved palette and change nothing. <code>-format json</code> or <code>toml</code>.</td></tr>
+            <tr><td><code>render &lt;theme&gt; &lt;template&gt;</code></td><td>Render one Mustache template and apply nothing. <code>-o file</code> writes to a file and overwrites it without a backup. <code>-aether</code> reads Aether's <code>{name}</code> placeholders.</td></tr>
+            <tr><td><code>profiles</code></td><td>List profiles in <code>$XDG_CONFIG_HOME/pult/profiles</code>.</td></tr>
+            <tr><td><code>update</code></td><td>Install the newest signed data bundle. <a href="#install">Skip this for now.</a></td></tr>
+            <tr><td><code>version</code></td><td>Print the version.</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <section id="themes">
+        <h2>Finding themes</h2>
+        <p>The catalog holds about 2,700 themes from iTerm2 Color Schemes, Tinted Theming, Catppuccin, Dracula and Gogh. About 1,800 ship with their colors. The others are listed by name and marked <code>(downloaded on first use)</code>. Each theme keeps its own licence.</p>
+<pre class="term" tabindex="0"><span class="p">$</span> pult search rose -tag pastel -n 5
+<span class="p">$</span> pult search -similar catppuccin-mocha
+<span class="p">$</span> pult search -tag light -tag warm</pre>
+      </section>
+
+      <section id="profiles">
+        <h2>Profiles</h2>
+        <p>A profile is a TOML file that picks a theme, a set of apps and a terminal font. Keep profiles in <code>$XDG_CONFIG_HOME/pult/profiles/</code>, or pass any path.</p>
+<pre class="term" tabindex="0">schema = 1
+theme = "nord"
+apps = ["kitty", "bat"]
+
+[font]
+family = "JetBrains Mono"
+size = 12</pre>
+<pre class="term" tabindex="0"><span class="p">$</span> pult apply -profile desk          <span class="dim"># profiles/desk.toml</span>
+<span class="p">$</span> pult apply -profile ./work.toml   <span class="dim"># any file</span>
+<span class="p">$</span> pult apply -profile desk dracula  <span class="dim"># the profile, with another theme</span></pre>
+        <div class="table"><table>
+          <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><code>theme</code></td><td>Catalog ID, or a palette file path relative to the profile.</td></tr>
+            <tr><td><code>apps</code></td><td>Registry IDs to theme. Left out or empty means every app.</td></tr>
+            <tr><td><code>skip</code></td><td>Registry IDs to leave alone, even if <code>apps</code> lists them.</td></tr>
+            <tr><td><code>[font]</code></td><td><code>family</code> and optional <code>size</code> in points, for kitty, Ghostty, Alacritty and foot.</td></tr>
+          </tbody>
+        </table></div>
+        <p>Unknown fields are an error, so a typo doesn't pass unnoticed. Pult never installs fonts. On Linux it warns when <code>fc-list</code> doesn't know the family.</p>
+      </section>
+
+      <section id="palettes">
+        <h2>Palette files</h2>
+        <p>A palette file is what <code>pult palette</code> prints, in JSON or TOML. It works anywhere a theme ID does. An argument counts as a file when it contains <code>/</code> or ends in <code>.json</code> or <code>.toml</code>.</p>
+<pre class="term" tabindex="0">{
+  "schema": 1,
+  "theme": {"name": "My Theme", "appearance": "dark"},
+  "colors": {
+    "ansi0": "#100b19", <span class="dim">... through ...</span> "ansi15": "#f0ece4",
+    "background": "#100b19",
+    "foreground": "#f0ece4"
+  }
+}</pre>
+        <p><code>colors</code> needs <code>ansi0</code> through <code>ansi15</code>, <code>background</code> and <code>foreground</code>. Pult derives any other role. The <code>theme</code> block is optional.</p>
+      </section>
+
+      <section id="export">
+        <h2>Palette export</h2>
+        <p><code>pult palette</code> and <code>pult render</code> hand a theme's colors to other tools without applying anything and without touching the change record.</p>
+<pre class="term" tabindex="0"><span class="p">$</span> pult palette -format toml catppuccin-mocha
+<span class="p">$</span> pult render catppuccin-mocha my.conf.mustache
+<span class="p">$</span> pult render -o out.conf catppuccin-mocha kitty/pult.conf.mustache</pre>
+        <p>The template is a file path or the name of a bundled template. See the <a href="https://git.subcult.tv/subculture-collective/pult/src/branch/main/docs/reference/palette-export.md">palette export reference</a> and the <a href="https://git.subcult.tv/subculture-collective/pult/src/branch/main/docs/reference/registry-schema.md#templates">template variables</a>.</p>
+      </section>
+
+      <section id="apps">
+        <h2>Supported apps</h2>
+        <div class="table"><table>
+          <thead><tr><th>Kind</th><th>Apps</th></tr></thead>
+          <tbody>
+            <tr><td>Terminals</td><td>Alacritty, Ghostty, kitty, foot (Linux), iTerm2 (macOS)</td></tr>
+            <tr><td>Manual setup</td><td>WezTerm, Terminal.app (macOS). Pult gives instructions and doesn't write these.</td></tr>
+            <tr><td>Shell</td><td>fish, Starship, tmux, Zellij</td></tr>
+            <tr><td>Tools</td><td>bat, btop, cava, delta, eza, Helix, lazygit, lsd, Yazi</td></tr>
+          </tbody>
+        </table></div>
+        <p><code>pult list</code> shows the state of each one on your machine. Windows isn't supported.</p>
+      </section>
+
+      <section id="changes">
+        <h2>What gets changed</h2>
+        <p>Pult changes colors and, when a profile asks, the terminal font. It uses each app's own include or theme mechanism where one exists, so your other settings aren't touched. For kitty, it adds one line to <code>kitty.conf</code> and writes colors to a separate file:</p>
+<pre class="term" tabindex="0"> font_size 12
+<span class="add">+include pult.conf</span></pre>
+        <p>Run <code>pult apply -dry-run</code> to see the exact plan and diffs for your machine. If an app rejects its new config during validation, Pult restores that app's files and reports it.</p>
+      </section>
+
+      <section id="owners">
+        <h2>Other tools</h2>
+        <p>Each config file has one owner. Pult works out which and acts on that.</p>
+        <div class="table"><table>
+          <thead><tr><th>Owner</th><th>What Pult does</th></tr></thead>
+          <tbody>
+            <tr><td>Nobody</td><td>Writes the file.</td></tr>
+            <tr><td>stow, chezmoi or another symlink</td><td>Asks first. Writing through stow changes your dotfiles repository.</td></tr>
+            <tr><td>matugen, wallust, pywal</td><td>Asks first.</td></tr>
+            <tr><td>Hyprland framework</td><td>Asks first. Noctalia, DankMaterialShell, HyDE, Caelestia and end-4 are switched through their own commands. ML4W regenerates colors from the wallpaper, so it has no backend.</td></tr>
+            <tr><td>Omarchy</td><td>Writes an Omarchy theme, <code>~/.config/omarchy/themes/pult-&lt;slug&gt;/</code>, and switches to it. Omarchy's own files are never edited.</td></tr>
+            <tr><td>Subarchy defaults</td><td>Leaves them alone.</td></tr>
+          </tbody>
+        </table></div>
+        <p>Framework limits are in the <a href="https://git.subcult.tv/subculture-collective/pult/src/branch/main/docs/reference/framework-backends.md">framework reference</a>.</p>
+      </section>
+
+      <section id="undo">
+        <h2>Undo and recovery</h2>
+        <p>Every file Pult creates, edits or deletes is recorded before it is touched, with a compressed copy of the original under <code>$XDG_STATE_HOME/pult/</code>. The format is documented, so you can restore a file by hand even if Pult itself is broken.</p>
+        <ul class="list">
+          <li><code>pult uninstall</code> restores every changed file and removes the ones Pult created.</li>
+          <li>A file you edited after Pult wrote it is left as it is, and Pult shows the difference. <code>pult uninstall -force</code> restores it anyway.</li>
+          <li><code>u</code> in the TUI rolls back the last apply.</li>
+          <li><code>pult doctor</code> reports interrupted runs. <code>pult doctor -recover</code> rolls them back.</li>
+        </ul>
+      </section>
+
+      <section id="paths">
+        <h2>Paths and flags</h2>
+        <p>Every command that reads Pult's data takes these flags.</p>
+        <div class="table"><table>
+          <thead><tr><th>Flag</th><th>Default</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><code>-catalog PATH</code></td><td><code>$PULT_CATALOG</code></td><td><code>catalog.db</code> or <code>catalog.db.zst</code></td></tr>
+            <tr><td><code>-bundle PATH</code></td><td><code>$XDG_DATA_HOME/pult/bundle.tar.zst</code></td><td>Signed data bundle. Unsigned or altered bundles are ignored.</td></tr>
+            <tr><td><code>-data DIR</code></td><td>Built in</td><td>Directory holding <code>registry/</code> and <code>templates/</code></td></tr>
+            <tr><td><code>-state DIR</code></td><td><code>$XDG_STATE_HOME/pult</code></td><td>Change record</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <section id="more">
+        <h2>More</h2>
+        <ul class="list">
+          <li><a href="https://git.subcult.tv/subculture-collective/pult">Source on Gitea</a>, the primary repository, and the <a href="https://github.com/subculture-collective/pult">GitHub mirror</a></li>
+          <li><a href="https://git.subcult.tv/subculture-collective/pult/issues">Issues</a></li>
+          <li><a href="https://git.subcult.tv/subculture-collective/pult/src/branch/main/docs/README.md">Project documentation</a>: decisions, contracts and the milestone plan</li>
+          <li><a href="https://git.subcult.tv/subculture-collective/pult/src/branch/main/CONTRIBUTING.md">Contributing</a> and <a href="https://git.subcult.tv/subculture-collective/pult/src/branch/main/SECURITY.md">security</a></li>
+        </ul>
+        <p>Code is GPL-3.0-only. Templates and the app registry are MIT. Themes keep their own licences.</p>
+      </section>
+    </main>
+  </div>
+</div>
+
+<footer class="screen foot">
+  <div class="wrap">
+    <nav class="links" aria-label="Footer">
+      <a href="../">Home</a>
+      <a href="https://git.subcult.tv/subculture-collective/pult">Gitea</a>
+      <a href="https://github.com/subculture-collective/pult">GitHub mirror</a>
+      <a href="https://support.subcult.tv">Patreon</a>
+      <a href="https://subcult.tv">SUBCULT</a>
+    </nav>
+    <small>Pult is built by SUBCULT.</small>
+  </div>
+</footer>
+</body>
+</html>
