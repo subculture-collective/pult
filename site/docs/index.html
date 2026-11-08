@@ -59,18 +59,26 @@
 
     <main id="main" class="doc">
       <h1>Docs</h1>
-      <p>Pult (<code>pult</code>) is a terminal app that themes your other apps from one palette. It runs on Linux and macOS. It is pre-release software: the first milestone is still in progress and there are no packages yet.</p>
+      <p>Pult (<code>pult</code>) is a terminal app that themes your other apps from one palette. It runs on Linux and macOS. It is early software, so expect changes between 0.x releases.</p>
 
       <section id="install">
         <h2>Install</h2>
-        <p>Build from source. You need Go 1.26 or newer, Git and network access.</p>
+        <h3>Arch Linux</h3>
+        <p>Pult is in the <code>subcult</code> pacman repository on git.subcult.tv. Gitea signs it with its own key.</p>
+<pre class="term" tabindex="0">curl -fsS https://git.subcult.tv/api/packages/subculture-collective/arch/repository.key | sudo pacman-key --add -
+sudo pacman-key --lsign-key CCE8B0F3BCDD601D909773E4466AA6E8241453D2
+printf '\n[subcult]\nSigLevel = Required\nServer = https://git.subcult.tv/api/packages/subculture-collective/arch/$repo/$arch\n' | sudo tee -a /etc/pacman.conf
+sudo pacman -Sy pult</pre>
+        <h3>Tarball</h3>
+        <p>Download the Linux or macOS tarball for your machine from the <a href="https://git.subcult.tv/subculture-collective/pult/releases">releases page</a>, unpack it and put <code>pult</code> on your <code>PATH</code>. The catalog is built in.</p>
+        <h3>From source</h3>
+        <p>You need Go 1.26 or newer, Git and network access.</p>
 <pre class="term" tabindex="0">git clone https://git.subcult.tv/subculture-collective/pult.git
 cd pult
 make catalog
 go build -o ~/.local/bin/pult ./cmd/pult
 export PULT_CATALOG=$PWD/.cache/catalog.db.zst</pre>
         <p><code>make catalog</code> fetches the pinned theme sources and builds <code>.cache/catalog.db.zst</code>. A source build has no catalog of its own, so Pult needs <code>PULT_CATALOG</code> to find this file. Add the export to your shell profile, with the full path to your checkout. Make sure <code>~/.local/bin</code> is on your <code>PATH</code>.</p>
-        <p class="tip"><strong>Skip <code>pult update</code> for now.</strong> The newest signed data bundle predates the rename to Pult, so after installing it Pult writes files with the old name, such as <code>theme-tender.conf</code>. It will be safe once a bundle under the new name is published.</p>
       </section>
 
       <section id="start">
