@@ -1,6 +1,6 @@
 # Pult website
 
-The landing page and user docs, as static HTML with no build step and no backend. The intended hostname is `pult.subcult.tv`. It isn't deployed yet.
+The landing page and user docs, as static HTML with no build step and no backend. It is served at <https://pult.subcult.tv> from the files in `deploy/`.
 
 ## Preview
 
