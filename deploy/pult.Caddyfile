@@ -1,0 +1,4 @@
+http://pult.subcult.tv {
+    encode gzip zstd
+    reverse_proxy pult-site:8080
+}
