@@ -2,11 +2,20 @@
 
 Pult (`pult`) is a universal remote for your colors: a terminal app that themes your other apps from one palette. It finds which apps you have installed, changes only their colors, and records every change so it can put your configs back exactly as they were.
 
-Status: M1 in progress. `pult` works with a catalog you build yourself; the signed data bundle and packages come later. See the [M1 plan](docs/plan/m1.md).
+Status: early 0.x releases, so expect changes between them. See the [M1 plan](docs/plan/m1.md).
 
 ## Install
 
-No packages are published yet. Build from source with Go 1.26 or newer:
+Arch Linux, from the `subcult` pacman repository on git.subcult.tv (Gitea signs it with its own key):
+
+```bash
+curl -fsS https://git.subcult.tv/api/packages/subculture-collective/arch/repository.key | sudo pacman-key --add -
+sudo pacman-key --lsign-key CCE8B0F3BCDD601D909773E4466AA6E8241453D2
+printf '\n[subcult]\nSigLevel = Required\nServer = https://git.subcult.tv/api/packages/subculture-collective/arch/$repo/$arch\n' | sudo tee -a /etc/pacman.conf
+sudo pacman -Sy pult
+```
+
+Other platforms: release tarballs from [Releases](https://git.subcult.tv/subculture-collective/pult/releases) (`pult` with the catalog built in), or build from source with Go 1.26 or newer:
 
 ```bash
 git clone https://git.subcult.tv/subculture-collective/pult.git
@@ -15,8 +24,6 @@ make catalog
 go build -o ~/.local/bin/pult ./cmd/pult
 export PULT_CATALOG=$PWD/.cache/catalog.db.zst
 ```
-
-Skip `pult update` for now: the newest signed bundle predates the rename, so Pult would write files under the old name.
 
 ## Usage
 

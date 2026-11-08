@@ -168,17 +168,16 @@ kitty      ~/.config/kitty/kitty.conf via include, 2 file(s)
 
   <section class="wrap block" id="install" aria-labelledby="install-title">
     <h2 id="install-title">Install</h2>
-    <p class="note"><strong>Pre-release.</strong> There are no packages yet, so for now you build it from source. You need Go 1.26 or newer and Git.</p>
+    <p class="note"><strong>Arch Linux,</strong> from the <code>subcult</code> pacman repository on git.subcult.tv. Gitea signs it with its own key.</p>
     <div style="position:relative;margin-top:18px">
-      <pre class="term has-copy" tabindex="0" aria-label="Install commands" id="install-code">git clone https://git.subcult.tv/subculture-collective/pult.git
-cd pult
-make catalog
-go build -o ~/.local/bin/pult ./cmd/pult
-export PULT_CATALOG=$PWD/.cache/catalog.db.zst
+      <pre class="term has-copy" tabindex="0" aria-label="Install commands" id="install-code">curl -fsS https://git.subcult.tv/api/packages/subculture-collective/arch/repository.key | sudo pacman-key --add -
+sudo pacman-key --lsign-key CCE8B0F3BCDD601D909773E4466AA6E8241453D2
+printf '\n[subcult]\nSigLevel = Required\nServer = https://git.subcult.tv/api/packages/subculture-collective/arch/$repo/$arch\n' | sudo tee -a /etc/pacman.conf
+sudo pacman -Sy pult
 pult tui</pre>
       <button class="copy" type="button" data-copy="install-code" hidden>COPY</button>
     </div>
-    <p class="muted" style="margin-top:20px">Add the <code>PULT_CATALOG</code> line to your shell profile to keep it. <a href="docs/#install">More in the docs.</a></p>
+    <p class="muted" style="margin-top:20px">Linux and macOS tarballs with the catalog built in are on the <a href="https://git.subcult.tv/subculture-collective/pult/releases">releases page</a>. <a href="docs/#install">More in the docs.</a></p>
   </section>
 
   <section class="wrap block support" aria-labelledby="support">

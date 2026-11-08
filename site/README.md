@@ -16,8 +16,6 @@ Commands and flags in `docs/index.html` come from `cmd/pult/main.go`, and TUI ke
 
 The palettes in `app.js` are `pult palette <id>` output for the themes in the demo list. The list is a browser mock-up of `pult tui`, not the app itself.
 
-While no bundle under the new name is published, the docs tell people to skip `pult update`. Remove that note, and shorten the install steps, when the first Pult release ships.
-
 ## Brand
 
 The marks, `assets/og.png` and the fonts come from `studio/brands/pult` and `studio/brand-tools/fonts` in `subcult-tv`. Fonts are subset to Latin WOFF2 and keep their OFL texts in `fonts/`.
