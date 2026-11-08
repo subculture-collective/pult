@@ -65,4 +65,6 @@ Tarball: download and unpack `theme-tender-<version>-linux-amd64.tar.gz` and run
 
 2026-11-07, pacman repository: `theme-tender 0.1.0-1`, built by `scripts/publish-arch.sh` in an Arch container (tests included), was uploaded as `subcult-agent` and linked to the repository. In a fresh `archlinux` container, the README's setup installed it with `Validated By: … Signature`; `tender version`, `doctor` and `list` ran.
 
-Not yet checked: the `arch` job uploading with `ARCH_PACKAGE_TOKEN` (it builds; the Actions token was refused), installs from the AUR and the tap, and Homebrew on macOS.
+With `ARCH_PACKAGE_TOKEN` set (the owner's token, package read and write only), the `arch-repo` workflow on main built 0.1.0 and its upload was accepted as already published (409), so the token has upload rights.
+
+Not yet checked: the `arch` job on a new `v*` tag, installs from the AUR and the tap, and Homebrew on macOS.
