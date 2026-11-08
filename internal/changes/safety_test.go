@@ -160,7 +160,7 @@ func TestSymlinkLoop(t *testing.T) {
 	}
 }
 
-// TestUninstallRestoresDeletedFileMode: a file Theme Tender deleted comes
+// TestUninstallRestoresDeletedFileMode: a file Pult deleted comes
 // back with its own mode.
 func TestUninstallRestoresDeletedFileMode(t *testing.T) {
 	f := newFixture(t) // kitty.conf is 0600

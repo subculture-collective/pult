@@ -1,6 +1,6 @@
 # Contributing
 
-This repository holds Theme Tender. Keep changes small and reviewable, and keep the contracts in `docs/reference/` in step with the code.
+This repository holds Pult. Keep changes small and reviewable, and keep the contracts in `docs/reference/` in step with the code.
 
 ## Development flow
 

@@ -1,6 +1,6 @@
 # Editing config files without losing comments
 
-Spike for M1 work package 6, 2026-11-06. Question: how does Theme Tender change a few keys in a user's TOML or YAML config and leave every other byte as it was?
+Spike for M1 work package 6, 2026-11-06. Question: how does Pult change a few keys in a user's TOML or YAML config and leave every other byte as it was?
 
 ## Options
 
@@ -22,7 +22,7 @@ Use targeted text edits (option 2), in `internal/configedit`:
 | `IncludeLine` | `include` with `line` (kitty, ghostty, tmux) | Adds one line at the start or end, unless it is already there |
 | `TOMLAppend` | `include` with `key` (Alacritty `general.import`) | Adds one string to an array |
 | `TOMLSet` | `select`, `ansi` in TOML (yazi `flavor.dark`) | Scalar values in place; new keys next to their siblings, at the end of their table, or in a new table |
-| `TOMLKeys` | `keys` in TOML (starship) | Replaces a whole owned table (`[palettes.theme-tender]`) and sets keys (`palette`) from the rendered template |
+| `TOMLKeys` | `keys` in TOML (starship) | Replaces a whole owned table (`[palettes.pult]`) and sets keys (`palette`) from the rendered template |
 | `YAMLKeys` | `keys` in YAML (lazygit `gui.theme`) | Replaces the key's block, or adds it under the nearest parent, re-indented to the file's own step |
 | `INISet` | `select`, `ansi` in INI (btop `color_theme`) | `key = value` lines, keeping spacing and quoting |
 

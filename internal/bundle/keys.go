@@ -1,6 +1,6 @@
 package bundle
 
-// TrustedKeys are the minisign public keys whose bundles Theme Tender
+// TrustedKeys are the minisign public keys whose bundles Pult
 // accepts: the base64 line of each public key file. Rotation is in
 // docs/runbooks/bundle-signing.md.
 var TrustedKeys = []string{

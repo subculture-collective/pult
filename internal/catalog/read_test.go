@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"git.subcult.tv/subculture-collective/theme-tender/internal/color"
+	"git.subcult.tv/subculture-collective/pult/internal/color"
 )
 
 func openFixture(t *testing.T) *DB {

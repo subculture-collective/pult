@@ -9,10 +9,10 @@ import (
 	"strings"
 )
 
-// DefaultReleases is the Gitea API listing of Theme Tender's releases.
+// DefaultReleases is the Gitea API listing of Pult's releases.
 // Bundle releases are tagged bundle-<version> by bundle-release.yml and
 // carry two assets: bundle-<version>.tar.zst and its .minisig.
-const DefaultReleases = "https://git.subcult.tv/api/v1/repos/subculture-collective/theme-tender/releases?limit=50"
+const DefaultReleases = "https://git.subcult.tv/api/v1/repos/subculture-collective/pult/releases?limit=50"
 
 // Release is a published bundle.
 type Release struct {

@@ -23,7 +23,7 @@ func changedLines(a, b []string) (from, to int) {
 }
 
 // TestRoundTripStarship applies the palette table to starship's own
-// Catppuccin preset: only lines inside [palettes.theme-tender] and the
+// Catppuccin preset: only lines inside [palettes.pult] and the
 // palette key may change, and a second apply changes nothing.
 func TestRoundTripStarship(t *testing.T) {
 	src, err := os.ReadFile("testdata/starship-catppuccin-powerline.toml")
@@ -31,8 +31,8 @@ func TestRoundTripStarship(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, step := range []struct{ path, fragment string }{
-		{"palette", "palette = \"theme-tender\"\n"},
-		{"palettes.theme-tender", "[palettes.theme-tender]\nred = \"#ff0000\"\nmauve = \"#cba6f7\"\n"},
+		{"palette", "palette = \"pult\"\n"},
+		{"palettes.pult", "[palettes.pult]\nred = \"#ff0000\"\nmauve = \"#cba6f7\"\n"},
 	} {
 		out, err := TOMLKeys(src, []byte(step.fragment), []string{step.path})
 		if err != nil {
@@ -49,7 +49,7 @@ func TestRoundTripStarship(t *testing.T) {
 				t.Errorf("%s: line %q changed", step.path, l)
 			}
 		}
-		if step.path == "palettes.theme-tender" && (to != from || !strings.HasSuffix(string(out), step.fragment)) {
+		if step.path == "palettes.pult" && (to != from || !strings.HasSuffix(string(out), step.fragment)) {
 			t.Errorf("new table was not appended unchanged: %d..%d", from, to)
 		}
 		src = out

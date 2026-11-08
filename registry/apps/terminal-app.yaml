@@ -1,5 +1,5 @@
 # Not checked on a Mac. Terminal.app keeps profiles in its preferences
-# (com.apple.Terminal), with colors as archived NSColor data. Theme Tender
+# (com.apple.Terminal), with colors as archived NSColor data. Pult
 # does not edit those preferences, because uninstall could not restore
 # them; it writes a .terminal profile file instead, the format Terminal's
 # own Export command writes (an XML property list, colors as NSKeyedArchiver
@@ -8,8 +8,8 @@
 # documentation, and still needs checking on macOS.
 #
 # Tier 3: after each apply, import the profile once by opening the file
-# (open "$HOME/Library/Application Support/theme-tender/terminal-app/theme-tender.terminal",
-# which also opens a window with it), then pick "Theme Tender" in
+# (open "$HOME/Library/Application Support/pult/terminal-app/pult.terminal",
+# which also opens a window with it), then pick "Pult" in
 # Terminal > Settings > Profiles and press Default. The imported copy does
 # not follow later applies, and uninstall removes only the file.
 schema: 1
@@ -24,12 +24,12 @@ detect:
 
 config:
   paths:
-    macos: ["$HOME/Library/Application Support/theme-tender/terminal-app/theme-tender.terminal"]
+    macos: ["$HOME/Library/Application Support/pult/terminal-app/pult.terminal"]
 
 integrations:
   - method: owned
-    template: terminal-app/theme-tender.terminal.mustache
-    target: theme-tender.terminal
+    template: terminal-app/pult.terminal.mustache
+    target: pult.terminal
 
 ports:
   catppuccin: { url: https://github.com/catppuccin/terminal.app, kind: official }

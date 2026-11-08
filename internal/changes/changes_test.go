@@ -59,9 +59,9 @@ func newFixture(t *testing.T) *fixture {
 // edit through a symlink, and a deleted file.
 func (f *fixture) edits() []Edit {
 	return []Edit{
-		{App: "kitty", Path: f.kitty, Method: "include", Content: []byte("font_size 12\ninclude theme-tender.conf\n"), Detail: map[string]any{"line": "include theme-tender.conf"}},
-		{App: "kitty", Path: filepath.Join(filepath.Dir(f.kitty), "theme-tender.conf"), Method: "include", Content: []byte("foreground #cdd6f4\n")},
-		{App: "btop", Path: f.link, Owner: "stow", Method: "owned", Content: []byte("color_theme = \"theme-tender\"\n")},
+		{App: "kitty", Path: f.kitty, Method: "include", Content: []byte("font_size 12\ninclude pult.conf\n"), Detail: map[string]any{"line": "include pult.conf"}},
+		{App: "kitty", Path: filepath.Join(filepath.Dir(f.kitty), "pult.conf"), Method: "include", Content: []byte("foreground #cdd6f4\n")},
+		{App: "btop", Path: f.link, Owner: "stow", Method: "owned", Content: []byte("color_theme = \"pult\"\n")},
 		{App: "tmux", Path: f.tmux, Method: "include", Delete: true},
 	}
 }
@@ -92,14 +92,14 @@ func (f *fixture) snapshot(t *testing.T) map[string]string {
 
 func TestApply(t *testing.T) {
 	f := newFixture(t)
-	tx, err := f.store.Apply(Meta{Theme: "catppuccin-mocha", TenderVersion: "0.1.0"}, f.edits(), nil)
+	tx, err := f.store.Apply(Meta{Theme: "catppuccin-mocha", PultVersion: "0.1.0"}, f.edits(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if tx.Status != "complete" || tx.Kind != "apply" || len(tx.Changes) != 4 || len(tx.ID) != 26 {
 		t.Fatalf("transaction = %+v", tx)
 	}
-	if got := read(t, f.kitty); got != "font_size 12\ninclude theme-tender.conf\n" {
+	if got := read(t, f.kitty); got != "font_size 12\ninclude pult.conf\n" {
 		t.Errorf("kitty.conf = %q", got)
 	}
 	if mode(t, f.kitty) != 0o600 {
@@ -108,7 +108,7 @@ func TestApply(t *testing.T) {
 	if fi, err := os.Lstat(f.link); err != nil || fi.Mode()&os.ModeSymlink == 0 {
 		t.Errorf("symlink replaced: %v %v", fi, err)
 	}
-	if got := read(t, f.real); got != "color_theme = \"theme-tender\"\n" {
+	if got := read(t, f.real); got != "color_theme = \"pult\"\n" {
 		t.Errorf("symlink target = %q", got)
 	}
 	if _, err := os.Stat(f.tmux); !os.IsNotExist(err) {
@@ -127,7 +127,7 @@ func TestApply(t *testing.T) {
 		t.Errorf("btop change = %+v", btop)
 	}
 	edit := byApp["kitty edit"]
-	if edit.Before != hashOf([]byte("font_size 12\n")) || edit.Detail["line"] != "include theme-tender.conf" {
+	if edit.Before != hashOf([]byte("font_size 12\n")) || edit.Detail["line"] != "include pult.conf" {
 		t.Errorf("kitty edit = %+v", edit)
 	}
 	// The backup restores by hand with zstd, as the contract says.
@@ -183,10 +183,10 @@ func TestValidateFailureRestoresThatApp(t *testing.T) {
 	if k := ".config/kitty/kitty.conf"; before[k] != after[k] {
 		t.Errorf("kitty.conf not restored: %q", after[k])
 	}
-	if _, ok := after[".config/kitty/theme-tender.conf"]; ok {
+	if _, ok := after[".config/kitty/pult.conf"]; ok {
 		t.Error("created kitty file not removed")
 	}
-	if read(t, f.real) != "color_theme = \"theme-tender\"\n" {
+	if read(t, f.real) != "color_theme = \"pult\"\n" {
 		t.Error("btop change was rolled back with kitty's")
 	}
 	for _, c := range tx.Changes {
@@ -206,8 +206,8 @@ func TestUninstallRestoresPristine(t *testing.T) {
 		t.Fatal(err)
 	}
 	second := []Edit{
-		{App: "kitty", Path: filepath.Join(filepath.Dir(f.kitty), "theme-tender.conf"), Content: []byte("foreground #4c4f69\n")},
-		{App: "btop", Path: f.link, Owner: "stow", Content: []byte("color_theme = \"theme-tender\"\n# b\n")},
+		{App: "kitty", Path: filepath.Join(filepath.Dir(f.kitty), "pult.conf"), Content: []byte("foreground #4c4f69\n")},
+		{App: "btop", Path: f.link, Owner: "stow", Content: []byte("color_theme = \"pult\"\n# b\n")},
 	}
 	if _, err := f.store.Apply(Meta{Theme: "b"}, second, nil); err != nil {
 		t.Fatal(err)
@@ -235,7 +235,7 @@ func TestUndoRules(t *testing.T) {
 		t.Fatal(err)
 	}
 	// The user edits kitty.conf and removes btop's config afterwards.
-	write(t, f.kitty, "font_size 14\ninclude theme-tender.conf\n", 0o600)
+	write(t, f.kitty, "font_size 14\ninclude pult.conf\n", 0o600)
 	if err := os.Remove(f.real); err != nil {
 		t.Fatal(err)
 	}
@@ -250,7 +250,7 @@ func TestUndoRules(t *testing.T) {
 	if reasons[f.kitty] != "edited" || reasons[f.real] != "missing" || len(conflicts) != 2 {
 		t.Fatalf("conflicts = %+v", conflicts)
 	}
-	if read(t, f.kitty) != "font_size 14\ninclude theme-tender.conf\n" {
+	if read(t, f.kitty) != "font_size 14\ninclude pult.conf\n" {
 		t.Error("edited file was changed without confirmation")
 	}
 	if c := conflicts[slices.IndexFunc(conflicts, func(c Conflict) bool { return c.Path == f.kitty })]; string(c.Before) != "font_size 12\n" || !strings.Contains(string(c.Current), "font_size 14") {
@@ -259,7 +259,7 @@ func TestUndoRules(t *testing.T) {
 	if read(t, f.tmux) != "set -g mouse on\n" {
 		t.Error("deleted file was not restored")
 	}
-	if _, err := os.Stat(filepath.Join(filepath.Dir(f.kitty), "theme-tender.conf")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(filepath.Dir(f.kitty), "pult.conf")); !os.IsNotExist(err) {
 		t.Error("created file was not removed")
 	}
 	if rb.Kind != "rollback" || rb.Status != "complete" {

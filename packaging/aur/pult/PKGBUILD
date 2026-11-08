@@ -1,0 +1,35 @@
+# Template: scripts/render-packaging.sh fills the @...@ fields from a release.
+pkgname=pult
+pkgver=@VERSION@
+pkgrel=1
+pkgdesc='Apply one palette across your terminal apps, and undo every change'
+arch=('x86_64' 'aarch64')
+url='https://git.subcult.tv/subculture-collective/pult'
+license=('GPL-3.0-only' 'MIT')
+makedepends=('go')
+source=("@BASE@pult-@VERSION@-src.tar.gz"
+        "@BASE@pult-@VERSION@-catalog.db.zst")
+noextract=("pult-@VERSION@-catalog.db.zst")
+sha256sums=('@SHA_SRC@'
+            '@SHA_CATALOG@')
+
+build() {
+  cd "pult-$pkgver"
+  cp "$srcdir/pult-$pkgver-catalog.db.zst" builtin/catalog.db.zst
+  export CGO_ENABLED=0
+  export GOFLAGS='-buildmode=pie -trimpath -mod=readonly -modcacherw'
+  go build -ldflags "-s -w -X main.version=$pkgver -X git.subcult.tv/subculture-collective/pult.BuiltinVersion=@DATAVERSION@" -o pult ./cmd/pult
+}
+
+check() {
+  cd "pult-$pkgver"
+  CGO_ENABLED=0 go test ./...
+}
+
+package() {
+  cd "pult-$pkgver"
+  install -Dm755 pult "$pkgdir/usr/bin/pult"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 LICENSES/MIT.txt "$pkgdir/usr/share/licenses/$pkgname/MIT.txt"
+  install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+}

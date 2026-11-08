@@ -1,4 +1,4 @@
-// Package tui is Theme Tender's terminal interface: browse and search the
+// Package tui is Pult's terminal interface: browse and search the
 // catalog with tag filters, list similar themes, preview a theme's
 // swatches, see each app's tier and owner, apply a theme and undo it.
 package tui
@@ -11,11 +11,11 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
-	"git.subcult.tv/subculture-collective/theme-tender/internal/catalog"
-	"git.subcult.tv/subculture-collective/theme-tender/internal/color"
+	"git.subcult.tv/subculture-collective/pult/internal/catalog"
+	"git.subcult.tv/subculture-collective/pult/internal/color"
 )
 
-// Backend is what the interface needs from the rest of Theme Tender.
+// Backend is what the interface needs from the rest of Pult.
 type Backend interface {
 	Search(query string, tags []string) ([]catalog.Info, error)
 	Similar(id string) ([]catalog.Info, error)
@@ -249,7 +249,7 @@ func (m Model) View() tea.View {
 		}
 		return dimStyle.Render(name)
 	}
-	fmt.Fprintf(&b, "%s  %s  %s\n", titleStyle.Render("Theme Tender"), tab("themes", themesScreen), tab("apps", appsScreen))
+	fmt.Fprintf(&b, "%s  %s  %s\n", titleStyle.Render("Pult"), tab("themes", themesScreen), tab("apps", appsScreen))
 	b.WriteString(dimStyle.Render("tab switch · / search · 1-9 tags · s similar · esc clear · enter apply · u undo · q quit"))
 	b.WriteString("\n\n")
 	switch {
@@ -259,7 +259,7 @@ func (m Model) View() tea.View {
 		for _, l := range m.plan {
 			b.WriteString("  " + l + "\n")
 		}
-		b.WriteString("\nFiles other tools own are left alone here; use tender apply to confirm them.\n[y/N] ")
+		b.WriteString("\nFiles other tools own are left alone here; use pult apply to confirm them.\n[y/N] ")
 	case m.confirm == confirmUndo:
 		b.WriteString("Roll back the last apply? [y/N] ")
 	case m.screen == appsScreen:

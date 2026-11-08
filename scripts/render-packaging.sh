@@ -7,13 +7,13 @@ set -euo pipefail
 
 version="${1:?usage: scripts/render-packaging.sh VERSION BASE}"
 base="${2-}"
-sums="dist/theme-tender-$version-SHA256SUMS"
+sums="dist/pult-$version-SHA256SUMS"
 sha() { awk -v f="$1" '$2 == f { print $1 }' "$sums"; }
 
-src=$(sha "theme-tender-$version-src.tar.gz")
-cat=$(sha "theme-tender-$version-catalog.db.zst")
-amd=$(sha "theme-tender-$version-linux-amd64.tar.gz")
-arm=$(sha "theme-tender-$version-linux-arm64.tar.gz")
+src=$(sha "pult-$version-src.tar.gz")
+cat=$(sha "pult-$version-catalog.db.zst")
+amd=$(sha "pult-$version-linux-amd64.tar.gz")
+arm=$(sha "pult-$version-linux-arm64.tar.gz")
 for v in src cat amd arm; do
   if [[ -z ${!v} ]]; then echo "render-packaging: no checksum for $v in $sums" >&2; exit 1; fi
 done
@@ -24,7 +24,7 @@ dataversion=$(TZ=UTC git log -1 --format=%cd --date=format-local:%Y.%m.%d.0 HEAD
 
 out=dist/packaging
 rm -rf "$out"
-for tmpl in packaging/aur/theme-tender/PKGBUILD packaging/aur/theme-tender-bin/PKGBUILD packaging/homebrew/theme-tender.rb; do
+for tmpl in packaging/aur/pult/PKGBUILD packaging/aur/pult-bin/PKGBUILD packaging/homebrew/pult.rb; do
   mkdir -p "$out/$(dirname "${tmpl#packaging/}")"
   sed -e "s|@VERSION@|$version|g" -e "s|@BASE@|$prefix|g" \
     -e "s|@SHA_SRC@|$src|g" -e "s|@SHA_CATALOG@|$cat|g" \

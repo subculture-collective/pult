@@ -16,20 +16,20 @@ func TestTOMLSet(t *testing.T) {
 		{
 			name: "replace in table, keep comments and spacing",
 			src:  "# yazi theme\n[flavor]\n# pick one\ndark  = \"old\"   # mine\nlight = 'old'\n\n[mgr]\ncwd = { fg = \"#fff\" }\n",
-			set:  map[string]any{"flavor.dark": "theme-tender", "flavor.light": "theme-tender"},
-			want: "# yazi theme\n[flavor]\n# pick one\ndark  = \"theme-tender\"   # mine\nlight = \"theme-tender\"\n\n[mgr]\ncwd = { fg = \"#fff\" }\n",
+			set:  map[string]any{"flavor.dark": "pult", "flavor.light": "pult"},
+			want: "# yazi theme\n[flavor]\n# pick one\ndark  = \"pult\"   # mine\nlight = \"pult\"\n\n[mgr]\ncwd = { fg = \"#fff\" }\n",
 		},
 		{
 			name: "add to existing table after its last key",
 			src:  "[flavor]\ndark = \"x\"\n\n# next\n[mgr]\n",
-			set:  map[string]any{"flavor.light": "theme-tender"},
-			want: "[flavor]\ndark = \"x\"\nlight = \"theme-tender\"\n\n# next\n[mgr]\n",
+			set:  map[string]any{"flavor.light": "pult"},
+			want: "[flavor]\ndark = \"x\"\nlight = \"pult\"\n\n# next\n[mgr]\n",
 		},
 		{
 			name: "new table at the end",
 			src:  "[mgr]\ncwd = { fg = \"#fff\" }\n",
-			set:  map[string]any{"flavor.dark": "theme-tender"},
-			want: "[mgr]\ncwd = { fg = \"#fff\" }\n\n[flavor]\ndark = \"theme-tender\"\n",
+			set:  map[string]any{"flavor.dark": "pult"},
+			want: "[mgr]\ncwd = { fg = \"#fff\" }\n\n[flavor]\ndark = \"pult\"\n",
 		},
 		{
 			name: "new table in a file without final newline",
@@ -46,14 +46,14 @@ func TestTOMLSet(t *testing.T) {
 		{
 			name: "top-level key goes before the first table",
 			src:  "# prompt\nadd_newline = false\n\n[character]\nsymbol = \">\"\n",
-			set:  map[string]any{"palette": "theme-tender"},
-			want: "# prompt\nadd_newline = false\npalette = \"theme-tender\"\n\n[character]\nsymbol = \">\"\n",
+			set:  map[string]any{"palette": "pult"},
+			want: "# prompt\nadd_newline = false\npalette = \"pult\"\n\n[character]\nsymbol = \">\"\n",
 		},
 		{
 			name: "top-level key when the file starts with a table",
 			src:  "[character]\nsymbol = \">\"\n",
-			set:  map[string]any{"palette": "theme-tender"},
-			want: "palette = \"theme-tender\"\n\n[character]\nsymbol = \">\"\n",
+			set:  map[string]any{"palette": "pult"},
+			want: "palette = \"pult\"\n\n[character]\nsymbol = \">\"\n",
 		},
 		{
 			name: "dotted siblings stay dotted",
@@ -69,9 +69,9 @@ func TestTOMLSet(t *testing.T) {
 		},
 		{
 			name: "unchanged value is a no-op",
-			src:  "[flavor]\ndark = \"theme-tender\" # x\n",
-			set:  map[string]any{"flavor.dark": "theme-tender"},
-			want: "[flavor]\ndark = \"theme-tender\" # x\n",
+			src:  "[flavor]\ndark = \"pult\" # x\n",
+			set:  map[string]any{"flavor.dark": "pult"},
+			want: "[flavor]\ndark = \"pult\" # x\n",
 		},
 		{
 			name:    "inside an inline table",
@@ -101,8 +101,8 @@ func TestTOMLSet(t *testing.T) {
 }
 
 func TestTOMLKeys(t *testing.T) {
-	const fragment = "# generated\npalette = \"theme-tender\"\n\n[palettes.theme-tender]\nred = \"#ff0000\"\nblue = \"#0000ff\"   # kept\n"
-	paths := []string{"palette", "palettes.theme-tender"}
+	const fragment = "# generated\npalette = \"pult\"\n\n[palettes.pult]\nred = \"#ff0000\"\nblue = \"#0000ff\"   # kept\n"
+	paths := []string{"palette", "palettes.pult"}
 	tests := []struct {
 		name, src, want, wantErr string
 		fragment                 string
@@ -111,17 +111,17 @@ func TestTOMLKeys(t *testing.T) {
 		{
 			name: "fresh config",
 			src:  "# my prompt\nformat = \"$all\"\n\n[character]\nsuccess_symbol = \"[>](red)\"\n",
-			want: "# my prompt\nformat = \"$all\"\npalette = \"theme-tender\"\n\n[character]\nsuccess_symbol = \"[>](red)\"\n\n[palettes.theme-tender]\nred = \"#ff0000\"\nblue = \"#0000ff\"   # kept\n",
+			want: "# my prompt\nformat = \"$all\"\npalette = \"pult\"\n\n[character]\nsuccess_symbol = \"[>](red)\"\n\n[palettes.pult]\nred = \"#ff0000\"\nblue = \"#0000ff\"   # kept\n",
 		},
 		{
 			name: "replace the owned table and keep other palettes",
-			src:  "palette = \"mine\"\n\n[palettes.mine]\nred = \"#111111\"\n\n[palettes.theme-tender]\nred = \"#222222\"\nold = \"#333333\"\n\n# after\n[git_branch]\nstyle = \"red\"\n",
-			want: "palette = \"theme-tender\"\n\n[palettes.mine]\nred = \"#111111\"\n\n[palettes.theme-tender]\nred = \"#ff0000\"\nblue = \"#0000ff\"   # kept\n\n# after\n[git_branch]\nstyle = \"red\"\n",
+			src:  "palette = \"mine\"\n\n[palettes.mine]\nred = \"#111111\"\n\n[palettes.pult]\nred = \"#222222\"\nold = \"#333333\"\n\n# after\n[git_branch]\nstyle = \"red\"\n",
+			want: "palette = \"pult\"\n\n[palettes.mine]\nred = \"#111111\"\n\n[palettes.pult]\nred = \"#ff0000\"\nblue = \"#0000ff\"   # kept\n\n# after\n[git_branch]\nstyle = \"red\"\n",
 		},
 		{
 			name: "second apply is a no-op",
-			src:  "palette = \"theme-tender\"\n\n[palettes.theme-tender]\nred = \"#ff0000\"\nblue = \"#0000ff\"   # kept\n",
-			want: "palette = \"theme-tender\"\n\n[palettes.theme-tender]\nred = \"#ff0000\"\nblue = \"#0000ff\"   # kept\n",
+			src:  "palette = \"pult\"\n\n[palettes.pult]\nred = \"#ff0000\"\nblue = \"#0000ff\"   # kept\n",
+			want: "palette = \"pult\"\n\n[palettes.pult]\nred = \"#ff0000\"\nblue = \"#0000ff\"   # kept\n",
 		},
 		{
 			name:     "fragment key outside paths",
@@ -131,8 +131,8 @@ func TestTOMLKeys(t *testing.T) {
 		},
 		{
 			name:    "owned table also defined as dotted keys",
-			src:     "palettes.theme-tender.red = \"#000000\"\n",
-			wantErr: "palettes.theme-tender",
+			src:     "palettes.pult.red = \"#000000\"\n",
+			wantErr: "palettes.pult",
 		},
 	}
 	for _, tt := range tests {
@@ -151,7 +151,7 @@ func TestTOMLKeys(t *testing.T) {
 }
 
 func TestTOMLAppend(t *testing.T) {
-	const file = "~/.config/alacritty/theme-tender.toml"
+	const file = "~/.config/alacritty/pult.toml"
 	tests := []struct {
 		name, src, key, want, wantErr string
 	}{
@@ -169,9 +169,9 @@ func TestTOMLAppend(t *testing.T) {
 		},
 		{
 			name: "already present under another spelling",
-			src:  "import = [\"/home/u/.config/alacritty/theme-tender.toml\"]\n",
+			src:  "import = [\"/home/u/.config/alacritty/pult.toml\"]\n",
 			key:  "import",
-			want: "import = [\"/home/u/.config/alacritty/theme-tender.toml\"]\n",
+			want: "import = [\"/home/u/.config/alacritty/pult.toml\"]\n",
 		},
 		{
 			name: "empty array",
@@ -200,14 +200,14 @@ func TestTOMLAppend(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := TOMLAppend([]byte(tt.src), tt.key, file, "/home/u/.config/alacritty/theme-tender.toml")
+			got, err := TOMLAppend([]byte(tt.src), tt.key, file, "/home/u/.config/alacritty/pult.toml")
 			check(t, got, err, tt.want, tt.wantErr)
 		})
 	}
 }
 
 func TestIncludeLine(t *testing.T) {
-	const line = "include theme-tender.conf"
+	const line = "include pult.conf"
 	tests := []struct {
 		name, src, want string
 		atStart         bool

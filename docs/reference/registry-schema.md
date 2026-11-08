@@ -1,6 +1,6 @@
 # Registry schema (v1)
 
-The registry describes each supported app: how to find it, where its config lives, how to theme it, and how to reload and check it. Built-in entries live in `registry/apps/<id>.yaml` (MIT). User entries in `~/.config/theme-tender/registry.d/<id>.yaml` override built-in entries with the same `id`.
+The registry describes each supported app: how to find it, where its config lives, how to theme it, and how to reload and check it. Built-in entries live in `registry/apps/<id>.yaml` (MIT). User entries in `~/.config/pult/registry.d/<id>.yaml` override built-in entries with the same `id`.
 
 [`registry/schema.json`](../../registry/schema.json) is the machine-readable contract; `internal/registry` loads and checks entries against it. This page explains it.
 
@@ -32,9 +32,9 @@ config:
 
 integrations:                 # first applicable entry wins
   - method: include
-    template: kitty/theme-tender.conf.mustache
-    owned_file: theme-tender.conf        # written next to the config file
-    line: "include theme-tender.conf"
+    template: kitty/pult.conf.mustache
+    owned_file: pult.conf        # written next to the config file
+    line: "include pult.conf"
     position: end
 
 reload:
@@ -64,7 +64,7 @@ Each built-in entry starts with a comment saying which commands and patterns wer
 | `detect.packages` | one of | Package names per manager (`pacman`, `brew`, `dpkg`, `rpm`) |
 | `detect.version` | no | `argv` to run and `regex` with exactly one capture group. Result cached per binary path and modification time |
 | `config.env` | no | Environment variables that override the config location, in order. `kind: dir` names the directory that holds the config file, which keeps the file name of the first path; `kind: file` names the file |
-| `config.paths` | yes | Candidate config paths per platform, one list for each platform in `platforms`. The first existing path wins; if none exists, Theme Tender creates the first |
+| `config.paths` | yes | Candidate config paths per platform, one list for each platform in `platforms`. The first existing path wins; if none exists, Pult creates the first |
 | `integrations` | yes | Ordered list. The first entry whose `versions` range contains the installed version, and whose method the current owner allows, is used |
 | `reload` | no | Commands run after apply. `when: running` runs only if the app has a running process; `when: always` runs every time. Optional `platforms` limits a command to some of the entry's platforms |
 | `validate` | no | Command run against the written config. Non-zero exit fails the apply and triggers rollback of that app |
@@ -73,13 +73,13 @@ Each built-in entry starts with a comment saying which commands and patterns wer
 
 Paths start with `$HOME/`, `$XDG_CONFIG_HOME/` or, in `macos` paths only, `$MAC_CONFIG_HOME/`. `$XDG_CONFIG_HOME` defaults to `$HOME/.config` on both platforms. `$MAC_CONFIG_HOME` is `$XDG_CONFIG_HOME` when that is set, and `$HOME/Library/Application Support` otherwise, which is where Go programs using `adrg/xdg` (lazygit) look on macOS.
 
-When an app loads several config files and later ones win (Ghostty, tmux), list the candidates in reverse load order, so the first existing one is the file read last and Theme Tender's include is not overridden. The candidate created when none exists should be the one the app itself creates or reads first.
+When an app loads several config files and later ones win (Ghostty, tmux), list the candidates in reverse load order, so the first existing one is the file read last and Pult's include is not overridden. The candidate created when none exists should be the one the app itself creates or reads first.
 
 `versions` is a space-separated list of comparisons that must all hold, such as `>=0.14` or `>=1.2 <2`. Operators are `>=`, `<=`, `>`, `<` and `=`; a bare version means `=`. Only the leading dotted number of the installed version counts (`3.5a` is 3.5), and missing parts are zero (0.14 equals 0.14.0). No `versions` means any version.
 
 ## Integration methods
 
-| Method | What Theme Tender writes | Fields |
+| Method | What Pult writes | Fields |
 |---|---|---|
 | `include` | A file it owns, plus one line or one array entry in the user's config that loads it | `template`, `owned_file`, then either `line` and `position` (`start` or `end`), or `format` (`toml`, `yaml`) and `key`, an array the owned file's path is appended to |
 | `owned` | A whole file in a theme directory the app reads (btop themes, yazi flavors, helix themes), plus a setting that selects it if needed | `template`, `target` (relative to the config file's directory), optional `select` |
@@ -90,11 +90,11 @@ When an app loads several config files and later ones win (Ghostty, tmux), list 
 
 Every method also takes an optional `versions`.
 
-`owned_file` is a file name written next to the config file, or a path from `$HOME/` or `$XDG_CONFIG_HOME/`. `select` and `set` are maps from dotted key paths to strings, numbers or booleans: `select: { format: toml, set: { flavor.dark: theme-tender } }`.
+`owned_file` is a file name written next to the config file, or a path from `$HOME/` or `$XDG_CONFIG_HOME/`. `select` and `set` are maps from dotted key paths to strings, numbers or booleans: `select: { format: toml, set: { flavor.dark: pult } }`.
 
-`select` and `set` can edit `toml`, `ini` and `yaml` files (dotted paths into tables, sections or mappings), `kdl` files (top-level nodes with one argument, such as zellij's `theme "theme-tender"`; the whole line is replaced) and `args` files of command-line options (`theme: ansi` becomes `--theme="ansi"`, replacing an existing `--theme` line), such as bat's config. Registry format 4 added `kdl` and `args`.
+`select` and `set` can edit `toml`, `ini` and `yaml` files (dotted paths into tables, sections or mappings), `kdl` files (top-level nodes with one argument, such as zellij's `theme "pult"`; the whole line is replaced) and `args` files of command-line options (`theme: ansi` becomes `--theme="ansi"`, replacing an existing `--theme` line), such as bat's config. Registry format 4 added `kdl` and `args`.
 
-A `port` integration is skipped for themes missing from its `flavors`, so it is listed before the integration that generates colors: Catppuccin flavors get Catppuccin's own theme and every other theme the generated one. Theme Tender downloads `https://raw.githubusercontent.com/<owner>/<repo>/<revision>/<path>`, refuses it unless its SHA-256 matches, keeps it in `$XDG_CACHE_HOME/theme-tender/ports/<sha256>`, and installs it at `target` through the change record, so undo and uninstall treat it like a generated file. A failed download or hash mismatch falls back to the next integration and is shown as a note. Port files are downloaded on the user's machine, not shipped in the bundle. Registry format 3 (the bundle's `registry_schema`) added `revision` and `flavors`.
+A `port` integration is skipped for themes missing from its `flavors`, so it is listed before the integration that generates colors: Catppuccin flavors get Catppuccin's own theme and every other theme the generated one. Pult downloads `https://raw.githubusercontent.com/<owner>/<repo>/<revision>/<path>`, refuses it unless its SHA-256 matches, keeps it in `$XDG_CACHE_HOME/pult/ports/<sha256>`, and installs it at `target` through the change record, so undo and uninstall treat it like a generated file. A failed download or hash mismatch falls back to the next integration and is shown as a note. Port files are downloaded on the user's machine, not shipped in the bundle. Registry format 3 (the bundle's `registry_schema`) added `revision` and `flavors`.
 
 `ansi` is listed first for apps where it looks acceptable, because the app then follows any terminal theme change with nothing to regenerate.
 
@@ -102,7 +102,7 @@ A `port` integration is skipped for themes missing from its `flavors`, so it is 
 
 A file in `registry.d` needs `schema` and `id`, and the `id` must match the file name. Its other fields are applied to the built-in entry with that `id`: mappings merge key by key, and every other value, lists included, replaces the built-in value. To change one integration, repeat the whole `integrations` list. A file for an `id` with no built-in entry must be a complete entry. `disabled: true` removes the app; disabling an `id` that does not exist is reported.
 
-The merged entry must still match the schema. If a user file is unreadable, malformed or produces an invalid entry, Theme Tender skips that file, reports why, and keeps the built-in entry. A problem in a built-in entry stops loading, because it means the bundle is broken.
+The merged entry must still match the schema. If a user file is unreadable, malformed or produces an invalid entry, Pult skips that file, reports why, and keeps the built-in entry. A problem in a built-in entry stops loading, because it means the bundle is broken.
 
 ## Templates
 
@@ -122,7 +122,7 @@ Variables available to every template:
 
 Every template has golden files in `internal/render/testdata/golden/` for Catppuccin Mocha, Catppuccin Latte and Dracula (derived roles). `go test ./internal/render -update` rewrites them; review the diff before committing.
 
-- Aether's template variables under `aether.`: `{{aether.red}}`, `{{aether.lighter_bg.rgbs}}`, `{{aether.mode}}`. They follow Aether's meanings, which differ from ours: Aether's `red` is ANSI red, while `{{red}}` here is Catppuccin's red role. `tender render -aether` converts an Aether template's `{name}` placeholders and renders it. See [the Aether comparison](../research/aether-templates.md).
+- Aether's template variables under `aether.`: `{{aether.red}}`, `{{aether.lighter_bg.rgbs}}`, `{{aether.mode}}`. They follow Aether's meanings, which differ from ours: Aether's `red` is ANSI red, while `{{red}}` here is Catppuccin's red role. `pult render -aether` converts an Aether template's `{name}` placeholders and renders it. See [the Aether comparison](../research/aether-templates.md).
 
 ## Command safety
 

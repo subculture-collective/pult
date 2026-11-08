@@ -10,8 +10,8 @@ import (
 	"github.com/charmbracelet/x/exp/golden"
 	"github.com/charmbracelet/x/exp/teatest/v2"
 
-	"git.subcult.tv/subculture-collective/theme-tender/internal/catalog"
-	"git.subcult.tv/subculture-collective/theme-tender/internal/color"
+	"git.subcult.tv/subculture-collective/pult/internal/catalog"
+	"git.subcult.tv/subculture-collective/pult/internal/color"
 )
 
 type fake struct {
@@ -72,7 +72,7 @@ func (f *fake) Apps() ([]AppRow, error) {
 	return []AppRow{
 		{ID: "btop", Tier: 1, Owner: "none", Status: "version 1.4.7, owned"},
 		{ID: "kitty", Tier: 1, Owner: "omarchy", Status: "Omarchy themes it"},
-		{ID: "tmux", Tier: 1, Owner: "stow", Status: "owned by stow; asked in tender apply"},
+		{ID: "tmux", Tier: 1, Owner: "stow", Status: "owned by stow; asked in pult apply"},
 	}, nil
 }
 

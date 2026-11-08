@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"git.subcult.tv/subculture-collective/theme-tender/internal/color"
+	"git.subcult.tv/subculture-collective/pult/internal/color"
 )
 
 // aetherVars are Aether's template variables (github.com/bjarneo/aether,

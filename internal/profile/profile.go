@@ -1,8 +1,8 @@
 // Package profile reads deploy profiles and palette files. A profile names
 // a theme, which apps to theme and, optionally, a terminal font; the
-// Subarchy installer and other setups call "tender apply -profile". A
+// Subarchy installer and other setups call "pult apply -profile". A
 // palette file is a theme kept outside the catalog, in the format
-// "tender palette" prints. See docs/adr/0003-profiles-fonts.md and
+// "pult palette" prints. See docs/adr/0003-profiles-fonts.md and
 // docs/reference/profiles.md.
 package profile
 
@@ -18,8 +18,8 @@ import (
 
 	"github.com/pelletier/go-toml/v2"
 
-	"git.subcult.tv/subculture-collective/theme-tender/internal/color"
-	"git.subcult.tv/subculture-collective/theme-tender/internal/render"
+	"git.subcult.tv/subculture-collective/pult/internal/color"
+	"git.subcult.tv/subculture-collective/pult/internal/render"
 )
 
 // Profile is a profile file.
@@ -43,7 +43,7 @@ var nameRE = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)
 
 // Load reads a profile: nameOrPath is a file path (it contains a slash or
 // ends in .toml), or the name of a profile in dir (the user's
-// ~/.config/theme-tender/profiles).
+// ~/.config/pult/profiles).
 func Load(nameOrPath, dir string) (*Profile, error) {
 	path := nameOrPath
 	if !IsPath(nameOrPath) {
@@ -117,7 +117,7 @@ func IsPath(s string) bool {
 	return strings.ContainsRune(s, '/') || strings.HasSuffix(s, ".json") || strings.HasSuffix(s, ".toml")
 }
 
-// paletteFile is the format "tender palette" prints.
+// paletteFile is the format "pult palette" prints.
 type paletteFile struct {
 	Schema int `json:"schema" toml:"schema"`
 	Theme  struct {
@@ -131,7 +131,7 @@ type paletteFile struct {
 
 var slugRE = regexp.MustCompile(`[^a-z0-9]+`)
 
-// LoadPalette reads a palette file (JSON or TOML, as "tender palette"
+// LoadPalette reads a palette file (JSON or TOML, as "pult palette"
 // prints). It needs ANSI 0–15, background and foreground; other roles it
 // lacks are derived, as for catalog themes.
 func LoadPalette(path string) (render.Theme, color.Palette, error) {

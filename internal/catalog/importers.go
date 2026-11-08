@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"git.subcult.tv/subculture-collective/theme-tender/internal/color"
+	"git.subcult.tv/subculture-collective/pult/internal/color"
 	"go.yaml.in/yaml/v3"
 )
 

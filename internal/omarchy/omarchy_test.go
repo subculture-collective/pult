@@ -11,8 +11,8 @@ import (
 
 	"github.com/pelletier/go-toml/v2"
 
-	"git.subcult.tv/subculture-collective/theme-tender/internal/color"
-	"git.subcult.tv/subculture-collective/theme-tender/internal/render"
+	"git.subcult.tv/subculture-collective/pult/internal/color"
+	"git.subcult.tv/subculture-collective/pult/internal/render"
 )
 
 // mocha is Catppuccin Mocha's terminal colors, filled to a full palette.
@@ -33,18 +33,18 @@ func mocha(t *testing.T) (render.Theme, color.Palette) {
 
 func TestName(t *testing.T) {
 	for slug, want := range map[string]string{
-		"catppuccin-mocha": "tender-catppuccin-mocha",
-		"Rosé Pine":        "tender-ros-pine",
-		"../x":             "tender-x",
+		"catppuccin-mocha": "pult-catppuccin-mocha",
+		"Rosé Pine":        "pult-ros-pine",
+		"../x":             "pult-x",
 	} {
 		if got := Name(slug); got != want {
 			t.Errorf("Name(%q) = %q, want %q", slug, got, want)
 		}
 	}
-	if got := ThemeDir("/home/u", "catppuccin-mocha"); got != "/home/u/.config/omarchy/themes/tender-catppuccin-mocha" {
+	if got := ThemeDir("/home/u", "catppuccin-mocha"); got != "/home/u/.config/omarchy/themes/pult-catppuccin-mocha" {
 		t.Errorf("ThemeDir = %s", got)
 	}
-	if got := strings.Join(SwitchCommand(Name("dracula")), " "); got != "omarchy-theme-set tender-dracula" {
+	if got := strings.Join(SwitchCommand(Name("dracula")), " "); got != "omarchy-theme-set pult-dracula" {
 		t.Errorf("SwitchCommand = %s", got)
 	}
 }
@@ -84,10 +84,10 @@ func TestEdits(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(edits) != 2 || edits[0].Path != "/home/u/.config/omarchy/themes/tender-catppuccin-mocha/colors.toml" || edits[0].App != "omarchy" {
+	if len(edits) != 2 || edits[0].Path != "/home/u/.config/omarchy/themes/pult-catppuccin-mocha/colors.toml" || edits[0].App != "omarchy" {
 		t.Fatalf("edits = %+v", edits)
 	}
-	if !bytes.Contains(edits[1].Content, []byte("omarchy-theme-set tender-catppuccin-mocha")) {
+	if !bytes.Contains(edits[1].Content, []byte("omarchy-theme-set pult-catppuccin-mocha")) {
 		t.Errorf("README = %s", edits[1].Content)
 	}
 }

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Builds the release files for VERSION into dist/:
-#   theme-tender-VERSION-<os>-<arch>.tar.gz   tender with the catalog built in
-#   theme-tender-VERSION-src.tar.gz           source, from git archive
-#   theme-tender-VERSION-catalog.db.zst       catalog, for source builds
-#   theme-tender-VERSION-SHA256SUMS
+#   pult-VERSION-<os>-<arch>.tar.gz   pult with the catalog built in
+#   pult-VERSION-src.tar.gz           source, from git archive
+#   pult-VERSION-catalog.db.zst       catalog, for source builds
+#   pult-VERSION-SHA256SUMS
 # Needs builtin/catalog.db.zst (make catalog, then copy it there). Tarballs
 # are reproducible: sorted entries, fixed times and owners, gzip -n.
 set -euo pipefail
@@ -20,21 +20,21 @@ fi
 # bundle older than this binary does not replace its data.
 dataversion=$(TZ=UTC git log -1 --format=%cd --date=format-local:%Y.%m.%d.0 "$rev")
 
-rm -rf dist/theme-tender-"$version"-*
+rm -rf dist/pult-"$version"-*
 mkdir -p dist
 for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64; do
   os=${target%/*} arch=${target#*/}
-  name="theme-tender-$version-$os-$arch"
+  name="pult-$version-$os-$arch"
   stage="dist/$name"
   mkdir -p "$stage"
   CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -trimpath -buildvcs=false \
-    -ldflags "-s -w -X main.version=$version -X git.subcult.tv/subculture-collective/theme-tender.BuiltinVersion=$dataversion" -o "$stage/tender" ./cmd/tender
+    -ldflags "-s -w -X main.version=$version -X git.subcult.tv/subculture-collective/pult.BuiltinVersion=$dataversion" -o "$stage/pult" ./cmd/pult
   cp README.md LICENSE "$stage/"
   cp -r LICENSES "$stage/"
   tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -C dist -cf - "$name" | gzip -n9 > "dist/$name.tar.gz"
   rm -rf "$stage"
 done
-git archive --format=tar.gz --prefix="theme-tender-$version/" -o "dist/theme-tender-$version-src.tar.gz" "$rev"
-cp "$catalog" "dist/theme-tender-$version-catalog.db.zst"
-(cd dist && sha256sum theme-tender-"$version"-*.tar.gz theme-tender-"$version"-catalog.db.zst > "theme-tender-$version-SHA256SUMS")
-cat "dist/theme-tender-$version-SHA256SUMS"
+git archive --format=tar.gz --prefix="pult-$version/" -o "dist/pult-$version-src.tar.gz" "$rev"
+cp "$catalog" "dist/pult-$version-catalog.db.zst"
+(cd dist && sha256sum pult-"$version"-*.tar.gz pult-"$version"-catalog.db.zst > "pult-$version-SHA256SUMS")
+cat "dist/pult-$version-SHA256SUMS"

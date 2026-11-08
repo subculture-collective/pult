@@ -1,6 +1,6 @@
 # Agent Instructions
 
-This repository is Theme Tender, created from the `subculture-collective/project-template-go` template. Read `docs/README.md` for the plan, decisions and contracts before changing code.
+This repository is Pult, created from the `subculture-collective/project-template-go` template. Read `docs/README.md` for the plan, decisions and contracts before changing code.
 
 ## Priorities
 

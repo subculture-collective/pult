@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"git.subcult.tv/subculture-collective/theme-tender/internal/color"
+	"git.subcult.tv/subculture-collective/pult/internal/color"
 )
 
 func write(t *testing.T, path, s string) string {

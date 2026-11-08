@@ -1,7 +1,7 @@
 # Checked in an Arch container, fish 4.9.3, 2026-11-07: version regex, that
 # "fish --no-execute" accepts the generated file and rejects bad syntax,
 # and that the global colors set from conf.d shadow universal ones set by
-# fish_config. fish reads $XDG_CONFIG_HOME/fish on macOS too. Theme Tender
+# fish_config. fish reads $XDG_CONFIG_HOME/fish on macOS too. Pult
 # owns the whole conf.d file, so uninstall brings the earlier colors back
 # by removing it. New shells pick it up; running ones keep their colors.
 schema: 1
@@ -19,13 +19,13 @@ detect:
 
 config:
   paths:
-    linux: ["$XDG_CONFIG_HOME/fish/conf.d/theme-tender.fish"]
-    macos: ["$XDG_CONFIG_HOME/fish/conf.d/theme-tender.fish"]
+    linux: ["$XDG_CONFIG_HOME/fish/conf.d/pult.fish"]
+    macos: ["$XDG_CONFIG_HOME/fish/conf.d/pult.fish"]
 
 integrations:
   - method: owned
-    template: fish/theme-tender.fish.mustache
-    target: theme-tender.fish
+    template: fish/pult.fish.mustache
+    target: pult.fish
 
 validate:
   argv: [fish, --no-execute, "{theme_file}"]

@@ -48,7 +48,7 @@ func Diff(name string, a, b []byte) string {
 		}
 	}
 	var out strings.Builder
-	fmt.Fprintf(&out, "--- %s\n+++ %s (Theme Tender)\n", name, name)
+	fmt.Fprintf(&out, "--- %s\n+++ %s (Pult)\n", name, name)
 	const ctx = 3
 	for k := 0; k < len(ops); {
 		if ops[k].kind == ' ' {

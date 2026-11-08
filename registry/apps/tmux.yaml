@@ -26,8 +26,8 @@ config:
 
 integrations:
   - method: include
-    template: tmux/theme-tender.conf.mustache
-    owned_file: "$XDG_CONFIG_HOME/tmux/theme-tender.conf"
+    template: tmux/pult.conf.mustache
+    owned_file: "$XDG_CONFIG_HOME/tmux/pult.conf"
     line: 'source-file -q "{theme_file}"'
     position: end
 
@@ -35,7 +35,7 @@ reload:
   - argv: [tmux, source-file, "{theme_file}"]
     when: running
 validate:
-  argv: [tmux, -L, theme-tender-validate, -f, /dev/null, start-server, ";", source-file, "{theme_file}"]
+  argv: [tmux, -L, pult-validate, -f, /dev/null, start-server, ";", source-file, "{theme_file}"]
 
 ports:
   catppuccin: { url: https://github.com/catppuccin/tmux, kind: official }

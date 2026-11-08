@@ -43,24 +43,24 @@ jobs:
           version="${GITHUB_REF_NAME#v}"
           scripts/dist.sh "${version}" "${GITHUB_REF_NAME}"
           scripts/render-packaging.sh "${version}" "${{ github.server_url }}/${{ github.repository }}/releases/download/${GITHUB_REF_NAME}"
-          cp dist/packaging/aur/theme-tender/PKGBUILD "dist/PKGBUILD.theme-tender"
-          cp dist/packaging/aur/theme-tender-bin/PKGBUILD "dist/PKGBUILD.theme-tender-bin"
-          cp dist/packaging/homebrew/theme-tender.rb dist/theme-tender.rb
+          cp dist/packaging/aur/pult/PKGBUILD "dist/PKGBUILD.pult"
+          cp dist/packaging/aur/pult-bin/PKGBUILD "dist/PKGBUILD.pult-bin"
+          cp dist/packaging/homebrew/pult.rb dist/pult.rb
       - name: Publish the release
         env:
           TOKEN: ${{ github.token }}
           API: ${{ github.server_url }}/api/v1/repos/${{ github.repository }}
         run: |
           set -euo pipefail
-          body=$(python3 -c 'import json, os; t = os.environ["GITHUB_REF_NAME"]; print(json.dumps({"tag_name": t, "name": "Theme Tender " + t[1:]}))')
+          body=$(python3 -c 'import json, os; t = os.environ["GITHUB_REF_NAME"]; print(json.dumps({"tag_name": t, "name": "Pult " + t[1:]}))')
           id=$(curl -fsS -X POST -H "Authorization: token ${TOKEN}" -H "Content-Type: application/json" \
             -d "${body}" "${API}/releases" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')
-          for f in dist/theme-tender-* dist/PKGBUILD.* dist/theme-tender.rb; do
+          for f in dist/pult-* dist/PKGBUILD.* dist/pult.rb; do
             curl -fsS -X POST -H "Authorization: token ${TOKEN}" -F "attachment=@${f}" \
               "${API}/releases/${id}/assets?name=$(basename "${f}")" > /dev/null
           done
 
-  # The theme-tender pacman package, built from the release's PKGBUILD and
+  # The pult pacman package, built from the release's PKGBUILD and
   # uploaded to the Gitea pacman repository "subcult". The Actions token may
   # not publish packages (401 reqPackageAccess), so this needs the
   # ARCH_PACKAGE_TOKEN secret: a token with package write access.

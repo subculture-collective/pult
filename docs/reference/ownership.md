@@ -1,6 +1,6 @@
 # Config ownership (v1)
 
-Each config file has one owner. `internal/owner` finds it, and Theme Tender acts on it: write the file, ask first, or hand off to the owner's own theme mechanism. Policy is in [ADR 0002](../adr/0002-theme-tender-foundations.md); the owner is stored in each change-record entry.
+Each config file has one owner. `internal/owner` finds it, and Pult acts on it: write the file, ask first, or hand off to the owner's own theme mechanism. Policy is in [ADR 0002](../adr/0002-theme-tender-foundations.md); the owner is stored in each change-record entry.
 
 ## Owners
 
@@ -21,7 +21,7 @@ Checked in this order; the first that matches is the owner.
 
 ## Subarchy
 
-Subarchy (`ID=subarchy` in `/etc/os-release`) ships layered defaults: system files in `/usr/share/subcult/default/` and a small override file in `~/.config` per program ([Subarchy ADR 0048](https://git.subcult.tv/subculture-collective/subarchy/src/branch/main/docs/decisions/0048-config-ownership.md)). Theme Tender never edits the system defaults. The override file already contains the include line for Theme Tender's owned file, so for `include` integrations Theme Tender writes only the owned file. A config already counts as including the file when a non-comment line names it in any form: bare name, `~/` path, absolute path, quoted or after `?`. This rule applies everywhere, not only on Subarchy. `tender doctor` reports Subarchy.
+Subarchy (`ID=subarchy` in `/etc/os-release`) ships layered defaults: system files in `/usr/share/subcult/default/` and a small override file in `~/.config` per program ([Subarchy ADR 0048](https://git.subcult.tv/subculture-collective/subarchy/src/branch/main/docs/decisions/0048-config-ownership.md)). Pult never edits the system defaults. The override file already contains the include line for Pult's owned file, so for `include` integrations Pult writes only the owned file. A config already counts as including the file when a non-comment line names it in any form: bare name, `~/` path, absolute path, quoted or after `?`. This rule applies everywhere, not only on Subarchy. `pult doctor` reports Subarchy.
 
 A framework detected on the machine but not linked to a particular file is reported by `System()`, so the apply pipeline can ask once before changing anything.
 

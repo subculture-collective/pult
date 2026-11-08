@@ -15,11 +15,11 @@ import (
 	"github.com/pelletier/go-toml/v2"
 	"go.yaml.in/yaml/v3"
 
-	"git.subcult.tv/subculture-collective/theme-tender/internal/changes"
-	"git.subcult.tv/subculture-collective/theme-tender/internal/color"
-	"git.subcult.tv/subculture-collective/theme-tender/internal/owner"
-	"git.subcult.tv/subculture-collective/theme-tender/internal/registry"
-	"git.subcult.tv/subculture-collective/theme-tender/internal/render"
+	"git.subcult.tv/subculture-collective/pult/internal/changes"
+	"git.subcult.tv/subculture-collective/pult/internal/color"
+	"git.subcult.tv/subculture-collective/pult/internal/owner"
+	"git.subcult.tv/subculture-collective/pult/internal/registry"
+	"git.subcult.tv/subculture-collective/pult/internal/render"
 )
 
 // fakeSys answers version probes, records every command, and fails the
@@ -119,7 +119,7 @@ func newWorld(t *testing.T, extra map[string]string) *world {
 
 func (w *world) with(reg *registry.Registry, getenv func(string) string) *world {
 	w.t.Helper()
-	store, err := changes.Open(filepath.Join(w.home, ".local/state/theme-tender"))
+	store, err := changes.Open(filepath.Join(w.home, ".local/state/pult"))
 	if err != nil {
 		w.t.Fatal(err)
 	}
@@ -131,7 +131,7 @@ func (w *world) with(reg *registry.Registry, getenv func(string) string) *world 
 	}
 	w.opts = Options{Home: w.home, Root: w.home, Platform: registry.Linux, Getenv: getenv, Registry: reg,
 		Templates: os.DirFS("../../templates"), Store: store, Owners: det, Sys: w.sys,
-		Meta: changes.Meta{Theme: "catppuccin-mocha", TenderVersion: "test"}}
+		Meta: changes.Meta{Theme: "catppuccin-mocha", PultVersion: "test"}}
 	return w
 }
 
@@ -155,11 +155,11 @@ func (w *world) read(rel string) string {
 	return string(b)
 }
 
-// snapshot is every file under home except Theme Tender's own state.
+// snapshot is every file under home except Pult's own state.
 func (w *world) snapshot() map[string]string {
 	out := map[string]string{}
 	filepath.Walk(w.home, func(p string, fi os.FileInfo, err error) error {
-		if err != nil || fi.IsDir() || strings.Contains(p, "/.local/state/theme-tender/") {
+		if err != nil || fi.IsDir() || strings.Contains(p, "/.local/state/pult/") {
 			return nil
 		}
 		rel, _ := filepath.Rel(w.home, p)
@@ -219,21 +219,21 @@ func TestApplyAndUninstallAllApps(t *testing.T) {
 	}
 	cfg := filepath.Join(w.home, ".config")
 
-	if got := w.read(".config/kitty/kitty.conf"); got != "font_size 12\ninclude theme-tender.conf\n" {
+	if got := w.read(".config/kitty/kitty.conf"); got != "font_size 12\ninclude pult.conf\n" {
 		t.Errorf("kitty.conf = %q", got)
 	}
-	if !strings.Contains(w.read(".config/kitty/theme-tender.conf"), "background              #1e1e2e") {
+	if !strings.Contains(w.read(".config/kitty/pult.conf"), "background              #1e1e2e") {
 		t.Error("kitty theme file not rendered")
 	}
-	if got := w.read(".config/ghostty/config"); got != "font-size = 12\nconfig-file = ?theme-tender.ghostty\n" {
+	if got := w.read(".config/ghostty/config"); got != "font-size = 12\nconfig-file = ?pult.ghostty\n" {
 		t.Errorf("ghostty config = %q", got)
 	}
 	var alacritty struct{ General struct{ Import []string } }
 	if err := toml.Unmarshal([]byte(w.read(".config/alacritty/alacritty.toml")), &alacritty); err != nil ||
-		!slices.Equal(alacritty.General.Import, []string{filepath.Join(cfg, "alacritty/theme-tender.toml")}) {
+		!slices.Equal(alacritty.General.Import, []string{filepath.Join(cfg, "alacritty/pult.toml")}) {
 		t.Errorf("alacritty general.import = %v, %v", alacritty.General.Import, err)
 	}
-	if got := w.read(".config/tmux/tmux.conf"); got != "set -g mouse on\nsource-file -q \""+filepath.Join(cfg, "tmux/theme-tender.conf")+"\"\n" {
+	if got := w.read(".config/tmux/tmux.conf"); got != "set -g mouse on\nsource-file -q \""+filepath.Join(cfg, "tmux/pult.conf")+"\"\n" {
 		t.Errorf("tmux.conf = %q", got)
 	}
 	var starship struct {
@@ -242,7 +242,7 @@ func TestApplyAndUninstallAllApps(t *testing.T) {
 		Palettes   map[string]map[string]string `toml:"palettes"`
 	}
 	if err := toml.Unmarshal([]byte(w.read(".config/starship.toml")), &starship); err != nil ||
-		starship.Palette != "theme-tender" || starship.Palettes["theme-tender"]["red"] != "#f38ba8" {
+		starship.Palette != "pult" || starship.Palettes["pult"]["red"] != "#f38ba8" {
 		t.Errorf("starship = %+v, %v", starship, err)
 	}
 	var lazygit map[string]map[string]any
@@ -250,29 +250,29 @@ func TestApplyAndUninstallAllApps(t *testing.T) {
 		lazygit["gui"]["showIcons"] != true || lazygit["gui"]["theme"] == nil {
 		t.Errorf("lazygit = %v, %v", lazygit, err)
 	}
-	if got := w.read(".config/yazi/theme.toml"); !strings.Contains(got, "[flavor]\ndark = \"theme-tender\"\nlight = \"theme-tender\"\n") {
+	if got := w.read(".config/yazi/theme.toml"); !strings.Contains(got, "[flavor]\ndark = \"pult\"\nlight = \"pult\"\n") {
 		t.Errorf("yazi theme.toml = %q", got)
 	}
-	if !strings.Contains(w.read(".config/yazi/flavors/theme-tender.yazi/flavor.toml"), "[mgr]") {
+	if !strings.Contains(w.read(".config/yazi/flavors/pult.yazi/flavor.toml"), "[mgr]") {
 		t.Error("yazi flavor not rendered")
 	}
-	if got := w.read(".config/btop/btop.conf"); got != "color_theme = \"theme-tender\"\ntheme_background = True\n" {
+	if got := w.read(".config/btop/btop.conf"); got != "color_theme = \"pult\"\ntheme_background = True\n" {
 		t.Errorf("btop.conf = %q", got)
 	}
-	if !strings.Contains(w.read(".config/btop/themes/theme-tender.theme"), `theme[main_bg]="#1e1e2e"`) {
+	if !strings.Contains(w.read(".config/btop/themes/pult.theme"), `theme[main_bg]="#1e1e2e"`) {
 		t.Error("btop theme not rendered")
 	}
 
-	if got := w.read(".config/helix/config.toml"); got != "theme = \"theme-tender\"\n\n[editor]\nline-number = \"relative\"\n" {
+	if got := w.read(".config/helix/config.toml"); got != "theme = \"pult\"\n\n[editor]\nline-number = \"relative\"\n" {
 		t.Errorf("helix config.toml = %q", got)
 	}
-	if !strings.Contains(w.read(".config/helix/themes/theme-tender.toml"), `base = "#1e1e2e"`) {
+	if !strings.Contains(w.read(".config/helix/themes/pult.toml"), `base = "#1e1e2e"`) {
 		t.Error("helix theme not rendered")
 	}
-	if got := w.read(".config/cava/config"); !strings.Contains(got, "[color]\ngradient = 0\ntheme = \"theme-tender\"\n") || !strings.HasPrefix(got, "[general]\nframerate = 60\n") {
+	if got := w.read(".config/cava/config"); !strings.Contains(got, "[color]\ngradient = 0\ntheme = \"pult\"\n") || !strings.HasPrefix(got, "[general]\nframerate = 60\n") {
 		t.Errorf("cava config = %q", got)
 	}
-	if !strings.Contains(w.read(".config/cava/themes/theme-tender"), "gradient_color_1 = '#94e2d5'") {
+	if !strings.Contains(w.read(".config/cava/themes/pult"), "gradient_color_1 = '#94e2d5'") {
 		t.Error("cava theme not rendered")
 	}
 	var eza map[string]any
@@ -280,10 +280,10 @@ func TestApplyAndUninstallAllApps(t *testing.T) {
 		t.Errorf("eza theme.yml = %q", got)
 	}
 
-	if got := w.read(".config/foot/foot.ini"); got != "include="+filepath.Join(cfg, "foot/theme-tender.ini")+"\n[main]\nfont=monospace:size=11\n" {
+	if got := w.read(".config/foot/foot.ini"); got != "include="+filepath.Join(cfg, "foot/pult.ini")+"\n[main]\nfont=monospace:size=11\n" {
 		t.Errorf("foot.ini = %q", got)
 	}
-	if !strings.Contains(w.read(".config/foot/theme-tender.ini"), "[colors-dark]\ncursor=1e1e2e f5e0dc\nbackground=1e1e2e\n") {
+	if !strings.Contains(w.read(".config/foot/pult.ini"), "[colors-dark]\ncursor=1e1e2e f5e0dc\nbackground=1e1e2e\n") {
 		t.Error("foot theme not rendered for 1.26+")
 	}
 	var lsd map[string]map[string]any
@@ -294,10 +294,10 @@ func TestApplyAndUninstallAllApps(t *testing.T) {
 		t.Error("lsd colors not rendered")
 	}
 
-	if got := w.read(".config/zellij/config.kdl"); got != "// mine\nmouse_mode true\ntheme \"theme-tender\"\n" {
+	if got := w.read(".config/zellij/config.kdl"); got != "// mine\nmouse_mode true\ntheme \"pult\"\n" {
 		t.Errorf("zellij config.kdl = %q", got)
 	}
-	if !strings.Contains(w.read(".config/zellij/themes/theme-tender.kdl"), "    theme-tender {\n") {
+	if !strings.Contains(w.read(".config/zellij/themes/pult.kdl"), "    pult {\n") {
 		t.Error("zellij theme not rendered")
 	}
 	if got := w.read(".config/bat/config"); got != "# mine\n--style=plain\n--theme=\"ansi\"\n" {
@@ -307,17 +307,17 @@ func TestApplyAndUninstallAllApps(t *testing.T) {
 	if got := w.read(".gitconfig"); got != "[user]\n\tname = U\n[delta]\n\tsyntax-theme = ansi\n\tline-numbers = true\n" {
 		t.Errorf(".gitconfig = %q", got)
 	}
-	if !strings.Contains(w.read(".config/fish/conf.d/theme-tender.fish"), "set -g fish_color_command ") {
+	if !strings.Contains(w.read(".config/fish/conf.d/pult.fish"), "set -g fish_color_command ") {
 		t.Error("fish colors not rendered")
 	}
-	if !strings.Contains(w.read(".config/wezterm/colors/theme-tender.toml"), "name = \"Theme Tender\"") {
+	if !strings.Contains(w.read(".config/wezterm/colors/pult.toml"), "name = \"Pult\"") {
 		t.Error("wezterm scheme not rendered")
 	}
 
 	// Validators ran with real paths; reloads ran for running apps only.
-	if !w.sys.ranCommand("tmux", "-L", "theme-tender-validate") || !w.sys.ranCommand("kitty", "+runpy") || !w.sys.ranCommand("foot", "--check-config", "-c", filepath.Join(cfg, "foot/foot.ini")) ||
-		!w.sys.ranCommand("zellij", "--config", filepath.Join(cfg, "zellij/themes/theme-tender.kdl"), "setup", "--check") || !w.sys.ranCommand("batcat", "--version") ||
-		!w.sys.ranCommand("fish", "--no-execute", filepath.Join(cfg, "fish/conf.d/theme-tender.fish")) || !w.sys.ranCommand("git", "config", "--file", filepath.Join(w.home, ".gitconfig"), "--list") {
+	if !w.sys.ranCommand("tmux", "-L", "pult-validate") || !w.sys.ranCommand("kitty", "+runpy") || !w.sys.ranCommand("foot", "--check-config", "-c", filepath.Join(cfg, "foot/foot.ini")) ||
+		!w.sys.ranCommand("zellij", "--config", filepath.Join(cfg, "zellij/themes/pult.kdl"), "setup", "--check") || !w.sys.ranCommand("batcat", "--version") ||
+		!w.sys.ranCommand("fish", "--no-execute", filepath.Join(cfg, "fish/conf.d/pult.fish")) || !w.sys.ranCommand("git", "config", "--file", filepath.Join(w.home, ".gitconfig"), "--list") {
 		t.Errorf("validators not run: %v", w.sys.ran)
 	}
 	if !w.sys.ranCommand("pkill", "-USR1", "-x", "kitty") || !w.sys.ranCommand("pkill", "-USR2", "-x", "btop") {
@@ -375,7 +375,7 @@ func TestValidationFailureKeepsOtherApps(t *testing.T) {
 	if w.sys.ranCommand("pkill", "-USR1", "-x", "kitty") {
 		t.Error("kitty reloaded after failing validation")
 	}
-	if !strings.Contains(w.read(".config/btop/btop.conf"), "theme-tender") {
+	if !strings.Contains(w.read(".config/btop/btop.conf"), "pult") {
 		t.Error("btop lost its change")
 	}
 }
@@ -401,7 +401,7 @@ func TestOwnedConfigNeedsConfirmation(t *testing.T) {
 				t.Fatal(err)
 			}
 			got := w.read("dotfiles/kitty/.config/kitty/kitty.conf")
-			if confirm != strings.Contains(got, "include theme-tender.conf") {
+			if confirm != strings.Contains(got, "include pult.conf") {
 				t.Errorf("confirm=%v: dotfiles kitty.conf = %q", confirm, got)
 			}
 			if fi, err := os.Lstat(filepath.Join(w.home, ".config/kitty")); err != nil || fi.Mode()&os.ModeSymlink == 0 {
@@ -429,10 +429,10 @@ func TestOmarchy(t *testing.T) {
 	if _, err := Execute(w.opts, plan); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(w.read(".config/omarchy/themes/tender-catppuccin-mocha/colors.toml"), `background = "#1e1e2e"`) {
+	if !strings.Contains(w.read(".config/omarchy/themes/pult-catppuccin-mocha/colors.toml"), `background = "#1e1e2e"`) {
 		t.Error("Omarchy theme not written")
 	}
-	if !w.sys.ranCommand("omarchy-theme-set", "tender-catppuccin-mocha") {
+	if !w.sys.ranCommand("omarchy-theme-set", "pult-catppuccin-mocha") {
 		t.Errorf("no switch: %v", w.sys.ran)
 	}
 	if w.read(".config/kitty/kitty.conf") != original[".config/kitty/kitty.conf"] {
@@ -440,7 +440,7 @@ func TestOmarchy(t *testing.T) {
 	}
 
 	// omarchy-theme-set would have recorded the new theme.
-	w.write(".local/state/omarchy/current/theme.name", "tender-catppuccin-mocha\n")
+	w.write(".local/state/omarchy/current/theme.name", "pult-catppuccin-mocha\n")
 	w = w.with(w.opts.Registry, w.opts.Getenv)
 	if _, _, err := Uninstall(w.opts, false); err != nil {
 		t.Fatal(err)
@@ -448,7 +448,7 @@ func TestOmarchy(t *testing.T) {
 	if !w.sys.ranCommand("omarchy-theme-set", "subcult-minimal") {
 		t.Errorf("no switch back: %v", w.sys.ran)
 	}
-	if _, err := os.Stat(filepath.Join(w.home, ".config/omarchy/themes/tender-catppuccin-mocha/colors.toml")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(w.home, ".config/omarchy/themes/pult-catppuccin-mocha/colors.toml")); !os.IsNotExist(err) {
 		t.Error("Omarchy theme not removed")
 	}
 }
@@ -493,14 +493,14 @@ func union(a, b map[string]string) map[string]bool {
 	return out
 }
 
-// TestSubarchyLayeredDefaults: a user file that already includes Theme
-// Tender's file, in its own spelling, is left as it is and only the owned
+// TestSubarchyLayeredDefaults: a user file that already includes
+// Pult's file, in its own spelling, is left as it is and only the owned
 // file is written; a config that is a Subarchy default is never edited.
 func TestSubarchyLayeredDefaults(t *testing.T) {
 	w := newWorld(t, map[string]string{
-		".config/kitty/kitty.conf":                 "# Subarchy overrides\ninclude ~/.config/kitty/theme-tender.conf\n",
+		".config/kitty/kitty.conf":                 "# Subarchy overrides\ninclude ~/.config/kitty/pult.conf\n",
 		"etc/os-release":                           "ID=subarchy\n",
-		"usr/share/subcult/default/btop/btop.conf": "color_theme = \"theme-tender\"\n",
+		"usr/share/subcult/default/btop/btop.conf": "color_theme = \"pult\"\n",
 	})
 	os.Remove(filepath.Join(w.home, ".config/btop/btop.conf"))
 	if err := os.Symlink(filepath.Join(w.home, "usr/share/subcult/default/btop/btop.conf"), filepath.Join(w.home, ".config/btop/btop.conf")); err != nil {
@@ -515,7 +515,7 @@ func TestSubarchyLayeredDefaults(t *testing.T) {
 	for _, ap := range plan.Apps {
 		apps[ap.ID] = ap
 	}
-	if k := apps["kitty"]; k.Skip != "" || len(k.Edits) != 1 || k.Edits[0].Path != filepath.Join(w.home, ".config/kitty/theme-tender.conf") {
+	if k := apps["kitty"]; k.Skip != "" || len(k.Edits) != 1 || k.Edits[0].Path != filepath.Join(w.home, ".config/kitty/pult.conf") {
 		t.Errorf("kitty plan: skip %q, edits %+v", k.Skip, k.Edits)
 	}
 	if b := apps["btop"]; !strings.HasPrefix(b.Skip, "Subarchy default, left alone") {
@@ -527,30 +527,30 @@ func TestSubarchyLayeredDefaults(t *testing.T) {
 	if _, err := Execute(w.opts, plan); err != nil {
 		t.Fatal(err)
 	}
-	if got := w.read(".config/kitty/kitty.conf"); got != "# Subarchy overrides\ninclude ~/.config/kitty/theme-tender.conf\n" {
+	if got := w.read(".config/kitty/kitty.conf"); got != "# Subarchy overrides\ninclude ~/.config/kitty/pult.conf\n" {
 		t.Errorf("kitty.conf edited: %q", got)
 	}
-	if !strings.Contains(w.read(".config/kitty/theme-tender.conf"), "#1e1e2e") {
+	if !strings.Contains(w.read(".config/kitty/pult.conf"), "#1e1e2e") {
 		t.Error("owned file not written")
 	}
 }
 
 func TestIncludesFile(t *testing.T) {
-	const f = "/home/u/.config/kitty/theme-tender.conf"
+	const f = "/home/u/.config/kitty/pult.conf"
 	for cfg, want := range map[string]bool{
-		"include theme-tender.conf\n":                                  true,
-		"include ~/.config/kitty/theme-tender.conf\n":                  true,
-		"config-file = ?theme-tender.conf\n":                           true,
-		"source-file -q \"/home/u/.config/kitty/theme-tender.conf\"\n": true,
-		"# include theme-tender.conf\n":                                false,
-		"include my-theme-tender.conf\n":                               false,
-		"include theme-tender.conf.bak\n":                              false,
-		"include=/home/u/.config/kitty/theme-tender.conf\n":            true,
-		"source ~/.config/kitty/theme-tender.conf\n":                   true,
-		"bind T source-file ~/.config/kitty/theme-tender.conf\n":       false,
-		"// include theme-tender.conf\n":                               false,
-		"font_family theme-tender.conf\n":                              false,
-		"":                                                             false,
+		"include pult.conf\n":                                  true,
+		"include ~/.config/kitty/pult.conf\n":                  true,
+		"config-file = ?pult.conf\n":                           true,
+		"source-file -q \"/home/u/.config/kitty/pult.conf\"\n": true,
+		"# include pult.conf\n":                                false,
+		"include my-pult.conf\n":                               false,
+		"include pult.conf.bak\n":                              false,
+		"include=/home/u/.config/kitty/pult.conf\n":            true,
+		"source ~/.config/kitty/pult.conf\n":                   true,
+		"bind T source-file ~/.config/kitty/pult.conf\n":       false,
+		"// include pult.conf\n":                               false,
+		"font_family pult.conf\n":                              false,
+		"":                                                     false,
 	} {
 		if got := includesFile([]byte(cfg), f); got != want {
 			t.Errorf("includesFile(%q) = %v, want %v", cfg, got, want)
@@ -628,7 +628,7 @@ func TestUpgrades(t *testing.T) {
 }
 
 // TestITerm2 applies on macOS: the Dynamic Profile is written as a whole
-// file Theme Tender owns, parses as JSON, and uninstall removes it.
+// file Pult owns, parses as JSON, and uninstall removes it.
 func TestITerm2(t *testing.T) {
 	w := newWorld(t, nil)
 	w.opts.Platform = registry.MacOS
@@ -646,7 +646,7 @@ func TestITerm2(t *testing.T) {
 			ap = a
 		}
 	}
-	profile := filepath.Join(w.home, "Library/Application Support/iTerm2/DynamicProfiles/theme-tender.json")
+	profile := filepath.Join(w.home, "Library/Application Support/iTerm2/DynamicProfiles/pult.json")
 	if ap.Skip != "" || len(ap.Edits) != 1 || ap.Edits[0].Path != profile {
 		t.Fatalf("iterm2 plan = skip %q, %d edits %v", ap.Skip, len(ap.Edits), ap.Edits)
 	}
@@ -656,10 +656,10 @@ func TestITerm2(t *testing.T) {
 	var doc struct {
 		Profiles []map[string]any
 	}
-	if err := json.Unmarshal([]byte(w.read("Library/Application Support/iTerm2/DynamicProfiles/theme-tender.json")), &doc); err != nil {
+	if err := json.Unmarshal([]byte(w.read("Library/Application Support/iTerm2/DynamicProfiles/pult.json")), &doc); err != nil {
 		t.Fatal(err)
 	}
-	if len(doc.Profiles) != 1 || doc.Profiles[0]["Name"] != "Theme Tender" || doc.Profiles[0]["Background Color"] == nil {
+	if len(doc.Profiles) != 1 || doc.Profiles[0]["Name"] != "Pult" || doc.Profiles[0]["Background Color"] == nil {
 		t.Errorf("profile = %v", doc.Profiles)
 	}
 	if _, _, err := Uninstall(w.opts, false); err != nil {
@@ -688,7 +688,7 @@ func TestTerminalApp(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	file := filepath.Join(w.home, "Library/Application Support/theme-tender/terminal-app/theme-tender.terminal")
+	file := filepath.Join(w.home, "Library/Application Support/pult/terminal-app/pult.terminal")
 	i := slices.IndexFunc(plan.Apps, func(a AppPlan) bool { return a.ID == "terminal-app" })
 	if ap := plan.Apps[i]; ap.Skip != "" || len(ap.Edits) != 1 || ap.Edits[0].Path != file {
 		t.Fatalf("terminal-app plan = skip %q, edits %v", ap.Skip, ap.Edits)
@@ -696,7 +696,7 @@ func TestTerminalApp(t *testing.T) {
 	if _, err := Execute(w.opts, plan); err != nil {
 		t.Fatal(err)
 	}
-	if got := w.read("Library/Application Support/theme-tender/terminal-app/theme-tender.terminal"); !strings.Contains(got, "<string>Theme Tender</string>") {
+	if got := w.read("Library/Application Support/pult/terminal-app/pult.terminal"); !strings.Contains(got, "<string>Pult</string>") {
 		t.Errorf("profile:\n%s", got)
 	}
 	if _, _, err := Uninstall(w.opts, false); err != nil {
@@ -723,23 +723,23 @@ integrations:
     revision: f437574b600f1c6d932627050b15ff5153b58fa3
     flavors:
       catppuccin-mocha: { path: themes/catppuccin_mocha.theme, sha256: `+hex.EncodeToString(sum[:])+` }
-    target: themes/theme-tender.theme
+    target: themes/pult.theme
     select:
       format: ini
-      set: { color_theme: theme-tender }
+      set: { color_theme: pult }
   - method: owned
-    template: btop/theme-tender.theme.mustache
-    target: themes/theme-tender.theme
+    template: btop/pult.theme.mustache
+    target: themes/pult.theme
     select:
       format: ini
-      set: { color_theme: theme-tender }
+      set: { color_theme: pult }
 `)
 	reg, err := registry.Load(os.DirFS("../../registry"), userDir)
 	if err != nil || len(reg.Problems) > 0 {
 		t.Fatal(err, reg.Problems)
 	}
 	w.opts.Registry = reg
-	w.opts.CacheDir = filepath.Join(w.home, ".cache/theme-tender")
+	w.opts.CacheDir = filepath.Join(w.home, ".cache/pult")
 	var got []string
 	serve := port
 	// Only btop's downloads are recorded; helix has a port of its own.
@@ -769,7 +769,7 @@ integrations:
 	if _, err := Execute(w.opts, plan); err != nil {
 		t.Fatal(err)
 	}
-	if w.read(".config/btop/themes/theme-tender.theme") != string(port) || !strings.Contains(w.read(".config/btop/btop.conf"), `color_theme = "theme-tender"`) {
+	if w.read(".config/btop/themes/pult.theme") != string(port) || !strings.Contains(w.read(".config/btop/btop.conf"), `color_theme = "pult"`) {
 		t.Error("port not installed and selected")
 	}
 	// Survey (doctor, list) reports the port for the active theme, from
@@ -805,7 +805,7 @@ integrations:
 	if _, _, err := Uninstall(w.opts, false); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(w.home, ".config/btop/themes/theme-tender.theme")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(w.home, ".config/btop/themes/pult.theme")); !os.IsNotExist(err) {
 		t.Error("uninstall left the port file")
 	}
 }
@@ -821,10 +821,10 @@ func TestByteOrderMark(t *testing.T) {
 	if _, err := Execute(w.opts, plan); err != nil {
 		t.Fatal(err)
 	}
-	if got := w.read(".config/kitty/kitty.conf"); got != "\ufefffont_size 12\ninclude theme-tender.conf\n" {
+	if got := w.read(".config/kitty/kitty.conf"); got != "\ufefffont_size 12\ninclude pult.conf\n" {
 		t.Errorf("kitty.conf = %q", got)
 	}
-	if got := w.read(".config/btop/btop.conf"); got != "\ufeffcolor_theme = \"theme-tender\"\n" {
+	if got := w.read(".config/btop/btop.conf"); got != "\ufeffcolor_theme = \"pult\"\n" {
 		t.Errorf("btop.conf = %q", got)
 	}
 }
@@ -849,20 +849,20 @@ func TestFrameworkBackend(t *testing.T) {
 	if _, err := Execute(w.opts, plan); err != nil {
 		t.Fatal(err)
 	}
-	if !w.sys.ranCommand("noctalia", "msg", "color-scheme-set", "custom", "tender-catppuccin-mocha") {
+	if !w.sys.ranCommand("noctalia", "msg", "color-scheme-set", "custom", "pult-catppuccin-mocha") {
 		t.Errorf("no switch: %v", w.sys.ran)
 	}
-	if !strings.Contains(w.read(".config/noctalia/palettes/tender-catppuccin-mocha.json"), `"version": 2`) {
+	if !strings.Contains(w.read(".config/noctalia/palettes/pult-catppuccin-mocha.json"), `"version": 2`) {
 		t.Error("palette file not written")
 	}
-	w.sys.answers["noctalia msg color-scheme-get"] = "custom tender-catppuccin-mocha"
+	w.sys.answers["noctalia msg color-scheme-get"] = "custom pult-catppuccin-mocha"
 	if _, _, err := Uninstall(w.opts, false); err != nil {
 		t.Fatal(err)
 	}
 	if !w.sys.ranCommand("noctalia", "msg", "color-scheme-set", "builtin", "Noctalia") {
 		t.Errorf("no switch back: %v", w.sys.ran)
 	}
-	if _, err := os.Stat(filepath.Join(w.home, ".config/noctalia/palettes/tender-catppuccin-mocha.json")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(w.home, ".config/noctalia/palettes/pult-catppuccin-mocha.json")); !os.IsNotExist(err) {
 		t.Error("uninstall left the palette file")
 	}
 }

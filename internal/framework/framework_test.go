@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"git.subcult.tv/subculture-collective/theme-tender/internal/color"
-	"git.subcult.tv/subculture-collective/theme-tender/internal/render"
+	"git.subcult.tv/subculture-collective/pult/internal/color"
+	"git.subcult.tv/subculture-collective/pult/internal/render"
 )
 
 type fake struct {
@@ -94,7 +94,7 @@ func TestNoctalia(t *testing.T) {
 	}
 	f.answers["noctalia msg color-scheme-get"] = "builtin Noctalia\n"
 	plan, _ = PlanFor(b, f.Env(), th, p)
-	if len(plan.Edits) != 2 || strings.Join(plan.Switch[0], " ") != "noctalia msg color-scheme-set custom tender-catppuccin-mocha" {
+	if len(plan.Edits) != 2 || strings.Join(plan.Switch[0], " ") != "noctalia msg color-scheme-set custom pult-catppuccin-mocha" {
 		t.Fatalf("plan: %+v", plan)
 	}
 	var pal struct {
@@ -111,12 +111,12 @@ func TestNoctalia(t *testing.T) {
 	if err := json.Unmarshal(plan.Edits[0].Content, &pal); err != nil || pal.Version != 2 || pal.Dark.Terminal.Normal["black"] != "#45475a" || pal.Dark.Terminal.Bright["white"] != "#a6adc8" || pal.Dark.Terminal.Background != "#1e1e2e" {
 		t.Errorf("palette %+v %v\n%s", pal, err, plan.Edits[0].Content)
 	}
-	if plan.Edits[0].Path != filepath.Join(f.home, ".config/noctalia/palettes/tender-catppuccin-mocha.json") {
+	if plan.Edits[0].Path != filepath.Join(f.home, ".config/noctalia/palettes/pult-catppuccin-mocha.json") {
 		t.Errorf("path %s", plan.Edits[0].Path)
 	}
 	writeEdits(t, plan)
 	// After switching, a second apply keeps the user's original selection.
-	f.answers["noctalia msg color-scheme-get"] = "custom tender-catppuccin-mocha"
+	f.answers["noctalia msg color-scheme-get"] = "custom pult-catppuccin-mocha"
 	plan2, _ := PlanFor(b, f.Env(), th, p)
 	if !strings.Contains(string(plan2.Edits[1].Content), `"previous": "builtin Noctalia"`) {
 		t.Errorf("record after a second apply:\n%s", plan2.Edits[1].Content)
@@ -142,7 +142,7 @@ func TestDMS(t *testing.T) {
 	if err != nil || len(plan.Switch) != 2 || !strings.Contains(plan.Note, "ANSI") {
 		t.Fatalf("plan: %+v %v", plan, err)
 	}
-	file := filepath.Join(f.home, ".config/dms/theme-tender/tender-catppuccin-mocha.json")
+	file := filepath.Join(f.home, ".config/dms/pult/pult-catppuccin-mocha.json")
 	if strings.Join(plan.Switch[0], " ") != "dms ipc call settings set customThemeFile "+file || strings.Join(plan.Switch[1], " ") != "dms ipc call settings set currentThemeName custom" {
 		t.Errorf("switch order: %v", plan.Switch)
 	}
@@ -170,12 +170,12 @@ func TestHyDE(t *testing.T) {
 	f.write(t, ".local/state/hyde/staterc", "enableWallDcol=\"0\"\nHYDE_THEME=\"Catppuccin Mocha\"\n")
 	f.write(t, ".config/hyde/themes/Catppuccin Mocha/hypr.theme", "$GTK_THEME=Catppuccin-Mocha\n$ICON_THEME = Tela-circle-dracula\n")
 	plan, err := PlanFor(b, f.Env(), th, p)
-	if err != nil || plan.Note != "" || strings.Join(plan.Switch[0], " ") != "hydectl theme set tender-catppuccin-mocha" {
+	if err != nil || plan.Note != "" || strings.Join(plan.Switch[0], " ") != "hydectl theme set pult-catppuccin-mocha" {
 		t.Fatalf("plan: %+v %v", plan, err)
 	}
 	files := map[string][]byte{}
 	for _, e := range plan.Edits {
-		rel, _ := filepath.Rel(filepath.Join(f.home, ".config/hyde/themes/tender-catppuccin-mocha"), e.Path)
+		rel, _ := filepath.Rel(filepath.Join(f.home, ".config/hyde/themes/pult-catppuccin-mocha"), e.Path)
 		files[rel] = e.Content
 	}
 	hypr := string(files["hypr.theme"])
@@ -185,7 +185,7 @@ func TestHyDE(t *testing.T) {
 	if !strings.Contains(string(files["kitty.theme"]), "color0 #45475a\n") {
 		t.Error("kitty.theme lacks the ANSI colors")
 	}
-	img, err := png.Decode(bytes.NewReader(files["wallpapers/tender-catppuccin-mocha.png"]))
+	img, err := png.Decode(bytes.NewReader(files["wallpapers/pult-catppuccin-mocha.png"]))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -203,7 +203,7 @@ func TestHyDE(t *testing.T) {
 	}
 	// After the switch, GTK comes from the theme recorded as previous.
 	writeEdits(t, plan)
-	f.write(t, ".local/state/hyde/staterc", "HYDE_THEME=\"tender-catppuccin-mocha\"\n")
+	f.write(t, ".local/state/hyde/staterc", "HYDE_THEME=\"pult-catppuccin-mocha\"\n")
 	plan, _ = PlanFor(b, f.Env(), th, p)
 	for _, e := range plan.Edits {
 		if strings.HasSuffix(e.Path, "hypr.theme") && !strings.Contains(string(e.Content), "$GTK_THEME = Catppuccin-Mocha") {

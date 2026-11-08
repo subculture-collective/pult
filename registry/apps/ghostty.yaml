@@ -34,9 +34,9 @@ config:
 integrations:
   # "?" makes the file optional, so Ghostty still starts if it is removed.
   - method: include
-    template: ghostty/theme-tender.ghostty.mustache
-    owned_file: theme-tender.ghostty
-    line: "config-file = ?theme-tender.ghostty"
+    template: ghostty/pult.ghostty.mustache
+    owned_file: pult.ghostty
+    line: "config-file = ?pult.ghostty"
     position: end
 
 reload:

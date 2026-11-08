@@ -1,5 +1,5 @@
 // Package color converts between sRGB, OKLab and OKLCH, measures color
-// difference and contrast, and models Theme Tender's palette roles.
+// difference and contrast, and models Pult's palette roles.
 package color
 
 import (

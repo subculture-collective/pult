@@ -28,14 +28,14 @@ integrations:
   # 0.14 moved import under [general].
   - method: include
     versions: ">=0.14"
-    template: alacritty/theme-tender.toml.mustache
-    owned_file: theme-tender.toml
+    template: alacritty/pult.toml.mustache
+    owned_file: pult.toml
     format: toml
     key: general.import
   - method: include
     versions: "<0.14"
-    template: alacritty/theme-tender.toml.mustache
-    owned_file: theme-tender.toml
+    template: alacritty/pult.toml.mustache
+    owned_file: pult.toml
     format: toml
     key: import
 

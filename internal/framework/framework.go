@@ -1,6 +1,6 @@
-// Package framework holds Theme Tender's Hyprland framework backends. Each
+// Package framework holds Pult's Hyprland framework backends. Each
 // one themes a framework through the framework's own mechanism: it writes
-// a theme or palette file Theme Tender owns, if the framework has a place
+// a theme or palette file Pult owns, if the framework has a place
 // for one, and switches with the framework's own command. It never edits
 // files the framework generates. Before switching, it records the
 // framework's previous selection, so uninstall can switch back. See
@@ -14,15 +14,15 @@ import (
 	"path/filepath"
 	"sort"
 
-	"git.subcult.tv/subculture-collective/theme-tender/internal/changes"
-	"git.subcult.tv/subculture-collective/theme-tender/internal/color"
-	"git.subcult.tv/subculture-collective/theme-tender/internal/render"
+	"git.subcult.tv/subculture-collective/pult/internal/changes"
+	"git.subcult.tv/subculture-collective/pult/internal/color"
+	"git.subcult.tv/subculture-collective/pult/internal/render"
 )
 
 // Env is what backends read from the machine. Tests replace it.
 type Env struct {
 	Home     string
-	StateDir string // Theme Tender's state directory, for the switch record
+	StateDir string // Pult's state directory, for the switch record
 	Getenv   func(string) string
 	LookPath func(string) (string, error)
 	Run      func(argv []string) ([]byte, error)
@@ -46,7 +46,7 @@ type Backend interface {
 	Switch(env Env, sel string) [][]string
 }
 
-// Backends are the frameworks Theme Tender can theme, by name.
+// Backends are the frameworks Pult can theme, by name.
 var Backends = map[string]Backend{}
 
 func register(b Backend) { Backends[b.Name()] = b }
@@ -61,9 +61,9 @@ func Names() []string {
 	return out
 }
 
-// Record is the switch record Theme Tender keeps per framework, written
+// Record is the switch record Pult keeps per framework, written
 // through the change record like any other file: Previous is what the
-// framework showed before Theme Tender's first switch, Applied what Theme
+// framework showed before Pult's first switch, Applied what Theme
 // Tender selected last.
 type Record struct {
 	Previous string `json:"previous"`
@@ -97,8 +97,8 @@ type Plan struct {
 }
 
 // PlanFor plans a backend for a theme. The previous selection comes from
-// an existing record while a Theme Tender selection is still shown, so a
-// second apply does not take Theme Tender's own theme for the user's.
+// an existing record while a Pult selection is still shown, so a
+// second apply does not take Pult's own theme for the user's.
 func PlanFor(b Backend, env Env, t render.Theme, p color.Palette) (*Plan, error) {
 	plan := &Plan{Name: b.Name()}
 	cur, err := b.Current(env)
@@ -132,7 +132,7 @@ func PlanFor(b Backend, env Env, t render.Theme, p color.Palette) (*Plan, error)
 }
 
 // Restore returns the commands that switch a framework back to what it
-// showed before Theme Tender, if Theme Tender's selection is still shown.
+// showed before Pult, if Pult's selection is still shown.
 // Read the record before uninstall removes it.
 func Restore(b Backend, env Env, rec *Record) [][]string {
 	if rec == nil || rec.Previous == "" {

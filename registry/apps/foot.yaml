@@ -27,20 +27,20 @@ config:
 integrations:
   - method: include
     versions: ">=1.26"
-    template: foot/theme-tender.ini.mustache
-    owned_file: theme-tender.ini
+    template: foot/pult.ini.mustache
+    owned_file: pult.ini
     line: "include={theme_file}"
     position: start
   - method: include
     versions: ">=1.23 <1.26"
-    template: foot/theme-tender-1.23.ini.mustache
-    owned_file: theme-tender.ini
+    template: foot/pult-1.23.ini.mustache
+    owned_file: pult.ini
     line: "include={theme_file}"
     position: start
   - method: include
     versions: "<1.23"
-    template: foot/theme-tender-1.0.ini.mustache
-    owned_file: theme-tender.ini
+    template: foot/pult-1.0.ini.mustache
+    owned_file: pult.ini
     line: "include={theme_file}"
     position: start
 

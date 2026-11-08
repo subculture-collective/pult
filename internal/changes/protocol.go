@@ -14,7 +14,7 @@ import (
 	"github.com/klauspost/compress/zstd"
 )
 
-// Edit is one file change Theme Tender wants to make.
+// Edit is one file change Pult wants to make.
 type Edit struct {
 	App, Path, Owner, Method string
 	Delete                   bool
@@ -30,7 +30,7 @@ type Validator func(app string, paths []string) error
 // Conflict is a file an undo did not touch.
 type Conflict struct {
 	Path   string
-	Reason string // "edited": changed since Theme Tender wrote it; "missing"
+	Reason string // "edited": changed since Pult wrote it; "missing"
 	// Before and Current are the contents to show in a diff.
 	Before, Current []byte
 }
@@ -177,7 +177,7 @@ func (s *Store) run(kind, rollsBack string, m Meta, plans []plan, validate Valid
 	}
 	tx := &Transaction{
 		Schema: 1, ID: newULID(s.now()), Kind: kind, Status: "pending", Started: s.now().UTC(),
-		Theme: m.Theme, TenderVersion: m.TenderVersion, BundleVersion: m.BundleVersion, RollsBack: rollsBack,
+		Theme: m.Theme, PultVersion: m.PultVersion, BundleVersion: m.BundleVersion, RollsBack: rollsBack,
 	}
 	for _, p := range plans {
 		tx.Changes = append(tx.Changes, p.c)
@@ -271,7 +271,7 @@ func (s *Store) abandon(tx *Transaction, written []plan, cause error) error {
 	for i := len(written) - 1; i >= 0; i-- {
 		p := written[i]
 		if err := replaceFile(p.c.Resolved, p.before, p.perm, p.owner); err != nil {
-			return fmt.Errorf("%w; restoring %s also failed (%v), run tender doctor -recover", cause, p.c.Resolved, err)
+			return fmt.Errorf("%w; restoring %s also failed (%v), run pult doctor -recover", cause, p.c.Resolved, err)
 		}
 	}
 	for i := range tx.Changes {
@@ -308,12 +308,12 @@ func (s *Store) Rollback(id string, force bool) (*Transaction, []Conflict, error
 	if err != nil {
 		return nil, nil, err
 	}
-	out, err := s.run("rollback", id, Meta{Theme: tx.Theme, TenderVersion: tx.TenderVersion, BundleVersion: tx.BundleVersion}, plans, nil)
+	out, err := s.run("rollback", id, Meta{Theme: tx.Theme, PultVersion: tx.PultVersion, BundleVersion: tx.BundleVersion}, plans, nil)
 	return out, conflicts, err
 }
 
-// Uninstall returns every file Theme Tender changed to its pristine state:
-// its contents before Theme Tender first touched it.
+// Uninstall returns every file Pult changed to its pristine state:
+// its contents before Pult first touched it.
 func (s *Store) Uninstall(force bool) (*Transaction, []Conflict, error) {
 	st, err := s.State()
 	if err != nil {
@@ -387,7 +387,7 @@ func (s *Store) Recover() ([]*Transaction, []Conflict, error) {
 				}
 			default:
 				// Written and edited since: left as it is, but still
-				// recorded as Theme Tender's change, so uninstall can
+				// recorded as Pult's change, so uninstall can
 				// offer the original back.
 				before, _ := s.readBlob(c.Before, c.Backup)
 				conflicts = append(conflicts, Conflict{Path: c.Resolved, Reason: "edited", Before: before, Current: data})
@@ -558,7 +558,7 @@ func atomicWrite(path string, data []byte, perm fs.FileMode, own *owner) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
-	f, err := os.CreateTemp(dir, ".theme-tender-*")
+	f, err := os.CreateTemp(dir, ".pult-*")
 	if err != nil {
 		return err
 	}

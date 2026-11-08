@@ -1,4 +1,4 @@
-module git.subcult.tv/subculture-collective/theme-tender
+module git.subcult.tv/subculture-collective/pult
 
 go 1.26
 

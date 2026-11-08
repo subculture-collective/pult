@@ -1,4 +1,4 @@
-[1mTheme Tender[m  [1;4;4mt[m[1;4;4mh[m[1;4;4me[m[1;4;4mm[m[1;4;4me[m[1;4;4ms[m  [2mapps[m
+[1mPult[m  [1;4;4mt[m[1;4;4mh[m[1;4;4me[m[1;4;4mm[m[1;4;4me[m[1;4;4ms[m  [2mapps[m
 [2mtab switch · / search · 1-9 tags · s similar · esc clear · enter apply · u undo · q quit[m
 
 Apply Catppuccin Mocha?
@@ -6,5 +6,5 @@ Apply Catppuccin Mocha?
   btop       2 file(s)
   kitty      skip: Omarchy themes it
 
-Files other tools own are left alone here; use tender apply to confirm them.
+Files other tools own are left alone here; use pult apply to confirm them.
 [y/N] 
