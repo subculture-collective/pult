@@ -97,7 +97,7 @@ func newWorld(t *testing.T, extra map[string]string) *world {
 			"kitty": "kitty 0.49.2 created by Kovid Goyal", "ghostty": "Ghostty 1.2.3", "alacritty": "alacritty 0.15.1",
 			"tmux": "tmux 3.8", "starship": "starship 1.27.0", "lazygit": "commit=x, version=0.66.2, os=linux",
 			"yazi": "Yazi\n    Version: 26.9.1", "btop": "btop version: \x1b[1m1.4.7\x1b[0m",
-			"helix": "helix 25.07.1 (a05c151b)", "cava": "cava 1.0.0", "foot": "foot version: 1.28.0 (Sep 08 2026)", "lsd": "lsd 1.2.0", "zellij": "zellij 0.45.1", "delta": "delta 0.20.1", "fish": "fish, version 4.9.3", "wezterm": "wezterm 20260716-195552-76b606ec", "batcat": "bat 0.26.1 (979ba22)", "eza": "eza - A modern, maintained replacement for ls\nv0.23.5 [+git]", "subcult": "subcult 0.0.0",
+			"helix": "helix 25.07.1 (a05c151b)", "cava": "cava 1.0.0", "foot": "foot version: 1.28.0 (Sep 08 2026)", "lsd": "lsd 1.2.0", "zellij": "zellij 0.45.1", "delta": "delta 0.20.1", "fish": "fish, version 4.9.3", "wezterm": "wezterm 20260716-195552-76b606ec", "batcat": "bat 0.26.1 (979ba22)", "eza": "eza - A modern, maintained replacement for ls\nv0.23.5 [+git]", "subcult": "subcult 0.0.0", "gtk-launch": "gtk-launch 3.24.52", "gtk4-launch": "gtk4-launch 4.24.1",
 		},
 		running: map[string]bool{"kitty": true, "btop": true},
 		fail:    map[string]bool{},

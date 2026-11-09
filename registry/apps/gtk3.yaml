@@ -1,0 +1,28 @@
+# Checked on Arch, gtk3 3.24.52, 2026-11-08 (subculture-collective/subarchy#101):
+# GTK 3 reads ~/.config/gtk-3.0/gtk.css when an app starts, and `@import`
+# at the top of it pulls in Pult's file, as Omarchy's glass mode does with
+# its own stylesheet. Adwaita's named colours (theme_bg_color and the rest)
+# recolour the stock theme; the libadwaita names are there too for GTK 3
+# apps built with libhandy. Running apps keep their colours until they
+# restart, so there is no reload. Qt apps follow when the platform theme is
+# gtk3 (QT_QPA_PLATFORMTHEME), as Subarchy and Omarchy set it.
+schema: 1
+id: gtk3
+name: GTK 3 apps
+homepage: https://www.gtk.org/
+platforms: [linux]
+tier: 1
+
+detect:
+  binaries: [gtk-launch]
+
+config:
+  paths:
+    linux: ["$XDG_CONFIG_HOME/gtk-3.0/gtk.css"]
+
+integrations:
+  - method: include
+    template: gtk3/pult.css.mustache
+    owned_file: pult.css
+    line: '@import url("pult.css");'
+    position: start
