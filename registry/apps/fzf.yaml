@@ -1,0 +1,31 @@
+# Checked on Arch, fzf 0.74.5, 2026-11-08 (subculture-collective/subarchy#102):
+# version regex, that fzf reads FZF_DEFAULT_OPTS_FILE (an options file, one
+# option per line, quotes as in a shell), that --color="16" in it is
+# accepted (--filter run) and a bad value refused. fzf has no config file of
+# its own, so the entry needs that variable set; Subarchy points it at
+# ~/.config/fzf/fzfrc. The 16 base scheme uses the terminal's colours, so
+# fzf follows every terminal theme with nothing to regenerate.
+schema: 1
+id: fzf
+name: fzf
+homepage: https://junegunn.github.io/fzf/
+platforms: [linux, macos]
+tier: 1
+
+detect:
+  binaries: [fzf]
+  version:
+    argv: [fzf, --version]
+    regex: '^([0-9.]+)'
+
+config:
+  env:
+    - { name: FZF_DEFAULT_OPTS_FILE, kind: file }
+  paths:
+    linux: ["$XDG_CONFIG_HOME/fzf/fzfrc"]
+    macos: ["$XDG_CONFIG_HOME/fzf/fzfrc"]
+
+integrations:
+  - method: ansi
+    format: args
+    set: { color: "16" }
