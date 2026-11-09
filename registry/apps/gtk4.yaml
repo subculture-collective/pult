@@ -1,0 +1,27 @@
+# Checked on Arch, gtk4 4.24.1, 2026-11-08 (subculture-collective/subarchy#101):
+# GTK 4 reads ~/.config/gtk-4.0/gtk.css when an app starts; `@import` at
+# the top pulls in Pult's file, as Omarchy's glass mode does with its own
+# stylesheet. libadwaita's named colours (window_bg_color, accent_bg_color
+# and the rest) recolour libadwaita apps; the Adwaita names cover GTK 4
+# apps without libadwaita. Running apps keep their colours until they
+# restart, so there is no reload.
+schema: 1
+id: gtk4
+name: GTK 4 and libadwaita apps
+homepage: https://www.gtk.org/
+platforms: [linux]
+tier: 1
+
+detect:
+  binaries: [gtk4-launch]
+
+config:
+  paths:
+    linux: ["$XDG_CONFIG_HOME/gtk-4.0/gtk.css"]
+
+integrations:
+  - method: include
+    template: gtk4/pult.css.mustache
+    owned_file: pult.css
+    line: '@import url("pult.css");'
+    position: start
