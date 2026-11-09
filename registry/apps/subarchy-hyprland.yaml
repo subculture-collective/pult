@@ -1,0 +1,30 @@
+# Checked on Subarchy, 2026-11-08 (subculture-collective/subarchy#100):
+# Subarchy's Hyprland defaults run ~/.config/subcult/theme/hyprland.lua
+# after their own border colours when the file exists (default/hypr/
+# theme.lua there), so the owned file is the whole of the user's colour
+# configuration and no line goes into ~/.config/hypr/hyprland.lua.
+# `subcult theme reload` runs hyprctl reload when Hyprland runs in the
+# session and exits 0 otherwise. Detection is Subarchy's `subcult` command,
+# so Hyprland on another distribution is left alone.
+schema: 1
+id: subarchy-hyprland
+name: Subarchy Hyprland borders and groups
+homepage: https://git.subcult.tv/subculture-collective/subarchy
+platforms: [linux]
+tier: 1
+
+detect:
+  binaries: [subcult]
+
+config:
+  paths:
+    linux: ["$XDG_CONFIG_HOME/subcult/theme/hyprland.lua"]
+
+integrations:
+  - method: owned
+    template: subarchy-hyprland/hyprland.lua.mustache
+    target: hyprland.lua
+
+reload:
+  - argv: [subcult, theme, reload]
+    when: always
