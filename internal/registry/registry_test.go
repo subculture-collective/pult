@@ -14,7 +14,7 @@ import (
 const builtinDir = "../../registry"
 
 // builtinApps is every built-in registry entry, in id order.
-var builtinApps = []string{"alacritty", "bat", "btop", "cava", "delta", "eza", "fish", "foot", "ghostty", "gtk3", "gtk4", "helix", "iterm2", "kitty", "lazygit", "lsd", "starship", "subarchy-hyprland", "subarchy-shell", "terminal-app", "tmux", "wezterm", "yazi", "zellij"}
+var builtinApps = []string{"alacritty", "bat", "btop", "cava", "delta", "eza", "fish", "foot", "fzf", "ghostty", "gtk3", "gtk4", "helix", "iterm2", "kitty", "lazygit", "lsd", "starship", "subarchy-hyprland", "subarchy-shell", "terminal-app", "tmux", "wezterm", "yazi", "zellij"}
 
 const demoYAML = `
 schema: 1
