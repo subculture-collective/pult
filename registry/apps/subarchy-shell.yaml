@@ -1,0 +1,25 @@
+# Checked on Subarchy, 2026-11-08 (subculture-collective/subarchy#100): the
+# shell watches ~/.config/subcult/theme/palette.json and repaints when it
+# changes, and the lock program reads the same file when it starts, so there
+# is no reload. The file is the whole of the shell's colour configuration
+# (its defaults ship under /usr/share/subcult), so it is both the config
+# path and the owned file. Detection is Subarchy's `subcult` command, so
+# nothing is written on another distribution.
+schema: 1
+id: subarchy-shell
+name: Subarchy shell and lock
+homepage: https://git.subcult.tv/subculture-collective/subarchy
+platforms: [linux]
+tier: 1
+
+detect:
+  binaries: [subcult]
+
+config:
+  paths:
+    linux: ["$XDG_CONFIG_HOME/subcult/theme/palette.json"]
+
+integrations:
+  - method: owned
+    template: subarchy-shell/palette.json.mustache
+    target: palette.json
