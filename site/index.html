@@ -60,26 +60,37 @@
   <section class="wrap demo" aria-labelledby="demo-title">
     <div class="demo-head">
       <h2 id="demo-title">Change the<br>channel</h2>
-      <p>A browser mock-up of <code>pult tui</code>, with eight real palettes from the catalog. Click the list, then <code>j</code> and <code>k</code> move, <code>enter</code> applies and <code>u</code> goes back. The real app asks y/N before it writes anything.</p>
+      <p>A browser mock-up of <code>pult tui</code>, with eight real palettes from the catalog. Click a theme to select it and click it again to apply it, or focus the list and use <code>j</code> and <code>k</code> to move, <code>enter</code> to apply and <code>u</code> to go back. The real app shows the plan and asks before it writes anything.</p>
     </div>
     <div class="set">
       <div class="tui">
-        <div class="tui-top"><b>Pult</b>  <u>themes</u>  <span class="faint">apps</span></div>
-        <div class="faint tui-help">/ search · 1-9 tags · s similar · enter apply · u undo · q quit</div>
-        <ul class="rows" data-rows role="listbox" tabindex="0" aria-label="Themes">
-          <li id="t1" role="option" data-id="catppuccin-mocha"><span aria-hidden="true">&gt;</span><span>catppuccin-mocha</span><span>Catppuccin Mocha</span><span class="faint">cool,dark,pastel</span></li>
-          <li id="t2" role="option" data-id="dracula"><span></span><span>dracula</span><span>Dracula</span><span class="faint">cool,dark,high-contrast</span></li>
-          <li id="t3" role="option" data-id="nord"><span></span><span>nord</span><span>Nord</span><span class="faint">cool,dark,muted</span></li>
-          <li id="t4" role="option" data-id="gruvbox-dark"><span></span><span>gruvbox-dark</span><span>Gruvbox Dark</span><span class="faint">dark,warm</span></li>
-          <li id="t5" role="option" data-id="kanagawa"><span></span><span>kanagawa</span><span>Kanagawa</span><span class="faint">dark</span></li>
-          <li id="t6" role="option" data-id="everforest-dark"><span></span><span>everforest-dark</span><span>Everforest Dark</span><span class="faint">dark,pastel</span></li>
-          <li id="t7" role="option" data-id="ayu-dark"><span></span><span>ayu-dark</span><span>Ayu Dark</span><span class="faint">dark,high-contrast,pastel</span></li>
-          <li id="t8" role="option" data-id="rose-pine-dawn"><span></span><span>rose-pine-dawn</span><span>Rose Pine Dawn</span><span class="faint">cool,light,low-contrast</span></li>
-        </ul>
-        <div class="swatches" data-swatches aria-hidden="true">
-          <i style="background:var(--a0)"></i><i style="background:var(--a1)"></i><i style="background:var(--a2)"></i><i style="background:var(--a3)"></i><i style="background:var(--a4)"></i><i style="background:var(--a5)"></i><i style="background:var(--a6)"></i><i style="background:var(--a7)"></i>
-          <i style="background:var(--a8)"></i><i style="background:var(--a9)"></i><i style="background:var(--a10)"></i><i style="background:var(--a11)"></i><i style="background:var(--a12)"></i><i style="background:var(--a13)"></i><i style="background:var(--a14)"></i><i style="background:var(--a15)"></i>
+        <div class="tui-top"><b>Pult</b><span class="tab on">Themes</span><span class="tab faint">Apps</span><span class="faint tui-count">8 listed</span></div>
+        <div class="tui-body">
+          <div class="tui-left">
+            <div class="box"><span class="box-title">Search</span><span class="faint">/ name, family or author</span></div>
+            <div class="box tui-tags"><span class="box-title">Tags</span><span class="faint tag-list"><span>1 dark</span><span>2 light</span><span>3 pastel</span><span>4 neon</span><span>5 muted</span><span>6 warm</span><span>7 cool</span><span>8 high-contrast</span><span>9 low-contrast</span></span></div>
+            <div class="box focus"><span class="box-title">Themes</span><span class="box-note" data-note>1 of 8</span>
+            <ul class="rows" data-rows role="listbox" tabindex="0" aria-label="Themes">
+              <li id="t1" role="option" data-id="catppuccin-mocha" data-tags="cool, dark, pastel"><span>catppuccin-mocha</span><span>Catppuccin Mocha</span></li>
+              <li id="t2" role="option" data-id="dracula" data-tags="cool, dark, high-contrast"><span>dracula</span><span>Dracula</span></li>
+              <li id="t3" role="option" data-id="nord" data-tags="cool, dark, muted"><span>nord</span><span>Nord</span></li>
+              <li id="t4" role="option" data-id="gruvbox-dark" data-tags="dark, warm"><span>gruvbox-dark</span><span>Gruvbox Dark</span></li>
+              <li id="t5" role="option" data-id="kanagawa" data-tags="dark"><span>kanagawa</span><span>Kanagawa</span></li>
+              <li id="t6" role="option" data-id="everforest-dark" data-tags="dark, pastel"><span>everforest-dark</span><span>Everforest Dark</span></li>
+              <li id="t7" role="option" data-id="ayu-dark" data-tags="dark, high-contrast, pastel"><span>ayu-dark</span><span>Ayu Dark</span></li>
+              <li id="t8" role="option" data-id="rose-pine-dawn" data-tags="cool, light, low-contrast"><span>rose-pine-dawn</span><span>Rose Pine Dawn</span></li>
+            </ul></div>
+          </div>
+          <div class="box tui-preview"><span class="box-title">Preview</span>
+            <p data-preview-name>Catppuccin Mocha</p>
+            <dl><dt class="faint">id</dt><dd data-preview-id>catppuccin-mocha</dd><dt class="faint">tags</dt><dd data-preview-tags>cool, dark, pastel</dd></dl>
+            <div class="swatches" data-swatches aria-hidden="true">
+              <i style="background:var(--a0)"></i><i style="background:var(--a1)"></i><i style="background:var(--a2)"></i><i style="background:var(--a3)"></i><i style="background:var(--a4)"></i><i style="background:var(--a5)"></i><i style="background:var(--a6)"></i><i style="background:var(--a7)"></i>
+              <i style="background:var(--a8)"></i><i style="background:var(--a9)"></i><i style="background:var(--a10)"></i><i style="background:var(--a11)"></i><i style="background:var(--a12)"></i><i style="background:var(--a13)"></i><i style="background:var(--a14)"></i><i style="background:var(--a15)"></i>
+            </div>
+          </div>
         </div>
+        <div class="faint tui-help">↑↓ move · enter apply · s similar · / search · 1-9 tags · tab pane · ? help · q quit</div>
       </div>
 
       <div class="panes" aria-label="Sample app output in the applied palette">

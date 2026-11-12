@@ -29,6 +29,12 @@ const list = document.querySelector("[data-rows]");
 if (list) {
   const rows = [...list.children];
   const swatches = document.querySelector("[data-swatches]");
+  const note = document.querySelector("[data-note]");
+  const preview = {
+    name: document.querySelector("[data-preview-name]"),
+    id: document.querySelector("[data-preview-id]"),
+    tags: document.querySelector("[data-preview-tags]"),
+  };
   const status = document.querySelector("[data-status]");
   const channel = document.querySelector("[data-channel]");
   const band = document.querySelector(".band");
@@ -41,12 +47,14 @@ if (list) {
 
   const move = (i) => {
     cursor = (i + rows.length) % rows.length;
-    rows.forEach((row, n) => {
-      row.setAttribute("aria-selected", String(n === cursor));
-      row.firstElementChild.textContent = n === cursor ? ">" : "";
-    });
-    list.setAttribute("aria-activedescendant", rows[cursor].id);
-    paint(swatches, THEMES[rows[cursor].dataset.id]);
+    rows.forEach((row, n) => row.setAttribute("aria-selected", String(n === cursor)));
+    const row = rows[cursor];
+    list.setAttribute("aria-activedescendant", row.id);
+    paint(swatches, THEMES[row.dataset.id]);
+    preview.name.textContent = THEMES[row.dataset.id].name;
+    preview.id.textContent = row.dataset.id;
+    preview.tags.textContent = row.dataset.tags;
+    note.textContent = `${cursor + 1} of ${rows.length}`;
   };
 
   const tune = (i, verb) => {
@@ -83,7 +91,8 @@ if (list) {
     e.preventDefault();
     actions[action]();
   });
-  rows.forEach((row, i) => row.addEventListener("click", () => { move(i); apply(); }));
+  // As in the TUI: a click selects a theme, a click on the selected one applies it.
+  rows.forEach((row, i) => row.addEventListener("click", () => (i === cursor ? apply() : move(i))));
   document.querySelectorAll("[data-key]").forEach((button) => {
     button.addEventListener("click", () => actions[button.dataset.key]());
   });
