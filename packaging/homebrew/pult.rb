@@ -2,7 +2,7 @@
 # Builds from source, so no Apple Developer ID or notarization is needed.
 class Pult < Formula
   desc "Apply one palette across your terminal apps, and undo every change"
-  homepage "https://git.subcult.tv/subculture-collective/pult"
+  homepage "https://pult.subcult.tv"
   url "@BASE@pult-@VERSION@-src.tar.gz"
   sha256 "@SHA_SRC@"
   license all_of: ["GPL-3.0-only", "MIT"]

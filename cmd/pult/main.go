@@ -15,6 +15,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -34,8 +35,16 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-// version is set at build time with -ldflags "-X main.version=...".
+// version is set at build time with -ldflags "-X main.version=...". A
+// go install of a tagged module has no ldflags, so it falls back to the
+// module version Go records in the binary.
 var version = "dev"
+
+func init() {
+	if bi, ok := debug.ReadBuildInfo(); ok && version == "dev" && strings.HasPrefix(bi.Main.Version, "v") {
+		version = strings.TrimPrefix(bi.Main.Version, "v")
+	}
+}
 
 const usage = `Usage: pult <command> [flags]
 
@@ -263,7 +272,7 @@ func (c *cli) openCatalog() (*catalog.DB, error) {
 		return nil, err
 	}
 	if b.Catalog == nil {
-		return nil, fmt.Errorf("no catalog: this build has none built in and no signed bundle is installed (build one with make catalog, then pass -catalog)")
+		return nil, fmt.Errorf("no catalog: this build has none built in and no signed bundle is installed; run pult update to download one, or build one with make catalog and pass -catalog")
 	}
 	return catalog.OpenBytes(b.Catalog)
 }
