@@ -1,0 +1,59 @@
+name: npm
+run-name: npm ${{ inputs.version || github.ref_name }}
+
+# Publishes the npm packages for a release: @subcult/pult and one package per
+# platform. The binaries come from the Gitea release that .gitea/workflows/
+# release.yml builds for the same tag, so on a tag push this waits for that
+# release, then checks the tarballs against its SHA256SUMS. Publishing uses npm
+# trusted publishing (OIDC), so no npm token is stored. To publish or retry an
+# existing release, run it from the Actions tab with the version (without "v").
+# See docs/runbooks/release.md.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version, such as 0.3.0"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm
+  cancel-in-progress: false
+
+jobs:
+  npm:
+    if: github.repository == 'subculture-collective/pult'
+    timeout-minutes: 60
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      # Trusted publishing needs npm 11.5.1 or later; Node 24 ships it.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Wait for the Gitea release
+        env:
+          VERSION: ${{ inputs.version || github.ref_name }}
+        run: |
+          set -euo pipefail
+          VERSION=${VERSION#v}
+          [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "version must be X.Y.Z" >&2; exit 1; }
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          url="https://git.subcult.tv/subculture-collective/pult/releases/download/v$VERSION/pult-$VERSION-SHA256SUMS"
+          # The release build takes about ten minutes after the tag reaches Gitea.
+          for attempt in $(seq 1 45); do
+            if curl -fsSL -o /dev/null "$url"; then exit 0; fi
+            echo "v$VERSION has no Gitea release files yet; waiting 60 s ($attempt/45)"
+            sleep 60
+          done
+          echo "::error::No Gitea release for v$VERSION after 45 minutes; check the release workflow on Gitea, then rerun this one" >&2
+          exit 1
+      - name: Publish
+        run: FETCH=1 scripts/publish-npm.sh "$VERSION"

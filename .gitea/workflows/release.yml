@@ -2,8 +2,9 @@ name: release
 
 # Builds the release files when a tag like v0.1.0 is pushed: tarballs for
 # Linux and macOS with the catalog built in, the source tarball, the
-# catalog, checksums, and the filled AUR and Homebrew files, then publishes
-# the npm packages. See docs/runbooks/release.md.
+# catalog, checksums, and the filled AUR and Homebrew files. The npm
+# packages are published from GitHub (.github/workflows/npm.yml), which waits
+# for this release. See docs/runbooks/release.md.
 on:
   push:
     tags: ["v*"]
@@ -59,21 +60,6 @@ jobs:
             curl -fsS -X POST -H "Authorization: token ${TOKEN}" -F "attachment=@${f}" \
               "${API}/releases/${id}/assets?name=$(basename "${f}")" > /dev/null
           done
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      # The npm packages: one per platform holding the binary from the
-      # tarballs above, and @subcult/pult, the launcher. Needs the NPM_TOKEN
-      # secret, an npm token that may publish to the @subcult scope.
-      - name: Publish to npm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          if [ -z "${NODE_AUTH_TOKEN}" ]; then
-            echo "::warning::NPM_TOKEN is not set; the npm packages were not published (docs/runbooks/release.md)"
-            exit 0
-          fi
-          scripts/publish-npm.sh "${GITHUB_REF_NAME#v}"
 
   # The pult pacman package, built from the release's PKGBUILD and
   # uploaded to the Gitea pacman repository "subcult". The Actions token may
