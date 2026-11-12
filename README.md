@@ -62,6 +62,14 @@ brew install subculture-collective/tap/pult
 
 The formula in [subculture-collective/homebrew-tap](https://github.com/subculture-collective/homebrew-tap) builds Pult from the release's source with the catalog built in. The tap picks up each new release within six hours.
 
+### npm (Linux and macOS)
+
+```bash
+npm install -g @subcult/pult
+```
+
+npm installs a small launcher and the one package that holds the `pult` binary for your system, with the catalog built in. `npx @subcult/pult tui` runs it without installing.
+
 ### With Go
 
 You need Go 1.26 or newer:
