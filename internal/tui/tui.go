@@ -111,7 +111,7 @@ type Model struct {
 	appList   scroller
 	dialog    dialog
 	plan      []string
-	planOff   int
+	dlgOff    int // first line the open dialog shows
 	message   string
 	status    string
 	width     int
@@ -177,7 +177,7 @@ func (m *Model) notify(msg string) {
 		m.status = msg
 		return
 	}
-	m.status, m.dialog, m.message = "", messageDialog, msg
+	m.status, m.dialog, m.message, m.dlgOff = "", messageDialog, msg, 0
 }
 
 // Init implements tea.Model.
@@ -240,7 +240,7 @@ func (m *Model) openPlan() {
 		m.notify("error: " + err.Error())
 		return
 	}
-	m.plan, m.planOff, m.dialog, m.status = plan, 0, confirmApply, ""
+	m.plan, m.dlgOff, m.dialog, m.status = plan, 0, confirmApply, ""
 }
 
 func (m *Model) showSimilar() {
@@ -302,10 +302,10 @@ func (m Model) key(k tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.setTab((m.tab + 1) % 2)
 		return m, nil
 	case "u":
-		m.dialog, m.status = confirmUndo, ""
+		m.dialog, m.status, m.dlgOff = confirmUndo, "", 0
 		return m, nil
 	case "?":
-		m.dialog = helpDialog
+		m.dialog, m.dlgOff = helpDialog, 0
 		return m, nil
 	}
 	if m.tab == appsTab {
@@ -357,13 +357,12 @@ func (m Model) key(k tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) dialogKey(key string) (tea.Model, tea.Cmd) {
-	switch m.dialog {
-	case messageDialog, helpDialog:
-		m.dialog = noDialog
+	if d, ok := navDelta(key, m.dialogRows()); ok {
+		m.scrollDialog(d)
 		return m, nil
 	}
-	if d, ok := navDelta(key, m.planRows()); ok {
-		m.scrollPlan(d)
+	if m.dialog == messageDialog || m.dialog == helpDialog {
+		m.dialog = noDialog
 		return m, nil
 	}
 	if key == "y" {
@@ -372,10 +371,6 @@ func (m Model) dialogKey(key string) (tea.Model, tea.Cmd) {
 		m.cancel()
 	}
 	return m, nil
-}
-
-func (m *Model) scrollPlan(d int) {
-	m.planOff = max(0, min(m.planOff+d, len(m.plan)-m.planRows()))
 }
 
 func (m *Model) cancel() {
@@ -489,11 +484,8 @@ func (m Model) wheel(ms tea.Mouse) (tea.Model, tea.Cmd) {
 	default:
 		return m, nil
 	}
-	if m.dialog == confirmApply {
-		m.scrollPlan(d)
-		return m, nil
-	}
 	if m.dialog != noDialog {
+		m.scrollDialog(d)
 		return m, nil
 	}
 	l := m.layout()

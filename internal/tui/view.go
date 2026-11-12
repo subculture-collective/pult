@@ -351,7 +351,7 @@ func (m Model) footer(l layout) string {
 	case m.dialog == confirmApply || m.dialog == confirmUndo:
 		hints = "y confirm · n cancel · ↑↓ scroll"
 	case m.dialog != noDialog:
-		hints = "any key to close"
+		hints = "↑↓ scroll · any other key closes"
 	case m.tab == appsTab:
 		hints = "↑↓ move · [ ] tabs · u undo · ? help · q quit"
 	case m.focus == searchPane:
@@ -382,79 +382,96 @@ type dialogView struct {
 	no    rect
 }
 
-// planRows is how many plan lines fit in the apply dialog.
-func (m Model) planRows() int {
-	return max(1, max(m.height, 12)-12)
+// dialogContent is a dialog's text: a title, lines that scroll, lines
+// fixed under them, its button labels and its inside width.
+type dialogContent struct {
+	title          string
+	scroll, fixed  []string
+	okLabel, noLab string
+	iw             int
+}
+
+func (m Model) dialogContent() dialogContent {
+	l := m.layout()
+	maxW := min(l.w-4, 90)
+	c := dialogContent{okLabel: "[ y Apply ]", noLab: "[ n Cancel ]"}
+	switch m.dialog {
+	case confirmApply:
+		th, _ := m.selected()
+		c.title = "Apply " + th.Name + "?"
+		for _, p := range m.plan {
+			c.scroll = append(c.scroll, " "+p)
+		}
+	case confirmUndo:
+		c.title, c.okLabel = "Undo", "[ y Undo ]"
+		c.scroll = []string{" Roll back the last apply?"}
+	case messageDialog:
+		c.title = "Message"
+		if strings.HasPrefix(m.message, "error:") {
+			c.title = "Error"
+		}
+		c.okLabel, c.noLab = "[ OK ]", ""
+		c.scroll = wrapLines(m.message, maxW-4, " ")
+	case helpDialog:
+		c.title, c.okLabel, c.noLab = "Keys", "[ OK ]", ""
+		c.scroll = helpLines()
+	}
+	c.iw = 40
+	for _, line := range c.scroll {
+		c.iw = max(c.iw, ansi.StringWidth(line)+2)
+	}
+	c.iw = min(c.iw, maxW-2)
+	if m.dialog == confirmApply {
+		c.fixed = append([]string{""}, wrapLines("Files other tools own are left alone here; use pult apply to confirm them.", c.iw-2, " ")...)
+	}
+	return c
+}
+
+// dialogRows is how many scrolling lines the open dialog shows at once.
+// Borders, a blank line and the buttons take four rows, and a dialog that
+// scrolls gives one more to the "lines a-b of n" hint.
+func (m Model) dialogRows() int {
+	c := m.dialogContent()
+	room := max(m.height, 12) - 4 - len(c.fixed)
+	if len(c.scroll) <= room {
+		return len(c.scroll)
+	}
+	return max(1, room-1)
+}
+
+// scrollDialog moves the open dialog's text by d lines.
+func (m *Model) scrollDialog(d int) {
+	m.dlgOff = max(0, min(m.dlgOff+d, len(m.dialogContent().scroll)-m.dialogRows()))
 }
 
 func (m Model) dialogBox() dialogView {
 	l := m.layout()
-	maxW := min(l.w-4, 90)
-	var title string
-	var body []string
-	okLabel, noLabel := "[ y Apply ]", "[ n Cancel ]"
-	widest := func() int {
-		w := 40
-		for _, b := range body {
-			w = max(w, ansi.StringWidth(b)+2)
-		}
-		if m.dialog == confirmApply {
-			for _, p := range m.plan {
-				w = max(w, ansi.StringWidth(p)+3)
-			}
-		}
-		return min(w, maxW-2)
+	c := m.dialogContent()
+	rows := m.dialogRows()
+	off := max(0, min(m.dlgOff, len(c.scroll)-rows))
+	end := min(len(c.scroll), off+rows)
+	body := append([]string(nil), c.scroll[off:end]...)
+	if len(c.scroll) > rows {
+		body = append(body, dimStyle.Render(fmt.Sprintf(" lines %d-%d of %d, ↑↓ to scroll", off+1, end, len(c.scroll))))
 	}
-	switch m.dialog {
-	case confirmApply:
-		th, _ := m.selected()
-		title = "Apply " + th.Name + "?"
-		end := min(len(m.plan), m.planOff+m.planRows())
-		for _, p := range m.plan[m.planOff:end] {
-			body = append(body, " "+p)
-		}
-		if len(m.plan) > m.planRows() {
-			body = append(body, dimStyle.Render(fmt.Sprintf(" lines %d-%d of %d, ↑↓ to scroll", m.planOff+1, end, len(m.plan))))
-		}
-		body = append(body, "")
-		body = append(body, wrapLines("Files other tools own are left alone here; use pult apply to confirm them.", widest()-2, " ")...)
-	case confirmUndo:
-		title = "Undo"
-		okLabel = "[ y Undo ]"
-		body = []string{" Roll back the last apply?"}
-	case messageDialog:
-		title = "Message"
-		if strings.HasPrefix(m.message, "error:") {
-			title = "Error"
-		}
-		okLabel, noLabel = "[ OK ]", ""
-		body = wrapLines(m.message, maxW-4, " ")
-	case helpDialog:
-		title = "Keys"
-		okLabel, noLabel = "[ OK ]", ""
-		body = helpLines()
-	}
-	iw := widest()
-	if room := l.h - 4; len(body) > room {
-		body = append(body[:max(0, room-1)], dimStyle.Render(" …"))
-	}
+	body = append(body, c.fixed...)
 	body = append(body, "")
 	btnRow := len(body)
-	buttons := okLabel
-	if noLabel != "" {
-		buttons += "  " + noLabel
+	buttons := c.okLabel
+	if c.noLab != "" {
+		buttons += "  " + c.noLab
 	}
-	bx := max(0, (iw-ansi.StringWidth(buttons))/2)
-	body = append(body, strings.Repeat(" ", bx)+accentStyle.Render(okLabel))
-	if noLabel != "" {
-		body[btnRow] += "  " + boldStyle.Render(noLabel)
+	bx := max(0, (c.iw-ansi.StringWidth(buttons))/2)
+	body = append(body, strings.Repeat(" ", bx)+accentStyle.Render(c.okLabel))
+	if c.noLab != "" {
+		body[btnRow] += "  " + boldStyle.Render(c.noLab)
 	}
-	r := rect{w: iw + 2, h: len(body) + 2}
+	r := rect{w: c.iw + 2, h: len(body) + 2}
 	r.x, r.y = max(0, (l.w-r.w)/2), max(0, (l.h-r.h)/2)
-	d := dialogView{lines: box(r, title, "", body, true), r: r}
-	d.ok = rect{r.x + 1 + bx, r.y + 1 + btnRow, len(okLabel), 1}
-	if noLabel != "" {
-		d.no = rect{d.ok.x + d.ok.w + 2, d.ok.y, len(noLabel), 1}
+	d := dialogView{lines: box(r, c.title, "", body, true), r: r}
+	d.ok = rect{r.x + 1 + bx, r.y + 1 + btnRow, len(c.okLabel), 1}
+	if c.noLab != "" {
+		d.no = rect{d.ok.x + d.ok.w + 2, d.ok.y, len(c.noLab), 1}
 	}
 	return d
 }
@@ -476,7 +493,7 @@ func helpLines() []string {
 		{"", ""},
 		{"click", "a tab, pane, tag or row"},
 		{"click again", "on the selected theme to apply it"},
-		{"wheel", "scroll a list"},
+		{"wheel", "scroll a list or dialog"},
 	}
 	var out []string
 	for _, r := range rows {

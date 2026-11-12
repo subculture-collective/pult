@@ -312,3 +312,44 @@ func TestDialogFitsSmallScreen(t *testing.T) {
 		t.Fatalf("dialog %+v, ok %+v on a 16-row screen", d.r, d.ok)
 	}
 }
+
+// TestLongDialogsScroll: text taller than the screen scrolls instead of
+// being cut, in the message and help dialogs alike.
+func TestLongDialogsScroll(t *testing.T) {
+	m := New(newFake())
+	m.width, m.height = 60, 16
+	var words []string
+	for i := 1; i <= 40; i++ {
+		words = append(words, fmt.Sprintf("line%02d", i))
+	}
+	m.notify(strings.Join(words, "\n") + "\nlast-detail")
+	if m.dialog != messageDialog {
+		t.Fatalf("dialog %v", m.dialog)
+	}
+	text := func(m Model) string { return strings.Join(m.dialogBox().lines, "\n") }
+	if strings.Contains(text(m), "last-detail") {
+		t.Fatalf("message fit without scrolling; test needs a longer one")
+	}
+	next, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyEnd})
+	m = next.(Model)
+	if m.dialog != messageDialog || !strings.Contains(text(m), "last-detail") {
+		t.Fatalf("end did not scroll to the last line:\n%s", text(m))
+	}
+	next, _ = m.Update(tea.KeyPressMsg{Code: 'x', Text: "x"})
+	if next.(Model).dialog != noDialog {
+		t.Fatal("other key did not close the message")
+	}
+
+	m.dialog, m.dlgOff = helpDialog, 0
+	if strings.Contains(text(m), "wheel") {
+		t.Fatalf("help fit a 16-row screen; test needs a shorter one")
+	}
+	d := m.dialogBox()
+	for i := 0; i < 5; i++ {
+		next, _ = m.Update(tea.MouseWheelMsg{X: d.r.x + 2, Y: d.r.y + 2, Button: tea.MouseWheelDown})
+		m = next.(Model)
+	}
+	if !strings.Contains(text(m), "wheel") || m.dialogBox().r.h > 16 {
+		t.Fatalf("wheel did not scroll help:\n%s", text(m))
+	}
+}
