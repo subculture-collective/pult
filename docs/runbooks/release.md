@@ -71,4 +71,6 @@ With `ARCH_PACKAGE_TOKEN` set (the owner's token, package read and write only), 
 
 2026-11-12, `v0.3.0` through Go: on Kvant, `go install …/cmd/pult@v0.3.0` built a binary with no catalog, `pult update` installed `bundle-2026.11.08.1` after checking its signature, and `pult search rose` then listed themes.
 
-Not yet checked: the `arch` job on a new `v*` tag, and installs from the AUR.
+2026-11-12, `v0.3.0` on npm: the `npm` workflow published `@subcult/pult` and the four platform packages. The first token failed with `EOTP` because it did not bypass 2FA; the replacement does. On Kvant, `npm install @subcult/pult` from the public registry installed the launcher and `@subcult/pult-linux-x64`, and `pult version` and `pult search` ran with the built-in catalog. The registry served the new version about two minutes after publishing.
+
+Not yet checked: the `arch` and npm steps on a new `v*` tag, and installs from the AUR.
