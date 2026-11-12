@@ -113,12 +113,29 @@ code { font-family: var(--term); font-size: 1.14em; }
 .set { display: grid; gap: 14px; }
 .tui, .pane { font: 20px/1.2 var(--term); }
 .tui { padding: 14px 16px; border: 1px solid #2a2c35; background: #000; min-width: 0; }
-.tui-top b { font-weight: 400; }
-.tui-top u { text-underline-offset: 3px; }
+.tui-top { display: flex; gap: 1ch; margin-bottom: 10px; }
+.tui-top b { font-weight: 400; margin-right: 1ch; }
+.tab { padding: 0 1ch; }
+.tab.on { background: var(--phosphor); color: #000; }
+.tui-count { margin-left: auto; }
 .faint { opacity: .62; }
-.tui-help { margin-bottom: 12px; }
+.tui-body { display: grid; gap: 14px; }
+.tui-left { display: grid; gap: 14px; align-content: start; min-width: 0; }
+/* Panes as the TUI draws them: a rounded border with the title cut into it.
+   The focused pane takes ANSI blue, so it changes with the palette on air. */
+.box { position: relative; min-width: 0; padding: 10px 1ch 6px; border: 1px solid #3a3c47; border-radius: 6px; }
+.box.focus { border-color: var(--a4); }
+.box-title, .box-note { position: absolute; top: -.65em; left: 1ch; padding: 0 .5ch; background: #000; line-height: 1.2; }
+.box.focus .box-title { color: var(--a4); }
+.box-note { top: auto; bottom: -.65em; left: auto; right: 1ch; opacity: .62; }
+.tag-list { display: flex; flex-wrap: wrap; gap: 0 2ch; }
+.tag-list span { white-space: nowrap; }
+.tui-preview p { margin-bottom: 8px; }
+.tui-preview dl { display: grid; grid-template-columns: 6ch minmax(0, 1fr); margin-bottom: 4px; }
+.tui-preview dd { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tui-help { margin-top: 10px; }
 .rows { outline-offset: 3px; }
-.rows li { display: grid; grid-template-columns: 2ch 20ch 20ch minmax(0, 1fr); gap: 0 2ch; padding: 2px 4px; cursor: pointer; }
+.rows li { display: grid; grid-template-columns: 20ch minmax(0, 1fr); gap: 0 2ch; padding: 1px 4px; cursor: pointer; }
 .rows li:hover { background: #1b1c22; }
 .rows li[aria-selected="true"] { background: var(--phosphor); color: #000; }
 .rows span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -144,14 +161,15 @@ code { font-family: var(--term); font-size: 1.14em; }
 .status { min-height: 1.3em; margin-top: 12px; font: 24px/1.2 var(--term); color: var(--flag); }
 @media (min-width: 900px) {
   .demo-head { grid-template-columns: auto 1fr; align-items: start; }
-  .set { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) 92px; }
-  .js .remote { grid-template-columns: 1fr; align-content: start; }
+  .set { grid-template-columns: minmax(0, 1fr) 92px; }
+  .tui-body { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); }
+  .panes { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .js .remote { grid-template-columns: 1fr; align-content: start; grid-column: 2; grid-row: 1 / span 2; }
 }
 @media (max-width: 899px) {
   .term.has-copy { padding-top: 50px; }
-  .rows li { grid-template-columns: 2ch 20ch minmax(0, 1fr); }
-  .rows span:last-child { display: none; }
-  .tui-help { display: none; }
+  .rows li { grid-template-columns: 17ch minmax(0, 1fr); }
+  .tui-help, .tui-tags { display: none; }
 }
 
 /* Paper surface */
