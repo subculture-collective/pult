@@ -1,7 +1,30 @@
-[1mPult[m  [2mthemes[m  [1;4;4ma[m[1;4;4mp[m[1;4;4mp[m[1;4;4ms[m
-[2mtab switch · / search · 1-9 tags · s similar · esc clear · enter apply · u undo · q quit[m
-
-app        tier owner                  state
-btop       1    none                   version 1.4.7, owned
-kitty      1    omarchy                Omarchy themes it
-tmux       1    stow                   owned by stow; asked in pult apply
+[1m Pult  [m[2m Themes [m [1;7m Apps [m                                                                       [2m3 apps [m
+[34m╭─[m[1;34m Apps [m[34m─────────────────────────────────────────╮[m[2m╭─[m[1m Details [m[2m──────────────────────────────────────╮[m
+[34m│[m[7m btop         tier 1  none                      [m[34m│[m[2m│[m [1mbtop[m                                           [2m│[m
+[34m│[m kitty        tier 1  omarchy                   [34m│[m[2m│[m                                                [2m│[m
+[34m│[m tmux         tier 1  stow                      [34m│[m[2m│[m [2mtier    [m1                                      [2m│[m
+[34m│[m                                                [34m│[m[2m│[m [2mowner   [mnone                                   [2m│[m
+[34m│[m                                                [34m│[m[2m│[m [2mstate[m                                          [2m│[m
+[34m│[m                                                [34m│[m[2m│[m   version 1.4.7, owned                         [2m│[m
+[34m│[m                                                [34m│[m[2m│[m                                                [2m│[m
+[34m│[m                                                [34m│[m[2m│[m                                                [2m│[m
+[34m│[m                                                [34m│[m[2m│[m                                                [2m│[m
+[34m│[m                                                [34m│[m[2m│[m                                                [2m│[m
+[34m│[m                                                [34m│[m[2m│[m                                                [2m│[m
+[34m│[m                                                [34m│[m[2m│[m                                                [2m│[m
+[34m│[m                                                [34m│[m[2m│[m                                                [2m│[m
+[34m│[m                                                [34m│[m[2m│[m                                                [2m│[m
+[34m│[m                                                [34m│[m[2m│[m                                                [2m│[m
+[34m│[m                                                [34m│[m[2m│[m                                                [2m│[m
+[34m│[m                                                [34m│[m[2m│[m                                                [2m│[m
+[34m│[m                                                [34m│[m[2m│[m                                                [2m│[m
+[34m│[m                                                [34m│[m[2m│[m                                                [2m│[m
+[34m│[m                                                [34m│[m[2m│[m                                                [2m│[m
+[34m│[m                                                [34m│[m[2m│[m                                                [2m│[m
+[34m│[m                                                [34m│[m[2m│[m                                                [2m│[m
+[34m│[m                                                [34m│[m[2m│[m                                                [2m│[m
+[34m│[m                                                [34m│[m[2m│[m                                                [2m│[m
+[34m│[m                                                [34m│[m[2m│[m                                                [2m│[m
+[34m│[m                                                [34m│[m[2m│[m                                                [2m│[m
+[34m╰───────────────────────────────────────[m[2m 1 of 3 [m[34m╯[m[2m╰───────────────────────────────────────────────[m[2m─[m[2m╯[m
+ [2m↑↓ move · [ ] tabs · u undo · ? help · q quit[m

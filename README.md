@@ -26,8 +26,9 @@ Website and user docs: <https://pult.subcult.tv>
   pywal or a Hyprland framework (Noctalia, DankMaterialShell, HyDE, Caelestia,
   end-4) are written only after you confirm. On Omarchy, Pult writes an
   Omarchy theme and switches to it instead of editing Omarchy's files.
-- **TUI** (`pult tui`) to browse themes with colour swatches, preview, apply
-  and roll back.
+- **TUI** (`pult tui`): a full-screen browser with panes, tabs, a search box
+  and mouse support, to preview a theme's colour swatches, apply it and roll
+  it back.
 - **Profiles**: a TOML file that picks a theme, a set of apps and a terminal
   font.
 - **Palette files and export**: bring your own palette as JSON or TOML, print
