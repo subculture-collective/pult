@@ -1,14 +1,19 @@
 #!/usr/bin/env bash
 # Publishes the npm packages for VERSION. Needs the four platform tarballs
 # for VERSION in dist/: with FETCH=1 it downloads them from the Gitea
-# release and checks them against its SHA256SUMS first. NODE_AUTH_TOKEN
-# is an npm token that may publish to SCOPE (default @subcult). A package
-# version already on the registry is skipped, so a rerun is safe.
+# release and checks them against its SHA256SUMS first. In a GitHub Actions
+# job with id-token: write, npm publishes through trusted publishing (OIDC).
+# Elsewhere NODE_AUTH_TOKEN must be an npm token that may publish to SCOPE
+# (default @subcult). A package version already on the registry is skipped,
+# so a rerun is safe.
 set -euo pipefail
 
 version="${1:?usage: scripts/publish-npm.sh VERSION}"
 scope="${SCOPE:-@subcult}"
-: "${NODE_AUTH_TOKEN:?NODE_AUTH_TOKEN is not set}"
+if [[ -z ${NODE_AUTH_TOKEN:-} && -z ${ACTIONS_ID_TOKEN_REQUEST_URL:-} ]]; then
+  echo "publish-npm: set NODE_AUTH_TOKEN, or run in GitHub Actions with id-token: write" >&2
+  exit 1
+fi
 
 if [[ ${FETCH:-} == 1 ]]; then
   base="https://git.subcult.tv/subculture-collective/pult/releases/download/v$version"
@@ -24,7 +29,11 @@ SCOPE="$scope" scripts/npm-packages.sh "$version"
 npmrc=$(mktemp)
 trap 'rm -f "$npmrc"' EXIT
 # npm expands ${NODE_AUTH_TOKEN} itself, so the token is never written out.
-printf '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}\n' > "$npmrc"
+# Without a token the file stays empty: an empty token line would shadow the
+# OIDC token npm fetches for trusted publishing.
+if [[ -n ${NODE_AUTH_TOKEN:-} ]]; then
+  printf '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}\n' > "$npmrc"
+fi
 # Platform packages first, so the launcher never names a missing version.
 for dir in dist/npm/pult-*/ dist/npm/pult/; do
   name=$(node -p "require('./$dir/package.json').name")
