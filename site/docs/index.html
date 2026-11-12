@@ -93,21 +93,24 @@ export PULT_CATALOG=$PWD/.cache/catalog.db.zst</pre>
 
       <section id="tui">
         <h2>The TUI</h2>
-        <p><code>pult tui</code> has two screens, themes and apps. Moving through the list shows each theme's colors as swatches. A <code>↓</code> beside a theme means its colors aren't bundled and are downloaded when you apply it.</p>
+        <p><code>pult tui</code> opens full screen with two tabs, themes and apps. The themes tab has a search box, the tags, the theme list and a preview of the selected theme's colours. A <code>↓</code> beside a theme means its colours aren't bundled and are downloaded when you apply it. The apps tab lists the supported apps with the details of the selected one. Press <code>?</code> in the TUI for this list.</p>
         <div class="table"><table>
           <thead><tr><th>Key</th><th>Action</th></tr></thead>
           <tbody>
-            <tr><td><code>j</code> <code>k</code> or arrows</td><td>Move through the list</td></tr>
-            <tr><td><code>/</code></td><td>Search by name, family or author</td></tr>
-            <tr><td><code>1</code>–<code>9</code></td><td>Toggle a tag: dark, light, pastel, neon, muted, warm, cool, high-contrast, low-contrast</td></tr>
+            <tr><td><code>[</code> <code>]</code></td><td>Switch between themes and apps</td></tr>
+            <tr><td><code>tab</code></td><td>Move to the next pane: search, tags, themes</td></tr>
+            <tr><td><code>j</code> <code>k</code> or arrows</td><td>Move through the list; <code>pgup</code> <code>pgdn</code> page, <code>g</code> <code>G</code> jump to the first or last</td></tr>
+            <tr><td><code>/</code></td><td>Search by name, family or author; <code>enter</code> or <code>esc</code> leaves the search box</td></tr>
+            <tr><td><code>1</code>–<code>9</code></td><td>Toggle a tag: dark, light, pastel, neon, muted, warm, cool, high-contrast, low-contrast. In the tags pane, arrows move and <code>space</code> toggles.</td></tr>
             <tr><td><code>s</code></td><td>List the themes closest to the selected one</td></tr>
-            <tr><td><code>esc</code></td><td>Clear the similar list, or leave the search box</td></tr>
+            <tr><td><code>esc</code></td><td>Go back from the closest-themes list</td></tr>
             <tr><td><code>enter</code></td><td>Show the plan for the selected theme and ask y/N</td></tr>
             <tr><td><code>u</code></td><td>Roll back the last apply, after y/N</td></tr>
-            <tr><td><code>tab</code></td><td>Switch between themes and apps</td></tr>
+            <tr><td><code>?</code></td><td>Show the keys</td></tr>
             <tr><td><code>q</code></td><td>Quit</td></tr>
           </tbody>
         </table></div>
+        <p>The mouse works too. Click a tab, a pane, a tag or a row. Click the selected theme again to see its plan, then click <b>Apply</b> or <b>Cancel</b>. The wheel scrolls the list.</p>
         <p>The TUI leaves files other tools own alone. Use <code>pult apply</code> when you want to be asked about those.</p>
       </section>
 

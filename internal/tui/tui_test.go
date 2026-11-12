@@ -2,6 +2,7 @@ package tui
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -100,20 +101,24 @@ func contains(s []string, v string) bool {
 }
 
 var (
-	enter = tea.KeyPressMsg{Code: tea.KeyEnter}
-	tab   = tea.KeyPressMsg{Code: tea.KeyTab}
-	esc   = tea.KeyPressMsg{Code: tea.KeyEscape}
-	down  = tea.KeyPressMsg{Code: tea.KeyDown}
+	enter  = tea.KeyPressMsg{Code: tea.KeyEnter}
+	esc    = tea.KeyPressMsg{Code: tea.KeyEscape}
+	down   = tea.KeyPressMsg{Code: tea.KeyDown}
+	tabKey = tea.KeyPressMsg{Code: tea.KeyTab}
 )
 
 func key(s string) tea.KeyPressMsg { return tea.KeyPressMsg{Code: rune(s[0]), Text: s} }
 
-// run drives the program with msgs, quits, and returns the final view and
-// the fake.
+// run drives a 100x30 program with msgs, quits, and returns the final view
+// and the fake.
 func run(t *testing.T, msgs ...tea.Msg) (string, *fake) {
 	t.Helper()
-	f := newFake()
-	tm := teatest.NewTestModel(t, New(f), teatest.WithInitialTermSize(100, 30))
+	return runSized(t, 100, 30, newFake(), msgs...)
+}
+
+func runSized(t *testing.T, w, h int, f *fake, msgs ...tea.Msg) (string, *fake) {
+	t.Helper()
+	tm := teatest.NewTestModel(t, New(f), teatest.WithInitialTermSize(w, h))
 	for _, m := range msgs {
 		tm.Send(m)
 	}
@@ -145,7 +150,7 @@ func TestTagFilter(t *testing.T) {
 
 func TestSimilar(t *testing.T) {
 	out, _ := run(t, down, key("s"))
-	if !strings.Contains(out, "Themes closest to catppuccin-mocha") {
+	if !strings.Contains(out, "Closest to catppuccin-mocha") {
 		t.Fatalf("similar:\n%s", out)
 	}
 	golden.RequireEqual(t, out)
@@ -159,7 +164,7 @@ func TestUnbundledPreview(t *testing.T) {
 }
 
 func TestApps(t *testing.T) {
-	out, _ := run(t, tab)
+	out, _ := run(t, key("]"))
 	golden.RequireEqual(t, out)
 }
 
@@ -190,5 +195,120 @@ func TestEmptyListKeys(t *testing.T) {
 	out, f := run(t, key("/"), key("z"), key("z"), key("z"), enter, down, key("j"), key("k"), key("s"), enter)
 	if !strings.Contains(out, "no themes found") || len(f.applied) != 0 {
 		t.Fatalf("empty list:\n%s", out)
+	}
+}
+
+// at returns the layout of a w x h screen, for aiming mouse clicks.
+func at(w, h int) layout {
+	m := New(newFake())
+	m.width, m.height = w, h
+	return m.layout()
+}
+
+func click(x, y int) tea.MouseClickMsg {
+	return tea.MouseClickMsg{X: x, Y: y, Button: tea.MouseLeft}
+}
+
+// row is the screen position of list row i.
+func row(r rect, i int) (int, int) { return r.x + 2, r.y + 1 + i }
+
+func TestFullscreenWithMouse(t *testing.T) {
+	v := New(newFake()).View()
+	if !v.AltScreen || v.MouseMode != tea.MouseModeCellMotion {
+		t.Fatalf("alt screen %v, mouse mode %v", v.AltScreen, v.MouseMode)
+	}
+	lines := strings.Split(v.Content, "\n")
+	if len(lines) != 30 {
+		t.Fatalf("view has %d lines, want 30", len(lines))
+	}
+}
+
+func TestClickSelectsThenApplies(t *testing.T) {
+	l := at(100, 30)
+	out, f := run(t, click(row(l.list, 2)))
+	if !strings.Contains(out, "3 of 5") || !strings.Contains(out, "Solarized Dark") {
+		t.Fatalf("click did not select row 3:\n%s", out)
+	}
+	m := New(newFake())
+	m.list.cursor = 2
+	m.openPlan()
+	d := m.dialogBox()
+	ok, no := d.ok, d.no
+	out, f = run(t, click(row(l.list, 2)), click(row(l.list, 2)), click(ok.x, ok.y))
+	if len(f.applied) != 1 || f.applied[0] != "solarized-dark" || !strings.Contains(out, "Applied solarized-dark") {
+		t.Fatalf("click apply: %v\n%s", f.applied, out)
+	}
+	_, f = run(t, click(row(l.list, 2)), click(row(l.list, 2)), click(no.x, no.y))
+	if len(f.applied) != 0 {
+		t.Fatalf("cancel button applied: %v", f.applied)
+	}
+}
+
+func TestClickTagTabAndSearch(t *testing.T) {
+	l := at(100, 30)
+	light := l.tagCells[1]
+	out, _ := run(t, click(light.x, light.y))
+	if !strings.Contains(out, "catppuccin-latte") || strings.Contains(out, "catppuccin-mocha") {
+		t.Fatalf("click light tag:\n%s", out)
+	}
+	apps := l.tabs[1]
+	out, _ = run(t, click(apps.x, apps.y))
+	if !strings.Contains(out, "Details") || !strings.Contains(out, "version 1.4.7, owned") {
+		t.Fatalf("click apps tab:\n%s", out)
+	}
+	out, _ = run(t, click(l.search.x+3, l.search.y+1), key("m"), key("o"), key("c"))
+	if !strings.Contains(out, "catppuccin-mocha") || strings.Contains(out, "solarized-dark") {
+		t.Fatalf("click search and type:\n%s", out)
+	}
+}
+
+func TestWheelScrolls(t *testing.T) {
+	f := newFake()
+	for i := 0; i < 20; i++ {
+		f.themes = append(f.themes, catalog.Info{ID: fmt.Sprintf("extra-%02d", i), Name: fmt.Sprintf("Extra %02d", i), Bundled: true})
+	}
+	l := at(100, 14)
+	x, y := row(l.list, 0)
+	out, _ := runSized(t, 100, 14, f, tea.MouseWheelMsg{X: x, Y: y, Button: tea.MouseWheelDown}, tea.MouseWheelMsg{X: x, Y: y, Button: tea.MouseWheelDown})
+	if strings.Contains(out, "catppuccin-latte") || !strings.Contains(out, "extra-01") {
+		t.Fatalf("wheel did not scroll:\n%s", out)
+	}
+}
+
+func TestHelp(t *testing.T) {
+	out, _ := run(t, key("?"))
+	if !strings.Contains(out, "click again") {
+		t.Fatalf("help:\n%s", out)
+	}
+	out, _ = run(t, key("?"), key("x"))
+	if strings.Contains(out, "click again") {
+		t.Fatalf("help did not close:\n%s", out)
+	}
+}
+
+func TestTagsPaneKeys(t *testing.T) {
+	out, _ := run(t, tabKey, tabKey, tea.KeyPressMsg{Code: tea.KeyRight}, tea.KeyPressMsg{Code: tea.KeySpace, Text: " "})
+	if !strings.Contains(out, "catppuccin-latte") || strings.Contains(out, "catppuccin-mocha") {
+		t.Fatalf("tags pane toggle light:\n%s", out)
+	}
+}
+
+// TestLongMessageDialog: a result too wide for the footer opens a dialog.
+func TestLongMessageDialog(t *testing.T) {
+	m := New(newFake())
+	m.notify(strings.Repeat("word ", 40))
+	if m.dialog != messageDialog || m.status != "" {
+		t.Fatalf("dialog %v status %q", m.dialog, m.status)
+	}
+}
+
+// TestDialogFitsSmallScreen: a dialog never runs off a short terminal.
+func TestDialogFitsSmallScreen(t *testing.T) {
+	m := New(newFake())
+	m.width, m.height = 60, 16
+	m.dialog = helpDialog
+	d := m.dialogBox()
+	if d.r.y < 0 || d.r.y+d.r.h > 16 || d.ok.y >= d.r.y+d.r.h-1 {
+		t.Fatalf("dialog %+v, ok %+v on a 16-row screen", d.r, d.ok)
 	}
 }
