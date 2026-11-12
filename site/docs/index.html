@@ -69,6 +69,14 @@
 sudo pacman-key --lsign-key CCE8B0F3BCDD601D909773E4466AA6E8241453D2
 printf '\n[subcult]\nSigLevel = Required\nServer = https://git.subcult.tv/api/packages/subculture-collective/arch/$repo/$arch\n' | sudo tee -a /etc/pacman.conf
 sudo pacman -Sy pult</pre>
+        <h3>Homebrew (macOS and Linux)</h3>
+<pre class="term" tabindex="0">brew install subculture-collective/tap/pult</pre>
+        <p>The formula builds Pult from the release's source with the catalog built in. The <a href="https://github.com/subculture-collective/homebrew-tap">tap</a> picks up each new release within six hours.</p>
+        <h3>With Go</h3>
+        <p>You need Go 1.26 or newer.</p>
+<pre class="term" tabindex="0">go install git.subcult.tv/subculture-collective/pult/cmd/pult@latest
+pult update</pre>
+        <p>A <code>go install</code> build has no catalog of its own. <code>pult update</code> downloads the newest signed data bundle, which includes it.</p>
         <h3>Tarball</h3>
         <p>Download the Linux or macOS tarball for your machine from the <a href="https://git.subcult.tv/subculture-collective/pult/releases">releases page</a>, unpack it and put <code>pult</code> on your <code>PATH</code>. The catalog is built in.</p>
         <h3>From source</h3>
@@ -128,7 +136,7 @@ export PULT_CATALOG=$PWD/.cache/catalog.db.zst</pre>
             <tr><td><code>palette &lt;theme&gt;</code></td><td>Print the resolved palette and change nothing. <code>-format json</code> or <code>toml</code>.</td></tr>
             <tr><td><code>render &lt;theme&gt; &lt;template&gt;</code></td><td>Render one Mustache template and apply nothing. <code>-o file</code> writes to a file and overwrites it without a backup. <code>-aether</code> reads Aether's <code>{name}</code> placeholders.</td></tr>
             <tr><td><code>profiles</code></td><td>List profiles in <code>$XDG_CONFIG_HOME/pult/profiles</code>.</td></tr>
-            <tr><td><code>update</code></td><td>Install the newest signed data bundle. <a href="#install">Skip this for now.</a></td></tr>
+            <tr><td><code>update</code></td><td>Download and install the newest signed data bundle: the catalog, app definitions and templates. A <code>go install</code> build needs this once before it has a catalog.</td></tr>
             <tr><td><code>version</code></td><td>Print the version.</td></tr>
           </tbody>
         </table></div>

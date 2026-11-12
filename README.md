@@ -54,6 +54,25 @@ printf '\n[subcult]\nSigLevel = Required\nServer = https://git.subcult.tv/api/pa
 sudo pacman -Sy pult
 ```
 
+### Homebrew (macOS and Linux)
+
+```bash
+brew install subculture-collective/tap/pult
+```
+
+The formula in [subculture-collective/homebrew-tap](https://github.com/subculture-collective/homebrew-tap) builds Pult from the release's source with the catalog built in. The tap picks up each new release within six hours.
+
+### With Go
+
+You need Go 1.26 or newer:
+
+```bash
+go install git.subcult.tv/subculture-collective/pult/cmd/pult@latest
+pult update
+```
+
+A `go install` build has no catalog of its own. `pult update` downloads the newest signed data bundle, which includes it.
+
 ### Release tarball
 
 Download the Linux or macOS tarball from the
