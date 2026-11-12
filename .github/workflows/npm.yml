@@ -7,6 +7,8 @@ run-name: npm ${{ inputs.version || github.ref_name }}
 # release, then checks the tarballs against its SHA256SUMS. Publishing uses npm
 # trusted publishing (OIDC), so no npm token is stored. To publish or retry an
 # existing release, run it from the Actions tab with the version (without "v").
+# Every run first checks that npm trusts this workflow for all five packages;
+# "check only" stops there.
 # See docs/runbooks/release.md.
 on:
   push:
@@ -16,6 +18,10 @@ on:
       version:
         description: "Release version, such as 0.3.0"
         required: true
+      check:
+        description: Check only (npm trusts this workflow; nothing is published)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -38,7 +44,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+      - name: Check npm trusts this workflow
+        run: >-
+          scripts/npm-oidc-check.sh @subcult/pult @subcult/pult-linux-x64
+          @subcult/pult-linux-arm64 @subcult/pult-darwin-x64 @subcult/pult-darwin-arm64
       - name: Wait for the Gitea release
+        if: ${{ !inputs.check }}
         env:
           VERSION: ${{ inputs.version || github.ref_name }}
         run: |
@@ -56,4 +67,5 @@ jobs:
           echo "::error::No Gitea release for v$VERSION after 45 minutes; check the release workflow on Gitea, then rerun this one" >&2
           exit 1
       - name: Publish
+        if: ${{ !inputs.check }}
         run: FETCH=1 scripts/publish-npm.sh "$VERSION"
