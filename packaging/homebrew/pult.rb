@@ -10,7 +10,9 @@ class Pult < Formula
   depends_on "go" => :build
 
   resource "catalog" do
-    url "@BASE@pult-@VERSION@-catalog.db.zst"
+    # Homebrew would decompress a .zst on staging; Pult embeds it compressed.
+    url "@BASE@pult-@VERSION@-catalog.db.zst",
+        using: :nounzip
     sha256 "@SHA_CATALOG@"
   end
 
