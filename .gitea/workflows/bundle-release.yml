@@ -1,8 +1,8 @@
 name: bundle-release
 
 # Builds, signs and publishes a data bundle when a tag like
-# bundle-2026.11.07.1 is pushed. Needs the PULT_SIGNING_KEY and
-# PULT_SIGNING_PASSWORD secrets; see docs/runbooks/bundle-signing.md.
+# bundle-2026.11.07.1 is pushed. Needs the PULT_SIGNING_KEY_B64 secret
+# (base64 of an unencrypted minisign key); see docs/runbooks/bundle-signing.md.
 on:
   push:
     tags: ["bundle-*"]
@@ -55,18 +55,17 @@ jobs:
         run: make catalog
       - name: Build and sign the bundle
         env:
-          PULT_SIGNING_KEY: ${{ secrets.TENDER_SIGNING_KEY }}
-          PULT_SIGNING_PASSWORD: ${{ secrets.TENDER_SIGNING_PASSWORD }}
+          PULT_SIGNING_KEY_B64: ${{ secrets.PULT_SIGNING_KEY_B64 }}
         run: |
           set -euo pipefail
-          if [ -z "${PULT_SIGNING_KEY}" ]; then
-            echo "The PULT_SIGNING_KEY secret is not set; see docs/runbooks/bundle-signing.md" >&2
+          if [ -z "${PULT_SIGNING_KEY_B64}" ]; then
+            echo "The PULT_SIGNING_KEY_B64 secret is not set; see docs/runbooks/bundle-signing.md" >&2
             exit 1
           fi
           version="${GITHUB_REF_NAME#bundle-}"
           key="${RUNNER_TEMP}/pult-signing.key"
           umask 077
-          printf '%s\n' "${PULT_SIGNING_KEY}" > "${key}"
+          printf '%s' "${PULT_SIGNING_KEY_B64}" | base64 -d > "${key}"
           trap 'rm -f "${key}"' EXIT
           go run ./cmd/bundle-build -version "${version}" -sign "${key}"
           sha256sum dist/*

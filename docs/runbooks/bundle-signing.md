@@ -39,7 +39,7 @@ The `bundle-release` workflow first refuses a tag whose commit is not on `main`,
 
 If signing fails, the run's error says why without showing the key: "expected one base64 line" or "not valid base64" means `PULT_SIGNING_KEY` is incomplete or has extra text; "this is a public key" means the wrong file was pasted; "Wrong password" means the passphrase does not open the key.
 
-To check a bundle by hand: `minisign -Vm bundle-<version>.tar.zst -P RWTsCn09xaMX6t72P+btoUcYSx43x4CV1lcejI8UxgdZRfVEmwzEvcP7`.
+To check a bundle by hand: `minisign -Vm bundle-<version>.tar.zst -P RWRhwce/U8MJcs1Nyku+9LlhMz8v6uqq38+IAObG19bBMF9mxMTJ+qdg`.
 
 The first signed bundle, `bundle-2026.11.07.6`, was published on 2026-11-07 (2,487,430 bytes). A source build of `pult` from `main`, which has no built-in catalog, accepted it from `$XDG_DATA_HOME/pult/bundle.tar.zst` and searched its catalog. The same file with one byte changed was rejected ("Invalid signature") and the built-in data was used. Tags `bundle-2026.11.07.1` to `.5` are failed runs from setting up the secrets and have no release.
 
@@ -48,6 +48,12 @@ The first signed bundle, `bundle-2026.11.07.6`, was published on 2026-11-07 (2,4
 Release binaries carry a built-in data version, the tagged commit's date as `YYYY.MM.DD.0` (`pult.BuiltinVersion`, set with `-ldflags` by `scripts/dist.sh` and the AUR and Homebrew builds). An installed bundle older than that is not used, so upgrading the binary cannot be undone by an old bundle; source builds report `built-in`, older than any bundle.
 
 `pult update` reads the release list (`-url`, default the Gitea API for this repository), picks the newest `bundle-*` release that has both assets, and installs it to `$XDG_DATA_HOME/pult/bundle.tar.zst` and `bundle.tar.zst.minisig` (or the `-bundle` path). It installs nothing unless the signature verifies with a built-in key, every file matches the manifest, the manifest's version matches the tag, and the release is newer than the bundle in use. The repository has been public since 2026-11-07; that day `pult update` installed `bundle-2026.11.07.6` from the default URL into an empty home without a login. `pult doctor` shows which bundle is in use.
+
+## Rotation on 2026-11-13
+
+The Gitea runner printed the multi-line `TENDER_SIGNING_KEY` secret and its passwords into public run logs between 2026-11-06 and 2026-11-12, so that key is treated as exposed. It was replaced by a new unencrypted key stored only as the single-line secret `PULT_SIGNING_KEY_B64` (base64 of the key file, which the runner masks); the workflow decodes it. The exposed key was removed from `TrustedKeys` at the same time instead of in a later release, so binaries from this release on accept only bundles signed with the new key and fall back to their built-in data until one is published. The logs that held the old key were deleted.
+
+To set the secret: `base64 -w0 pult.key` and paste the single line into `PULT_SIGNING_KEY_B64`. Never put the multi-line key file itself into a secret that a step reads through `env:`.
 
 ## Rotate the key
 
