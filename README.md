@@ -36,7 +36,7 @@ Website and user docs: <https://pult.subcult.tv>
 
 Supported apps: Alacritty, Ghostty, kitty, foot, iTerm2, fish, Starship, tmux,
 Zellij, bat, btop, cava, delta, eza, fzf, Helix, lazygit, lsd, swayimg, Yazi,
-GTK 3, GTK 4, KDE apps, and the Subarchy shell, lock screen and Hyprland
+GTK 3, GTK 4, KDE apps, VS Code, and the Subarchy shell, lock screen and Hyprland
 colours. WezTerm and Terminal.app get instructions instead of edits. `pult
 list` shows what it found on your machine. The app definitions are in [registry/apps](registry/apps).
 
@@ -178,4 +178,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) and, for security reports,
 
 Code: GPL-3.0-only, see [LICENSE](LICENSE). Templates (`templates/`) and the
 app registry (`registry/`): MIT, see [LICENSES/MIT.txt](LICENSES/MIT.txt).
+The JSONC editor uses HuJSON under BSD-3-Clause; its notice is retained in
+[LICENSES/HuJSON-BSD-3-Clause.txt](LICENSES/HuJSON-BSD-3-Clause.txt) and shipped
+with the binary packages.
 Themes in the catalog keep their own licences, recorded per theme.

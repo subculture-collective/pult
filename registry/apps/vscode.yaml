@@ -1,0 +1,126 @@
+# From VS Code's Themes, Settings and Theme Color documentation, read
+# 2026-11-16. User settings are JSONC and reload live. No extension is
+# installed. Only the default profile is edited; workspace and named-profile
+# overrides can take precedence. Native application verification is separate.
+schema: 1
+id: vscode
+name: Visual Studio Code
+homepage: https://code.visualstudio.com/
+platforms: [linux, macos]
+tier: 1
+
+detect:
+  binaries: [code]
+  macos_apps: [Visual Studio Code.app]
+  version:
+    argv: [code, --version]
+    regex: '([0-9]+\.[0-9]+\.[0-9]+)'
+
+config:
+  paths:
+    linux: ["$XDG_CONFIG_HOME/Code/User/settings.json"]
+    macos: ["$MAC_CONFIG_HOME/Code/User/settings.json"]
+
+integrations:
+  - method: keys
+    versions: ">=1.78"
+    format: jsonc
+    template: vscode/settings.json.mustache
+    paths:
+      - "/workbench.colorTheme"
+      - "/workbench.colorCustomizations/focusBorder"
+      - "/workbench.colorCustomizations/foreground"
+      - "/workbench.colorCustomizations/descriptionForeground"
+      - "/workbench.colorCustomizations/errorForeground"
+      - "/workbench.colorCustomizations/textLink.foreground"
+      - "/workbench.colorCustomizations/textLink.activeForeground"
+      - "/workbench.colorCustomizations/selection.background"
+      - "/workbench.colorCustomizations/editor.background"
+      - "/workbench.colorCustomizations/editor.foreground"
+      - "/workbench.colorCustomizations/editorCursor.foreground"
+      - "/workbench.colorCustomizations/editor.selectionBackground"
+      - "/workbench.colorCustomizations/editor.selectionForeground"
+      - "/workbench.colorCustomizations/editorLineNumber.foreground"
+      - "/workbench.colorCustomizations/editorLineNumber.activeForeground"
+      - "/workbench.colorCustomizations/editorError.foreground"
+      - "/workbench.colorCustomizations/editorWarning.foreground"
+      - "/workbench.colorCustomizations/editorInfo.foreground"
+      - "/workbench.colorCustomizations/sideBar.background"
+      - "/workbench.colorCustomizations/sideBar.foreground"
+      - "/workbench.colorCustomizations/sideBarTitle.foreground"
+      - "/workbench.colorCustomizations/activityBar.background"
+      - "/workbench.colorCustomizations/activityBar.foreground"
+      - "/workbench.colorCustomizations/activityBar.inactiveForeground"
+      - "/workbench.colorCustomizations/statusBar.background"
+      - "/workbench.colorCustomizations/statusBar.foreground"
+      - "/workbench.colorCustomizations/statusBar.debuggingBackground"
+      - "/workbench.colorCustomizations/statusBar.debuggingForeground"
+      - "/workbench.colorCustomizations/panel.background"
+      - "/workbench.colorCustomizations/panel.border"
+      - "/workbench.colorCustomizations/tab.activeBackground"
+      - "/workbench.colorCustomizations/tab.activeForeground"
+      - "/workbench.colorCustomizations/tab.inactiveBackground"
+      - "/workbench.colorCustomizations/tab.inactiveForeground"
+      - "/workbench.colorCustomizations/titleBar.activeBackground"
+      - "/workbench.colorCustomizations/titleBar.activeForeground"
+      - "/workbench.colorCustomizations/button.background"
+      - "/workbench.colorCustomizations/button.foreground"
+      - "/workbench.colorCustomizations/button.hoverBackground"
+      - "/workbench.colorCustomizations/input.background"
+      - "/workbench.colorCustomizations/input.foreground"
+      - "/workbench.colorCustomizations/input.border"
+      - "/workbench.colorCustomizations/list.activeSelectionBackground"
+      - "/workbench.colorCustomizations/list.activeSelectionForeground"
+      - "/workbench.colorCustomizations/list.inactiveSelectionBackground"
+      - "/workbench.colorCustomizations/list.inactiveSelectionForeground"
+      - "/workbench.colorCustomizations/terminal.background"
+      - "/workbench.colorCustomizations/terminal.foreground"
+      - "/workbench.colorCustomizations/terminalCursor.foreground"
+      - "/workbench.colorCustomizations/terminal.ansiBlack"
+      - "/workbench.colorCustomizations/terminal.ansiRed"
+      - "/workbench.colorCustomizations/terminal.ansiGreen"
+      - "/workbench.colorCustomizations/terminal.ansiYellow"
+      - "/workbench.colorCustomizations/terminal.ansiBlue"
+      - "/workbench.colorCustomizations/terminal.ansiMagenta"
+      - "/workbench.colorCustomizations/terminal.ansiCyan"
+      - "/workbench.colorCustomizations/terminal.ansiWhite"
+      - "/workbench.colorCustomizations/terminal.ansiBrightBlack"
+      - "/workbench.colorCustomizations/terminal.ansiBrightRed"
+      - "/workbench.colorCustomizations/terminal.ansiBrightGreen"
+      - "/workbench.colorCustomizations/terminal.ansiBrightYellow"
+      - "/workbench.colorCustomizations/terminal.ansiBrightBlue"
+      - "/workbench.colorCustomizations/terminal.ansiBrightMagenta"
+      - "/workbench.colorCustomizations/terminal.ansiBrightCyan"
+      - "/workbench.colorCustomizations/terminal.ansiBrightWhite"
+      - "/editor.tokenColorCustomizations/comments"
+      - "/editor.tokenColorCustomizations/strings"
+      - "/editor.tokenColorCustomizations/numbers"
+      - "/editor.tokenColorCustomizations/keywords"
+      - "/editor.tokenColorCustomizations/types"
+      - "/editor.tokenColorCustomizations/functions"
+      - "/editor.tokenColorCustomizations/variables"
+      - "/editor.semanticTokenColorCustomizations/enabled"
+      - "/editor.semanticTokenColorCustomizations/rules/comment"
+      - "/editor.semanticTokenColorCustomizations/rules/string"
+      - "/editor.semanticTokenColorCustomizations/rules/number"
+      - "/editor.semanticTokenColorCustomizations/rules/keyword"
+      - "/editor.semanticTokenColorCustomizations/rules/function"
+      - "/editor.semanticTokenColorCustomizations/rules/method"
+      - "/editor.semanticTokenColorCustomizations/rules/type"
+      - "/editor.semanticTokenColorCustomizations/rules/class"
+      - "/editor.semanticTokenColorCustomizations/rules/namespace"
+      - "/editor.semanticTokenColorCustomizations/rules/parameter"
+      - "/editor.semanticTokenColorCustomizations/rules/variable.readonly"
+      - "/workbench.colorCustomizations/editorGroupHeader.tabsBackground"
+      - "/workbench.colorCustomizations/editorGroupHeader.noTabsBackground"
+      - "/workbench.colorCustomizations/statusBar.noFolderBackground"
+      - "/workbench.colorCustomizations/notifications.background"
+      - "/workbench.colorCustomizations/notifications.foreground"
+      - "/workbench.colorCustomizations/notificationCenterHeader.background"
+      - "/workbench.colorCustomizations/notificationCenterHeader.foreground"
+      - "/workbench.colorCustomizations/menu.background"
+      - "/workbench.colorCustomizations/menu.foreground"
+      - "/workbench.colorCustomizations/dropdown.background"
+      - "/workbench.colorCustomizations/dropdown.foreground"
+      - "/workbench.colorCustomizations/quickInput.background"
+      - "/workbench.colorCustomizations/quickInput.foreground"

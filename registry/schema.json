@@ -117,6 +117,7 @@
     "relativePath": { "type": "string", "pattern": "^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$", "not": { "pattern": "(^|/)\\.\\.?(/|$)" } },
     "template": { "type": "string", "pattern": "^[a-z0-9-]+/[A-Za-z0-9._-]+\\.mustache$" },
     "keyPath": { "type": "string", "pattern": "^[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*$" },
+    "jsonPointer": { "type": "string", "pattern": "^(/([^~]|~[01])*)+$" },
     "versions": {
       "type": "string",
       "pattern": "^(>=|<=|>|<|=)?[0-9]+(\\.[0-9]+)*( (>=|<=|>|<|=)?[0-9]+(\\.[0-9]+)*)*$"
@@ -242,8 +243,13 @@
         "versions": { "$ref": "#/$defs/versions" },
         "format": { "$ref": "#/$defs/format" },
         "template": { "$ref": "#/$defs/template" },
-        "paths": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/keyPath" } }
-      }
+        "paths": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string" } }
+      },
+      "allOf": [{
+        "if": { "properties": { "format": { "enum": ["json", "jsonc"] } } },
+        "then": { "properties": { "paths": { "items": { "$ref": "#/$defs/jsonPointer" } } } },
+        "else": { "properties": { "paths": { "items": { "$ref": "#/$defs/keyPath" } } } }
+      }]
     },
     "ansi": {
       "additionalProperties": false,

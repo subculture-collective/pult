@@ -98,6 +98,10 @@ A `port` integration is skipped for themes missing from its `flavors`, so it is 
 
 `ansi` is listed first for apps where it looks acceptable, because the app then follows any terminal theme change with nothing to regenerate.
 
+JSON and JSONC `keys` integrations use non-root [RFC 6901 pointers](https://www.rfc-editor.org/rfc/rfc6901) instead of dotted paths. `/workbench.colorCustomizations/editor.background` names two literal object keys; a dot inside a key is not a separator. Escape `/` as `~1` and `~` as `~0`. Registry format 5 added these editors and paths, so older binaries reject bundles using them. JSONC permits comments and trailing commas; JSON refuses them. Both require an object root and unique object keys. Paths must not overlap, may only traverse objects, and own the whole value at their endpoint. Missing object parents are created. The rendered fragment may contain only those paths and their ancestors; a path omitted from the fragment is left alone. Edits preserve comments and text outside owned values, including the file's newline and indentation style. An invalid source or fragment stops planning before any files are changed.
+
+VS Code uses these keys for the workbench, integrated terminal and syntax colours. It selects the built-in Dark Modern or Light Modern base and updates only the individual colour settings listed in its entry, leaving fonts, extensions, other custom colours and other settings alone. VS Code watches user settings, so it needs no reload command. Workspace settings and named VS Code profiles can override these user settings; Pult edits only the default user settings file.
+
 ## User overrides
 
 A file in `registry.d` needs `schema` and `id`, and the `id` must match the file name. Its other fields are applied to the built-in entry with that `id`: mappings merge key by key, and every other value, lists included, replaces the built-in value. To change one integration, repeat the whole `integrations` list. A file for an `id` with no built-in entry must be a complete entry. `disabled: true` removes the app; disabling an `id` that does not exist is reported.

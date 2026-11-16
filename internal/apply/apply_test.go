@@ -68,6 +68,7 @@ type world struct {
 
 // configs is a fixture home with a config for each of the eight M1 apps.
 var configs = map[string]string{
+	".config/Code/User/settings.json":  "{\n  // mine\n  \"editor.fontSize\": 14,\n}\n",
 	".config/kitty/kitty.conf":         "font_size 12\n",
 	".config/ghostty/config":           "font-size = 12\n",
 	".config/alacritty/alacritty.toml": "[window]\nopacity = 0.9\n",
@@ -94,6 +95,7 @@ func newWorld(t *testing.T, extra map[string]string) *world {
 	}
 	w := &world{t: t, home: home, sys: &fakeSys{
 		versions: map[string]string{
+			"code":  "1.108.0\n0123456789abcdef\nx64",
 			"kitty": "kitty 0.49.2 created by Kovid Goyal", "ghostty": "Ghostty 1.2.3", "alacritty": "alacritty 0.15.1",
 			"tmux": "tmux 3.8", "starship": "starship 1.27.0", "lazygit": "commit=x, version=0.66.2, os=linux",
 			"yazi": "Yazi\n    Version: 26.9.1", "btop": "btop version: \x1b[1m1.4.7\x1b[0m",

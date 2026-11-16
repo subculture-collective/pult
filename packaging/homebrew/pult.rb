@@ -5,7 +5,7 @@ class Pult < Formula
   homepage "https://pult.subcult.tv"
   url "@BASE@pult-@VERSION@-src.tar.gz"
   sha256 "@SHA_SRC@"
-  license all_of: ["GPL-3.0-only", "MIT"]
+  license all_of: ["GPL-3.0-only", "MIT", "BSD-3-Clause"]
 
   depends_on "go" => :build
 
@@ -20,6 +20,7 @@ class Pult < Formula
     resource("catalog").stage { cp Dir["*"].first, buildpath/"builtin/catalog.db.zst" }
     ENV["CGO_ENABLED"] = "0"
     system "go", "build", *std_go_args(ldflags: "-s -w -X main.version=#{version} -X git.subcult.tv/subculture-collective/pult.BuiltinVersion=@DATAVERSION@", output: bin/"pult"), "./cmd/pult"
+    (prefix/"LICENSES").install "LICENSES/HuJSON-BSD-3-Clause.txt"
   end
 
   test do

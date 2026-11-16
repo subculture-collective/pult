@@ -308,6 +308,8 @@ func (o Options) planEdits(ap *AppPlan, th Theme) error {
 			newCfg, err = configedit.TOMLKeys(cfg, rendered, in.Paths)
 		case "yaml":
 			newCfg, err = configedit.YAMLKeys(cfg, rendered, in.Paths)
+		case "json", "jsonc":
+			newCfg, err = configedit.JSONKeys(cfg, rendered, in.Paths, in.Format == "jsonc")
 		default:
 			err = fmt.Errorf("keys in %s files are not supported", in.Format)
 		}

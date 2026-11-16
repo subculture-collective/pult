@@ -5,7 +5,7 @@ pkgrel=1
 pkgdesc='Apply one palette across your terminal apps, and undo every change (prebuilt)'
 arch=('x86_64' 'aarch64')
 url='https://git.subcult.tv/subculture-collective/pult'
-license=('GPL-3.0-only' 'MIT')
+license=('GPL-3.0-only' 'MIT' 'BSD-3-Clause')
 provides=('pult')
 conflicts=('pult')
 # The binary is prebuilt and stripped, so a debug package would be empty.
@@ -22,5 +22,6 @@ package() {
   install -Dm755 pult "$pkgdir/usr/bin/pult"
   install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
   install -Dm644 LICENSES/MIT.txt "$pkgdir/usr/share/licenses/$pkgname/MIT.txt"
+  install -Dm644 LICENSES/HuJSON-BSD-3-Clause.txt "$pkgdir/usr/share/licenses/$pkgname/HuJSON-BSD-3-Clause.txt"
   install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
 }

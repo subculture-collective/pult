@@ -207,6 +207,34 @@ func TestRenderedFilesParse(t *testing.T) {
 			if _, err := exec.LookPath(e.Validate.Argv[0]); err != nil {
 				t.Skipf("%s is not installed", e.Validate.Argv[0])
 			}
+			for _, in := range e.Integrations {
+				if in.Template != name || in.Versions == "" {
+					continue
+				}
+				if e.Detect.Version == nil {
+					t.Fatalf("%s has a version range without a version probe", name)
+				}
+				probe := e.Detect.Version
+				out, err := exec.Command(probe.Argv[0], probe.Argv[1:]...).CombinedOutput()
+				if err != nil {
+					t.Fatalf("version probe: %v: %s", err, out)
+				}
+				m := regexp.MustCompile(probe.Regex).FindSubmatch(out)
+				if len(m) != 2 {
+					t.Fatalf("version probe did not match: %s", out)
+				}
+				r, err := registry.ParseRange(in.Versions)
+				if err != nil {
+					t.Fatal(err)
+				}
+				matches, err := r.Contains(string(m[1]))
+				if err != nil {
+					t.Fatal(err)
+				}
+				if !matches {
+					t.Skipf("%s requires %s; installed version is %s", name, in.Versions, m[1])
+				}
+			}
 			file := filepath.Join(t.TempDir(), "pult-file")
 			if err := os.WriteFile(file, []byte(out), 0o644); err != nil {
 				t.Fatal(err)
@@ -214,6 +242,7 @@ func TestRenderedFilesParse(t *testing.T) {
 			args := slices.Clone(e.Validate.Argv)
 			for i := range args {
 				args[i] = strings.ReplaceAll(args[i], "{theme_file}", file)
+				args[i] = strings.ReplaceAll(args[i], "{config}", file)
 			}
 			// Some validators print a report on success (zellij); output
 			// that mentions a problem fails the check as an exit code does.

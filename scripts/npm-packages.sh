@@ -16,7 +16,7 @@ mkdir -p "$out"
 common() {
   cat <<JSON
   "version": "$version",
-  "license": "GPL-3.0-only AND MIT",
+  "license": "GPL-3.0-only AND MIT AND BSD-3-Clause",
   "homepage": "https://pult.subcult.tv",
   "repository": { "type": "git", "url": "git+https://github.com/subculture-collective/pult.git" },
   "bugs": "https://github.com/subculture-collective/pult/issues"
