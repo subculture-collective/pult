@@ -103,3 +103,30 @@ func TestJSONKeysRejectsUnsafeEdits(t *testing.T) {
 		})
 	}
 }
+
+func TestJSONSet(t *testing.T) {
+	src := []byte("{\n  // keep\n  \"font\": 17,\n  \"cssTheme\": \"old\",\n}\n")
+	values := map[string]any{"/cssTheme": "Pult", "/nested/enabled": true, "/a~1b": 3}
+	got, err := JSONSet(src, values, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(got), "// keep\n  \"font\": 17,") {
+		t.Fatalf("unrelated setting changed: %s", got)
+	}
+	doc, err := hujson.Parse(got)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if doc.Find("/cssTheme").Value.(hujson.Literal).String() != "Pult" || doc.Find("/nested/enabled").Value.(hujson.Literal).Bool() != true || doc.Find("/a~1b").Value.(hujson.Literal).Int() != 3 {
+		t.Fatalf("settings not applied: %s", got)
+	}
+	again, err := JSONSet(got, values, true)
+	if err != nil || !bytes.Equal(got, again) {
+		t.Fatalf("not idempotent: %s, %v", again, err)
+	}
+	nested := map[string]any{"keep": 1}
+	if _, err := JSONSet(src, map[string]any{"/a": nested, "/a/b": 2}, true); err == nil || len(nested) != 1 {
+		t.Fatal("overlapping settings accepted or mutated the caller's values")
+	}
+}

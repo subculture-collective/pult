@@ -95,7 +95,7 @@ func newWorld(t *testing.T, extra map[string]string) *world {
 	}
 	w := &world{t: t, home: home, sys: &fakeSys{
 		versions: map[string]string{
-			"code":  "1.108.0\n0123456789abcdef\nx64",
+			"code": "1.108.0\n0123456789abcdef\nx64", "obsidian": "1.11.0",
 			"kitty": "kitty 0.49.2 created by Kovid Goyal", "ghostty": "Ghostty 1.2.3", "alacritty": "alacritty 0.15.1",
 			"tmux": "tmux 3.8", "starship": "starship 1.27.0", "lazygit": "commit=x, version=0.66.2, os=linux",
 			"yazi": "Yazi\n    Version: 26.9.1", "btop": "btop version: \x1b[1m1.4.7\x1b[0m",
@@ -107,6 +107,12 @@ func newWorld(t *testing.T, extra map[string]string) *world {
 	for rel, content := range configs {
 		w.write(rel, content)
 	}
+	w.write("Vaults/Notes/.obsidian/appearance.json", "{\"baseFontSize\":16}\n")
+	vaults, err := json.Marshal(map[string]any{"vaults": map[string]any{"notes": map[string]any{"path": filepath.Join(home, "Vaults/Notes")}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	w.write(".config/obsidian/obsidian.json", string(vaults))
 	for rel, content := range extra {
 		w.write(rel, content)
 	}

@@ -14,7 +14,7 @@ import (
 const builtinDir = "../../registry"
 
 // builtinApps is every built-in registry entry, in id order.
-var builtinApps = []string{"alacritty", "bat", "btop", "cava", "delta", "eza", "fish", "foot", "fzf", "ghostty", "gtk3", "gtk4", "helix", "iterm2", "kde", "kitty", "lazygit", "lsd", "starship", "subarchy-hyprland", "subarchy-shell", "swayimg", "terminal-app", "tmux", "vscode", "wezterm", "yazi", "zellij"}
+var builtinApps = []string{"alacritty", "bat", "btop", "cava", "delta", "eza", "fish", "foot", "fzf", "ghostty", "gtk3", "gtk4", "helix", "iterm2", "kde", "kitty", "lazygit", "lsd", "obsidian", "starship", "subarchy-hyprland", "subarchy-shell", "swayimg", "terminal-app", "tmux", "vscode", "wezterm", "yazi", "zellij"}
 
 const demoYAML = `
 schema: 1
@@ -137,6 +137,27 @@ func TestBuiltinEntryErrors(t *testing.T) {
 		{name: "owned target escapes", edit: func(m map[string]any) {
 			m["integrations"] = []any{map[string]any{"method": "owned", "template": "demo/t.mustache", "target": "../x"}}
 		}, errHas: "integrations"},
+		{name: "unknown discovery", edit: func(m map[string]any) {
+			m["config"].(map[string]any)["discovery"] = "unknown"
+		}, errHas: "discovery"},
+		{name: "discovery rejects commands", edit: func(m map[string]any) {
+			m["config"].(map[string]any)["discovery"] = "obsidian-vaults"
+		}, errHas: "does not support validate or reload"},
+		{name: "discovery requires owned", edit: func(m map[string]any) {
+			m["config"].(map[string]any)["discovery"] = "obsidian-vaults"
+		}, errHas: "requires owned"},
+		{name: "extra target escapes", edit: func(m map[string]any) {
+			m["integrations"] = []any{map[string]any{"method": "owned", "template": "demo/t.mustache", "target": "theme.css", "extra_files": []any{map[string]any{"template": "demo/m.mustache", "target": "../x"}}}}
+		}, errHas: "integrations"},
+		{name: "extra target duplicates main", edit: func(m map[string]any) {
+			m["integrations"] = []any{map[string]any{"method": "owned", "template": "demo/t.mustache", "target": "theme.css", "extra_files": []any{map[string]any{"template": "demo/m.mustache", "target": "theme.css"}}}}
+		}, errHas: "duplicate owned target"},
+		{name: "JSON selector pointer", edit: func(m map[string]any) {
+			m["integrations"] = []any{map[string]any{"method": "owned", "template": "demo/t.mustache", "target": "theme.css", "select": map[string]any{"format": "json", "set": map[string]any{"/cssTheme": "Pult"}}}}
+		}},
+		{name: "JSON selector rejects dotted path", edit: func(m map[string]any) {
+			m["integrations"] = []any{map[string]any{"method": "owned", "template": "demo/t.mustache", "target": "theme.css", "select": map[string]any{"format": "json", "set": map[string]any{"cssTheme": "Pult"}}}}
+		}, errHas: "cssTheme"},
 		{name: "argv given as a string", edit: func(m map[string]any) {
 			m["validate"] = map[string]any{"argv": "demo check"}
 		}, errHas: "argv"},

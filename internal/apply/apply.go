@@ -187,6 +187,9 @@ func (o Options) planApp(e registry.Entry, th *Theme) (AppPlan, error) {
 		ap.Skip = "not installed"
 		return ap, nil
 	}
+	if e.Config.Discovery == "obsidian-vaults" {
+		return o.planObsidianVaults(e, th)
+	}
 	ap.Version = o.version(e)
 	ap.Config = o.configPath(e)
 	own, err := o.Owners.File(ap.Config)
@@ -320,11 +323,43 @@ func (o Options) planEdits(ap *AppPlan, th Theme) error {
 		return err
 	}
 	if ap.ThemeFile != "" {
-		before, err := readFile(ap.ThemeFile)
-		if err != nil {
-			return err
+		if len(in.ExtraFiles) > 0 {
+			// A multi-file theme (Obsidian's CSS plus manifest) must honour
+			// ownership of every asset as well as its selector config.
+			files := append([]registry.TemplateFile{{Template: in.Template, Target: in.Target}}, in.ExtraFiles...)
+			for _, file := range files {
+				path := filepath.Join(filepath.Dir(ap.Config), filepath.FromSlash(file.Target))
+				if path == ap.Config {
+					return fmt.Errorf("owned asset overlaps selector config %s", path)
+				}
+				own, err := o.Owners.File(path)
+				if err != nil {
+					return err
+				}
+				if own.Action() == owner.HandOff || (own.Action() == owner.Ask && (o.Confirm == nil || !o.Confirm(ap.ID, own))) {
+					ap.Skip = fmt.Sprintf("theme asset %s is owned by %s; left alone", path, own.Record())
+					ap.Edits, ap.Diffs = nil, nil
+					return nil
+				}
+				out, err := render.File(o.Templates, file.Template, th.Theme, th.Palette)
+				if err != nil {
+					return err
+				}
+				before, err := readFile(path)
+				if err != nil {
+					return err
+				}
+				ed := o.edit(ap, path, []byte(out))
+				ed.Owner = own.Record()
+				ap.add(ed, before)
+			}
+		} else {
+			before, err := readFile(ap.ThemeFile)
+			if err != nil {
+				return err
+			}
+			ap.add(o.edit(ap, ap.ThemeFile, rendered), before)
 		}
-		ap.add(o.edit(ap, ap.ThemeFile, rendered), before)
 	}
 	if len(cfg) < len(original) {
 		newCfg = append(slices.Clone(bom), newCfg...)
@@ -520,6 +555,8 @@ func set(format string, src []byte, values map[string]any) ([]byte, error) {
 		return configedit.KDLSet(src, values)
 	case "args":
 		return configedit.ArgsSet(src, values)
+	case "json", "jsonc":
+		return configedit.JSONSet(src, values, format == "jsonc")
 	case "yaml":
 		// Build a fragment holding each dotted key and replace those keys.
 		frag := map[string]any{}

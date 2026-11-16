@@ -61,10 +61,11 @@ type Bundle struct {
 // Registry format 2 added the $MAC_CONFIG_HOME path prefix; 3 made port
 // integrations installable (revision, flavors), which older binaries
 // would treat as manual and stop at; 4 added the kdl and args formats;
-// 5 added JSON/JSONC keys with RFC 6901 paths.
+// 5 added JSON/JSONC keys with RFC 6901 paths; 6 added JSON selectors,
+// additional owned files and Obsidian vault discovery.
 const (
 	CatalogSchema  = 1
-	RegistrySchema = 5
+	RegistrySchema = 6
 )
 
 const (

@@ -1,0 +1,35 @@
+# Checked on Sputnik with Obsidian 1.15.0, 2026-11-16: dark/light CSS
+# updates live in an isolated vault, and closed-app apply/uninstall restores
+# its settings. App-added preferences are protected by normal undo rules.
+# Obsidian's documented vault theme format was read the same day. The desktop
+# vault registry is read-only: each absolute, available vault with the
+# default .obsidian directory gets its own theme and appearance selector.
+# Closed vaults pick it up when opened; first-time manifest discovery may
+# need a restart. Custom configuration-directory names are not discovered.
+schema: 1
+id: obsidian
+name: Obsidian
+homepage: https://obsidian.md/
+platforms: [linux, macos]
+tier: 1
+
+detect:
+  binaries: [obsidian]
+  macos_apps: [Obsidian.app]
+
+config:
+  discovery: obsidian-vaults
+  paths:
+    linux: ["$XDG_CONFIG_HOME/obsidian/obsidian.json"]
+    macos: ["$MAC_CONFIG_HOME/obsidian/obsidian.json"]
+
+integrations:
+  - method: owned
+    template: obsidian/theme.css.mustache
+    target: themes/Pult/theme.css
+    extra_files:
+      - template: obsidian/manifest.json.mustache
+        target: themes/Pult/manifest.json
+    select:
+      format: json
+      set: { "/cssTheme": Pult }

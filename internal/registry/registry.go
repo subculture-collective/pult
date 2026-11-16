@@ -71,8 +71,9 @@ type VersionProbe struct {
 }
 
 type Config struct {
-	Env   []EnvVar              `json:"env"`
-	Paths map[Platform][]string `json:"paths"`
+	Env       []EnvVar              `json:"env"`
+	Paths     map[Platform][]string `json:"paths"`
+	Discovery string                `json:"discovery"`
 }
 
 // EnvVar overrides the config location. Kind "dir" names the directory
@@ -85,23 +86,30 @@ type EnvVar struct {
 // Integration is one way to theme an app. Which fields are set depends on
 // Method; registry/schema.json lists them.
 type Integration struct {
-	Method    Method         `json:"method"`
-	Versions  string         `json:"versions"`
-	Template  string         `json:"template"`
-	OwnedFile string         `json:"owned_file"`
-	Line      string         `json:"line"`
-	Position  string         `json:"position"`
-	Format    string         `json:"format"`
-	Key       string         `json:"key"`
-	Target    string         `json:"target"`
-	Select    *Edit          `json:"select"`
-	Paths     []string       `json:"paths"`
-	Set       map[string]any `json:"set"`
-	URL       string         `json:"url"`
+	Method     Method         `json:"method"`
+	Versions   string         `json:"versions"`
+	Template   string         `json:"template"`
+	OwnedFile  string         `json:"owned_file"`
+	Line       string         `json:"line"`
+	Position   string         `json:"position"`
+	Format     string         `json:"format"`
+	Key        string         `json:"key"`
+	Target     string         `json:"target"`
+	ExtraFiles []TemplateFile `json:"extra_files"`
+	Select     *Edit          `json:"select"`
+	Paths      []string       `json:"paths"`
+	Set        map[string]any `json:"set"`
+	URL        string         `json:"url"`
 	// Revision and Flavors are for port: the pinned commit, and per catalog
 	// theme ID the file in the port repository and its SHA-256.
 	Revision string                `json:"revision"`
 	Flavors  map[string]PortFlavor `json:"flavors"`
+}
+
+// TemplateFile is an additional owned file next to an integration's target.
+type TemplateFile struct {
+	Template string `json:"template"`
+	Target   string `json:"target"`
 }
 
 // PortFlavor is one theme's file in an upstream port.
@@ -321,6 +329,19 @@ var placeholder = regexp.MustCompile(`\{[^{}\s]*\}`)
 
 func (e Entry) check() error {
 	var errs []error
+	if e.Config.Discovery != "" {
+		if e.Validate != nil || len(e.Reload) > 0 {
+			errs = append(errs, fmt.Errorf("config.discovery does not support validate or reload commands"))
+		}
+		if len(e.Config.Env) > 0 {
+			errs = append(errs, fmt.Errorf("config.discovery does not support config.env overrides"))
+		}
+		for _, in := range e.Integrations {
+			if in.Method != Owned {
+				errs = append(errs, fmt.Errorf("config.discovery requires owned integrations"))
+			}
+		}
+	}
 	for _, p := range e.Platforms {
 		if len(e.Config.Paths[p]) == 0 {
 			errs = append(errs, fmt.Errorf("config.paths has no %s paths", p))
@@ -357,6 +378,13 @@ func (e Entry) check() error {
 		errs = append(errs, checkPlaceholders("validate.argv", e.Validate.Argv, commandVars)...)
 	}
 	for i, in := range e.Integrations {
+		targets := map[string]bool{in.Target: true}
+		for _, file := range in.ExtraFiles {
+			if targets[file.Target] {
+				errs = append(errs, fmt.Errorf("integrations[%d]: duplicate owned target %q", i, file.Target))
+			}
+			targets[file.Target] = true
+		}
 		if _, err := ParseRange(in.Versions); err != nil {
 			errs = append(errs, fmt.Errorf("integrations[%d].versions: %w", i, err))
 		}

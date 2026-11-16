@@ -110,6 +110,9 @@ func templateUses(t *testing.T) map[string]registry.Entry {
 			if in.Template != "" {
 				uses[in.Template] = e
 			}
+			for _, file := range in.ExtraFiles {
+				uses[file.Template] = e
+			}
 		}
 	}
 	return uses

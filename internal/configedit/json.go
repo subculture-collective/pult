@@ -11,6 +11,45 @@ import (
 	"github.com/tailscale/hujson"
 )
 
+// JSONSet sets the values at non-root RFC 6901 object pointers, retaining
+// unrelated settings and comments as JSONKeys does.
+func JSONSet(src []byte, values map[string]any, comments bool) ([]byte, error) {
+	fragment := map[string]any{}
+	paths := make([]string, 0, len(values))
+	for p := range values {
+		paths = append(paths, p)
+	}
+	slices.Sort(paths)
+	for i, p := range paths {
+		for _, prev := range paths[:i] {
+			if strings.HasPrefix(p, prev+"/") || strings.HasPrefix(prev, p+"/") {
+				return nil, fmt.Errorf("configedit: overlapping JSON set paths at %q", p)
+			}
+		}
+		parts, err := jsonPointer(p)
+		if err != nil {
+			return nil, err
+		}
+		parent := fragment
+		for _, key := range parts[:len(parts)-1] {
+			if _, ok := parent[key]; !ok {
+				parent[key] = map[string]any{}
+			}
+			next, ok := parent[key].(map[string]any)
+			if !ok {
+				return nil, fmt.Errorf("configedit: overlapping JSON set paths at %q", p)
+			}
+			parent = next
+		}
+		parent[parts[len(parts)-1]] = values[p]
+	}
+	b, err := json.Marshal(fragment)
+	if err != nil {
+		return nil, fmt.Errorf("configedit: JSON set: %w", err)
+	}
+	return JSONKeys(src, b, paths, comments)
+}
+
 // JSONKeys replaces the object values named by RFC 6901 pointers in paths.
 // Comments, whitespace and keys outside those values are kept. Missing parents
 // are created as objects; arrays and scalar parents are never traversed.

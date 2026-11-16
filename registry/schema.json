@@ -101,6 +101,7 @@
             }
           }
         },
+        "discovery": { "enum": ["obsidian-vaults"] },
         "paths": {
           "type": "object",
           "minProperties": 1,
@@ -129,14 +130,32 @@
       "propertyNames": { "$ref": "#/$defs/keyPath" },
       "additionalProperties": { "type": ["string", "number", "boolean"] }
     },
+    "jsonSettings": {
+      "type": "object", "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/jsonPointer" },
+      "additionalProperties": { "type": ["string", "number", "boolean"] }
+    },
+    "templateFile": {
+      "type": "object", "additionalProperties": false,
+      "required": ["template", "target"],
+      "properties": {
+        "template": { "$ref": "#/$defs/template" },
+        "target": { "$ref": "#/$defs/relativePath" }
+      }
+    },
     "edit": {
       "type": "object",
       "additionalProperties": false,
       "required": ["format", "set"],
       "properties": {
         "format": { "$ref": "#/$defs/format" },
-        "set": { "$ref": "#/$defs/settings" }
-      }
+        "set": { "type": "object" }
+      },
+      "allOf": [{
+        "if": { "properties": { "format": { "enum": ["json", "jsonc"] } } },
+        "then": { "properties": { "set": { "$ref": "#/$defs/jsonSettings" } } },
+        "else": { "properties": { "set": { "$ref": "#/$defs/settings" } } }
+      }]
     },
     "argv": {
       "type": "array",
@@ -232,7 +251,8 @@
         "versions": { "$ref": "#/$defs/versions" },
         "template": { "$ref": "#/$defs/template" },
         "target": { "$ref": "#/$defs/relativePath" },
-        "select": { "$ref": "#/$defs/edit" }
+        "select": { "$ref": "#/$defs/edit" },
+        "extra_files": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/templateFile" } }
       }
     },
     "keys": {
@@ -258,8 +278,13 @@
         "method": { "const": "ansi" },
         "versions": { "$ref": "#/$defs/versions" },
         "format": { "$ref": "#/$defs/format" },
-        "set": { "$ref": "#/$defs/settings" }
-      }
+        "set": { "type": "object" }
+      },
+      "allOf": [{
+        "if": { "properties": { "format": { "enum": ["json", "jsonc"] } } },
+        "then": { "properties": { "set": { "$ref": "#/$defs/jsonSettings" } } },
+        "else": { "properties": { "set": { "$ref": "#/$defs/settings" } } }
+      }]
     },
     "portInstall": {
       "additionalProperties": false,
